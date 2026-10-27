@@ -11,6 +11,9 @@ indent_size = 4
 [*.{ts,html,scss,css,yml,yaml,json}]
 indent_size = 2
 
+[*.ts]
+quote_type = single
+
 [*.md]
 trim_trailing_whitespace = false
 
