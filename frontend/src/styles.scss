@@ -1,0 +1,78 @@
+@use '@angular/material' as mat;
+@use './styles/theme-colors' as theme;
+
+// Brand palette: navy for sidebar and headers, teal for primary actions,
+// light gray for form fields, white rounded cards.
+:root {
+  --re-navy: #0f172a;
+  --re-navy-hover: #1e293b;
+  --re-teal: #14b8a6;
+  --re-field: #f3f4f6;
+  --re-card: #ffffff;
+  --re-page: #f8fafc;
+  --re-radius: 16px;
+}
+
+html {
+  height: 100%;
+  color-scheme: light;
+
+  // Material 3 theme generated from the brand teal (ng generate @angular/material:theme-color)
+  @include mat.theme(
+    (
+      color: (
+        primary: theme.$primary-palette,
+        tertiary: theme.$tertiary-palette,
+      ),
+      typography: Roboto,
+      density: 0,
+    )
+  );
+
+  // The generated primary tone (#006b5f) keeps text and focus rings readable on white;
+  // filled buttons use the exact brand teal with navy text (contrast 7:1).
+  @include mat.button-overrides(
+    (
+      filled-container-color: var(--re-teal),
+      filled-label-text-color: var(--re-navy),
+    )
+  );
+
+  @include mat.form-field-overrides(
+    (
+      filled-container-color: var(--re-field),
+    )
+  );
+
+  @include mat.card-overrides(
+    (
+      elevated-container-color: var(--re-card),
+      elevated-container-shape: var(--re-radius),
+      outlined-container-color: var(--re-card),
+      outlined-container-shape: var(--re-radius),
+    )
+  );
+
+  @include mat.toolbar-overrides(
+    (
+      container-background-color: var(--re-navy),
+      container-text-color: #ffffff,
+    )
+  );
+
+  @include mat.sidenav-overrides(
+    (
+      container-background-color: var(--re-navy),
+      container-text-color: #e2e8f0,
+      container-shape: 0,
+    )
+  );
+}
+
+body {
+  margin: 0;
+  height: 100%;
+  background-color: var(--re-page);
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-body-medium);
+}

@@ -1,0 +1,98 @@
+.shell {
+  height: 100%;
+  background: var(--re-page);
+}
+
+.sidebar {
+  width: 248px;
+  display: flex;
+  flex-direction: column;
+  border-right: none;
+}
+
+// The sidenav wraps its content in an inner container; make it a column so the user block sits at the bottom
+.sidebar ::ng-deep .mat-drawer-inner-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 20px 16px;
+  color: #ffffff;
+  font: var(--mat-sys-title-large);
+}
+
+.brand-icon {
+  color: var(--re-teal);
+}
+
+.nav {
+  flex: 1;
+
+  a {
+    margin: 2px 12px;
+    border-radius: 10px;
+    --mat-list-list-item-label-text-color: #cbd5e1;
+    --mat-list-list-item-leading-icon-color: #94a3b8;
+    --mat-list-list-item-hover-label-text-color: #ffffff;
+    --mat-list-list-item-hover-leading-icon-color: #ffffff;
+    --mat-list-list-item-focus-label-text-color: #ffffff;
+
+    &:hover {
+      background: var(--re-navy-hover);
+    }
+
+    &.active {
+      background: var(--re-navy-hover);
+      --mat-list-list-item-label-text-color: #ffffff;
+      --mat-list-list-item-leading-icon-color: var(--re-teal);
+    }
+  }
+}
+
+.user {
+  padding: 16px 20px 20px;
+  border-top: 1px solid #1e293b;
+}
+
+.user-name {
+  color: #ffffff;
+  font: var(--mat-sys-title-small);
+}
+
+.user-role {
+  color: #94a3b8;
+  font: var(--mat-sys-body-small);
+  margin-bottom: 8px;
+}
+
+.logout {
+  --mat-button-text-label-text-color: #cbd5e1;
+  margin-left: -12px;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  gap: 8px;
+}
+
+.page-title {
+  margin: 0;
+  font: var(--mat-sys-title-large);
+}
+
+.page {
+  padding: 24px;
+  max-width: 1200px;
+}
+
+@media (max-width: 599.98px) {
+  .page {
+    padding: 16px;
+  }
+}
