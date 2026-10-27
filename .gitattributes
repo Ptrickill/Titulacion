@@ -1,0 +1,17 @@
+# Normalize every text file to LF, also in the working copy (matches .editorconfig)
+* text=auto eol=lf
+
+# Unix scripts: always LF (otherwise they fail on Linux/CI)
+mvnw text eol=lf
+*.sh text eol=lf
+
+# Windows scripts: always CRLF
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Binaries
+*.jar binary
+*.png binary
+*.jpg binary
+*.ico binary
+*.pdf binary

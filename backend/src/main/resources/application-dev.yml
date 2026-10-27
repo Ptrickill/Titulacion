@@ -1,0 +1,13 @@
+# Local development profile (active by default)
+spring:
+  jpa:
+    # SQL logging is off by default; to inspect queries temporarily, set
+    # logging.level.org.hibernate.SQL=DEBUG and org.hibernate.orm.jdbc.bind=TRACE (never commit that change)
+    show-sql: false
+
+logging:
+  level:
+    root: INFO
+    ec.rehabelite: DEBUG
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: WARN

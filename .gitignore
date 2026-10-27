@@ -1,0 +1,32 @@
+# --- Secrets (NEVER commit) ---
+.env
+.env.*
+!.env.example
+
+# --- Java / Maven ---
+target/
+!.mvn/wrapper/maven-wrapper.jar
+*.class
+
+# --- Node / Angular ---
+node_modules/
+dist/
+.angular/
+coverage/
+test-results/
+playwright-report/
+
+# --- IDE ---
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+
+# --- Logs ---
+logs/
+*.log
+npm-debug.log*
+
+# --- Operating system ---
+.DS_Store
+Thumbs.db

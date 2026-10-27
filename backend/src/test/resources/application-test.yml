@@ -1,0 +1,19 @@
+# Test profile: synthetic values so tests never depend on the .env file.
+# The real PostgreSQL connection is injected by Testcontainers (@ServiceConnection).
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/unused
+    username: test
+    password: test
+
+app:
+  jwt:
+    secret: test-only-secret-for-automated-tests-0123456789
+    expiration-minutes: 30
+  admin:
+    email: admin.test@rehabelite.test
+    password: TestPassword.2026
+  cors:
+    allowed-origins: http://localhost:4200
+  ai:
+    anthropic-api-key: ""
