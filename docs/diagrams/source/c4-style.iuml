@@ -1,0 +1,48 @@
+skinparam defaultFontName "DejaVu Sans"
+skinparam dpi 200
+skinparam shadowing false
+skinparam ArrowColor #333333
+skinparam ArrowFontColor #222222
+skinparam ArrowFontSize 11
+skinparam rectangle<<person>> {
+  BackgroundColor #E6E6E6
+  FontColor #000000
+  BorderColor #555555
+  StereotypeFontColor #333333
+}
+skinparam rectangle<<system>> {
+  BackgroundColor #D0D0D0
+  FontColor #000000
+  BorderColor #333333
+  StereotypeFontColor #333333
+}
+skinparam rectangle<<external_system>> {
+  BackgroundColor #FFFFFF
+  FontColor #000000
+  BorderColor #555555
+  BorderStyle dashed
+  StereotypeFontColor #333333
+}
+skinparam rectangle<<container>> {
+  BackgroundColor #EDEDED
+  FontColor #000000
+  BorderColor #444444
+  StereotypeFontColor #333333
+}
+skinparam database<<container>> {
+  BackgroundColor #EDEDED
+  FontColor #000000
+  BorderColor #444444
+  StereotypeFontColor #333333
+}
+skinparam rectangle<<component>> {
+  BackgroundColor #F7F7F7
+  FontColor #000000
+  BorderColor #555555
+  StereotypeFontColor #333333
+}
+skinparam rectangle<<boundary>> {
+  FontColor #000000
+  BorderColor #444444
+  StereotypeFontColor #333333
+}

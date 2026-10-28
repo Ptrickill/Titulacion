@@ -47,6 +47,14 @@ Each module is split into `web/` (controllers and DTOs), `application/` (service
 
 REST endpoints live under `/api` in plural kebab-case (`/api/patients`, `/api/clinical-records`, `/api/therapy-sessions`, `/api/ai-summaries`, `/api/audit-logs`, ...). Errors are returned as RFC 9457 `ProblemDetail`.
 
+## Documentation
+
+Architecture diagrams (C4, domain and data models), the prototype screens and the project documentation are indexed in [docs/README.md](docs/README.md).
+
+Architecture overview (C4 Level 2, containers):
+
+![C4 Level 2 — Containers: Angular SPA, Spring Boot modular REST API, PostgreSQL 16 and the Claude API](docs/diagrams/fig13-c4-level2-containers.png)
+
 ## Requirements
 
 - JDK 21 or later

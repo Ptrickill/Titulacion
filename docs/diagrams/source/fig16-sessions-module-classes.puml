@@ -1,0 +1,68 @@
+@startuml
+!include uml-style.iuml
+skinparam packageStyle rectangle
+skinparam dpi 150
+package "sessions.web" {
+  class SessionController <<RestController>> {
+    - sessionService: SessionService
+    + register(treatmentId, SessionRequest): ResponseEntity<SessionResponse>
+    + getTimeline(treatmentId, from, to): List<SessionResponse>
+    + correct(sessionId, SessionRequest): ResponseEntity<SessionResponse>
+  }
+  class SessionRequest <<record>> {
+    sessionDate: LocalDate
+    sessionTime: LocalTime
+    sessionType: String
+    activitiesPerformed: String
+    clinicalObservations: String
+    patientInstructions: String
+    painScore: int {0..10}
+    progressStatus: ProgressStatus
+    status: SessionStatus
+  }
+  class SessionResponse <<record>>
+}
+package "sessions.application" {
+  interface SessionService {
+    + register(treatmentId, SessionRequest): SessionResponse
+    + getTimeline(treatmentId, from, to): List<SessionResponse>
+    + correct(sessionId, SessionRequest): SessionResponse
+  }
+  class SessionServiceImpl <<Service>> {
+    - sessionRepository: TherapySessionRepository
+    - treatmentQuery: TreatmentQueryPort
+    - currentUser: CurrentUserProvider
+    - mapper: SessionMapper
+    + register(...): SessionResponse
+    + getTimeline(...): List<SessionResponse>
+    + correct(...): SessionResponse
+  }
+  interface SessionMapper <<MapStruct>>
+}
+package "sessions.domain" {
+  class TherapySession <<Entity / @Audited>>
+  interface TherapySessionRepository <<Spring Data JPA>> {
+    + findByTreatmentIdOrderBySessionDateAsc(id): List<TherapySession>
+    + countByTreatmentId(id): int
+  }
+}
+package "clinicalrecords (public API)" {
+  interface TreatmentQueryPort {
+    + findActiveTreatment(treatmentId): TreatmentSummary
+  }
+}
+package "auth (public API)" {
+  interface CurrentUserProvider {
+    + getAuthenticatedUser(): User
+  }
+}
+SessionController -down-> SessionService : depends on abstraction
+SessionController .right.> SessionRequest
+SessionController .right.> SessionResponse
+SessionServiceImpl .up.|> SessionService
+SessionServiceImpl -down-> TherapySessionRepository
+SessionServiceImpl -right-> TreatmentQueryPort
+SessionServiceImpl -right-> CurrentUserProvider
+SessionServiceImpl -left-> SessionMapper
+TherapySessionRepository .down.> TherapySession : persists
+@enduml
