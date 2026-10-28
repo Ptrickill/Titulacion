@@ -1,4 +1,4 @@
-import { inject } from '@angular/core';
+import { inject, isDevMode } from '@angular/core';
 import { Routes } from '@angular/router';
 import { authGuard, roleGuard } from './core/auth/auth-guard';
 import { AuthSession } from './core/auth/auth-session';
@@ -20,36 +20,38 @@ export const routes: Routes = [
   },
   {
     path: '',
-    loadComponent: () => import('./shared/layout/shell').then((m) => m.Shell),
+    loadComponent: () => import('./shared/layout/app-shell').then((m) => m.AppShell),
     canActivate: [authGuard],
     children: [
       {
-        path: 'admin',
-        title: 'Panel de administración',
-        canActivate: [roleGuard('ADMINISTRATOR')],
-        loadComponent: () =>
-          import('./features/admin/admin-dashboard').then((m) => m.AdminDashboard),
+        path: 'physio',
+        canActivate: [roleGuard('PHYSIOTHERAPIST')],
+        loadChildren: () =>
+          import('./features/physiotherapist/physio.routes').then((m) => m.PHYSIO_ROUTES),
       },
       {
-        path: 'physio',
-        title: 'Panel del fisioterapeuta',
-        canActivate: [roleGuard('PHYSIOTHERAPIST')],
-        loadComponent: () =>
-          import('./features/physiotherapist/physio-dashboard').then((m) => m.PhysioDashboard),
+        path: 'admin',
+        canActivate: [roleGuard('ADMINISTRATOR')],
+        loadChildren: () => import('./features/admin/admin.routes').then((m) => m.ADMIN_ROUTES),
       },
       {
         path: 'director',
-        title: 'Panel de dirección operativa',
         canActivate: [roleGuard('OPERATIONS_DIRECTOR')],
-        loadComponent: () =>
-          import('./features/director/director-dashboard').then((m) => m.DirectorDashboard),
+        loadChildren: () =>
+          import('./features/director/director.routes').then((m) => m.DIRECTOR_ROUTES),
       },
       {
         path: 'patient',
-        title: 'Mi portal',
         canActivate: [roleGuard('PATIENT')],
-        loadComponent: () =>
-          import('./features/patient/patient-dashboard').then((m) => m.PatientDashboard),
+        loadChildren: () =>
+          import('./features/patient/patient.routes').then((m) => m.PATIENT_ROUTES),
+      },
+      {
+        // Development-only component gallery; not matched in production builds
+        path: 'ui-kit',
+        title: 'Catálogo de componentes | Rehab Elite',
+        canMatch: [() => isDevMode()],
+        loadComponent: () => import('./features/dev/ui-kit').then((m) => m.UiKit),
       },
     ],
   },

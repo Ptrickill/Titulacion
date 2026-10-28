@@ -1,0 +1,100 @@
+<mat-sidenav-container class="shell">
+  <mat-sidenav
+    #sidenav
+    class="sidebar"
+    [mode]="isHandset() ? 'over' : 'side'"
+    [opened]="!isHandset()"
+  >
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <mat-icon>physical_therapy</mat-icon>
+      </div>
+      <div>
+        <div class="brand-name">Rehab<span>Elite</span></div>
+        <div class="panel-label">{{ panelLabel() }}</div>
+      </div>
+    </div>
+
+    <nav class="nav" aria-label="Menú principal">
+      <p class="nav-title">Menú principal</p>
+      @for (item of navItems(); track item.route) {
+        <a
+          class="nav-item"
+          [routerLink]="item.route"
+          routerLinkActive="active"
+          ariaCurrentWhenActive="page"
+          [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+          (click)="isHandset() && sidenav.close()"
+        >
+          <mat-icon aria-hidden="true">{{ item.icon }}</mat-icon>
+          <span>{{ item.label }}</span>
+        </a>
+      }
+    </nav>
+
+    <div class="sidebar-footer">
+      @if (showRoleSwitcher) {
+        <button type="button" class="role-switcher" [matMenuTriggerFor]="rolesMenu">
+          <mat-icon aria-hidden="true">swap_horiz</mat-icon>
+          Cambiar de rol (prueba)
+        </button>
+        <mat-menu #rolesMenu="matMenu">
+          @for (option of roles; track option) {
+            <button mat-menu-item type="button" (click)="switchRole(option)">
+              {{ roleLabels[option] }}
+            </button>
+          }
+        </mat-menu>
+      }
+      <button type="button" class="logout" (click)="logout()">
+        <mat-icon aria-hidden="true">logout</mat-icon>
+        Cerrar sesión
+      </button>
+    </div>
+  </mat-sidenav>
+
+  <mat-sidenav-content class="content">
+    <header class="header">
+      @if (isHandset()) {
+        <button mat-icon-button type="button" aria-label="Abrir menú" (click)="sidenav.toggle()">
+          <mat-icon>menu</mat-icon>
+        </button>
+      }
+      <div class="greeting">
+        <div class="welcome">
+          <span
+            >Bienvenido, <strong class="user-name">{{ userName() }}</strong></span
+          >
+          <app-status-badge
+            class="role-badge"
+            [label]="roleLabel()"
+            [tone]="roleTone()"
+            [uppercase]="true"
+          />
+        </div>
+        <div class="date">
+          <mat-icon aria-hidden="true">calendar_today</mat-icon>
+          <time [attr.datetime]="today() | date: 'yyyy-MM-dd'">{{
+            today() | date: "EEEE, d 'de' MMMM 'de' y" : undefined : locale
+          }}</time>
+        </div>
+      </div>
+
+      <div class="user">
+        <div class="avatar" [class]="'avatar tone-' + roleTone()" aria-hidden="true">
+          {{ initials() }}
+        </div>
+        <div class="user-text">
+          <div class="user-full-name">{{ userName() }}</div>
+          <div class="user-role">
+            Rol: <span>{{ roleLabel() }}</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="page">
+      <router-outlet />
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

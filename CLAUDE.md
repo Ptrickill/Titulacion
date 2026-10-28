@@ -156,12 +156,14 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
 ## Frontend (Angular 22 + Material)
 
 - Requiere Node.js `^22.22.3`. `npm start` sirve en `http://localhost:4200` y redirige `/api` a `http://localhost:8080` (`proxy.conf.json`).
-- Carpetas: `src/app/core` (sesión `AuthSession`, `authGuard`/`roleGuard`, `authInterceptor`, roles), `src/app/shared` (`layout/Shell` con barra lateral, `ui/` reutilizables), `src/app/features/auth`, `features/admin`, `features/physiotherapist`, `features/director`, `features/patient`.
-- Rutas: `/login`, `/admin`, `/physio`, `/director`, `/patient`; cada panel protegido por `authGuard` + `roleGuard(rol)` y cargado de forma diferida.
+- Carpetas: `src/app/core` (sesión `AuthSession`, `authGuard`/`roleGuard`, `authInterceptor`, roles, locale `es-EC`), `src/app/shared/layout` (`AppShell`, `nav-items.ts`, `PlaceholderPage`), `src/app/shared/ui` (componentes reutilizables), `src/app/features/auth`, `features/admin`, `features/physiotherapist`, `features/director`, `features/patient`, `features/dev` (solo desarrollo).
+- Rutas: `/login` y, dentro de `AppShell`, un `*.routes.ts` por rol: `/physio` (`patients`, `clinical-records`, `timeline`, `ai-assistant`), `/admin` (`users`, `patients`, `reports`), `/director` (`reports`), `/patient`. Cada rol protegido por `authGuard` + `roleGuard(rol)` y cargado de forma diferida. Las secciones sin historia implementada usan `PlaceholderPage` (título y subtítulo en `data`); la historia reemplaza ese `component` por su página real.
+- Componentes de `shared/ui` (standalone, con pruebas): `page-header`, `stat-card`, `status-badge`, `data-table` (paginación en cliente + `appDataTableCell` para celdas personalizadas), `form-section`, `empty-state`, `confirm-dialog` (`openConfirmDialog()` devuelve `Observable<boolean>`) y `hero-banner`. Usarlos antes de crear componentes nuevos. Catálogo visual en `/ui-kit` (solo `isDevMode()`).
+- Diseño: seguir `docs/prototype/`. Capturas de comparación por tarea en `docs/screenshots/<tarea>/`.
 - Nombres según la guía de estilo de Angular CLI 22, en inglés: archivo `patient-list.ts`, clase `PatientList`, selector `app-patient-list`; guards/interceptores `*-guard.ts` / `*-interceptor.ts`. Textos de la interfaz en español.
-- Tema: tokens `--re-navy` (#0F172A, barra lateral y cabeceras), `--re-teal` (#14B8A6, acción primaria con texto navy), `--re-field` (#F3F4F6, campos), `--re-card` (tarjetas blancas, radio 16px) en `src/styles.scss`. Usar esos tokens, no colores sueltos.
+- Tema: tokens CSS `--re-*` definidos en `src/styles/_tokens.scss` (colores, grises, estados, radios, sombras, espaciados, tipografía Plus Jakarta Sans): `--re-navy` (#0F172A, barra lateral y cabeceras), `--re-teal` (#14B8A6, acción primaria e ítem activo **con texto navy**, contraste 7:1), `--re-text-teal` (#0F766E, texto teal sobre blanco), `--re-field` (#F3F4F6, campos), `--re-card` (tarjetas blancas, `--re-radius-lg` 16px). Usar siempre tokens, nunca colores sueltos; no poner texto blanco sobre `#14B8A6` (contraste 2.5:1).
 - Nuevas entradas de menú por rol en `shared/layout/nav-items.ts`.
-- El bloque "Acceso de desarrollo" del login (solo `isDevMode()`) es temporal: **eliminarlo en HU-01**.
+- El bloque "Acceso de desarrollo" del login y el botón "Cambiar de rol (prueba)" de la barra lateral (solo `isDevMode()`) son temporales: **eliminarlos en HU-01**.
 - Indentación de 2 espacios (ver `.editorconfig`).
 
 ## Convenciones de repositorio
