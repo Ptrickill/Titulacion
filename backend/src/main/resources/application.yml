@@ -29,6 +29,10 @@ spring:
     compose:
       enabled: false
 
+server:
+  # Hosting platforms such as Render inject PORT
+  port: ${PORT:8080}
+
 management:
   endpoints:
     web:

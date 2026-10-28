@@ -1,0 +1,10 @@
+# Build output and local files that must never reach the image build context
+target/
+.idea/
+*.iml
+.vscode/
+.env
+.env.*
+*.log
+Dockerfile
+.dockerignore

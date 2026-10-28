@@ -1,0 +1,15 @@
+@startuml
+!include <C4/C4_Context>
+!include c4-style.iuml
+Person(fisio, "Fisioterapeuta", "Consulta historiales, registra sesiones y valida resúmenes de IA.")
+Person(admin, "Administrador / Recepción", "Registra pacientes y gestiona usuarios por rol.")
+Person(pac, "Paciente", "Consulta su progreso, sesiones e indicaciones.")
+Person(dir, "Dirección operativa", "Consulta reportes consolidados en modo lectura.")
+System(sis, "Sistema Web de Gestión Clínica y Seguimiento Terapéutico", "Centraliza pacientes, historiales clínicos, sesiones, reportes y resúmenes asistidos por IA de Rehab Elite.")
+System_Ext(ia, "API de Claude\n(Anthropic)", "Servicio externo de modelo de lenguaje que genera la síntesis terapéutica.")
+Rel(fisio, sis, "Registra sesiones y consulta historiales", "HTTPS")
+Rel(admin, sis, "Registra pacientes y usuarios", "HTTPS")
+Rel(pac, sis, "Consulta su seguimiento", "HTTPS")
+Rel(dir, sis, "Consulta reportes", "HTTPS")
+Rel(sis, ia, "Envía información seudonimizada y recibe la síntesis", "HTTPS / JSON")
+@enduml
