@@ -99,7 +99,8 @@ Reglas:
 - Errores: lanzar `ResourceNotFoundException` (404) o `BusinessRuleException` (422) de `ec.rehabelite.shared.domain` con mensaje en español; `GlobalExceptionHandler` los convierte en `ProblemDetail` en español. El locale está fijo en `es-EC`, así que los mensajes de Bean Validation también salen en español.
 - Logs con SLF4J (`LoggerFactory.getLogger`), en inglés, **sin datos personales ni clínicos** (nada de cédulas, nombres, correos, diagnósticos ni valores de columnas; usar ids).
 - Configuración propia bajo `app.*` en el record validado `ec.rehabelite.shared.config.AppProperties`.
-- Perfiles: `application.yml` (común), `application-dev.yml` (por defecto; logs SQL apagados), `application-test.yml` (Testcontainers, en `src/test/resources`).
+- Perfiles: `application.yml` (común; `server.port` lee `PORT`), `application-dev.yml` (por defecto; logs SQL apagados), `application-test.yml` (Testcontainers, en `src/test/resources`), `prod` (lo activa la imagen Docker; solo configuración común).
+- Pruebas de integración: extender `ec.rehabelite.AbstractIntegrationTest` (contexto completo, perfil `test`, un único `postgres:16` de Testcontainers compartido). No asumir base vacía: cada prueba crea sus propios datos con valores únicos.
 
 ### Endpoints REST
 
@@ -148,7 +149,7 @@ Valores de enums / CHECK:
 
 ### Variables de entorno
 
-`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET` (≥ 32 caracteres), `JWT_EXPIRATION_MINUTES`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ANTHROPIC_API_KEY`, `CORS_ALLOWED_ORIGINS`.
+`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `POSTGRES_DB` (solo para el PostgreSQL de Docker), `JWT_SECRET` (≥ 32 caracteres), `JWT_EXPIRATION_MINUTES`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ANTHROPIC_API_KEY`, `CORS_ALLOWED_ORIGINS`.
 
 Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `app.admin.password`, `app.cors.allowed-origins`, `app.ai.anthropic-api-key`.
 
@@ -185,6 +186,12 @@ Una historia está terminada cuando:
 - Presentar un **plan antes de implementar** cada historia de usuario.
 - **Una historia por rama.**
 
+## Docker
+
+- La base de desarrollo principal es el **PostgreSQL de Windows (5432)**; nunca modificarla desde Docker.
+- `docker-compose.yml`: servicio `db` (postgres:16 en **5433**) y `backend` (perfil `full`, imagen de `backend/Dockerfile`, `DB_URL` → `db:5432`). Uso opcional.
+- `backend/Dockerfile` es la imagen de despliegue en Render: multi-etapa, usuario no root, `PORT`, `HEALTHCHECK` en `/actuator/health`. No copiar `.env` ni secretos a la imagen.
+
 ## Comandos
 
 ```powershell
@@ -192,6 +199,11 @@ Una historia está terminada cuando:
 .\mvnw.cmd -q -DskipTests compile   # compilar
 .\mvnw.cmd clean verify             # pruebas (requiere Docker para Testcontainers)
 .\mvnw.cmd spring-boot:run          # arrancar con perfil dev (lee ../.env)
+
+# Docker (desde la raíz)
+docker compose up -d db                     # PostgreSQL 16 en localhost:5433
+docker compose --profile full up --build    # db + backend en :8080
+docker compose --profile full down          # detener (el volumen se conserva)
 
 # Frontend (desde frontend/)
 npm start                           # http://localhost:4200 con proxy /api -> :8080

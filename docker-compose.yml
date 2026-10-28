@@ -1,0 +1,55 @@
+# =====================================================================
+# Rehab Elite - OPTIONAL Docker environment
+#
+# The main development database is the PostgreSQL installed on Windows
+# (localhost:5432). This file does not touch it. Use it for:
+#   - db      : a disposable PostgreSQL 16 on port 5433, e.g. for a teammate
+#               without a local PostgreSQL or to try migrations in isolation.
+#   - backend : (profile "full") the same image deployed to Render, wired to
+#               the db container. Start it with --profile full.
+#
+# Values come from the root .env (POSTGRES_DB, DB_USERNAME, DB_PASSWORD, ...).
+#
+#   docker compose up -d db                    # database only
+#   docker compose --profile full up --build   # database + backend
+#   docker compose --profile full down         # stop (data is kept in the volume)
+# =====================================================================
+name: rehab-elite
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-rehab_elite}
+      POSTGRES_USER: ${DB_USERNAME:?DB_USERNAME must be set in .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
+    ports:
+      # 5433 on the host so it never collides with the Windows PostgreSQL on 5432
+      - "5433:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  backend:
+    profiles: ["full"]
+    build:
+      context: ./backend
+    env_file: .env
+    environment:
+      # Inside the compose network the database is "db" on its internal port 5432
+      DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-rehab_elite}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+volumes:
+  db-data:
