@@ -1,0 +1,145 @@
+@startuml
+!include uml-style.iuml
+hide circle
+hide empty methods
+skinparam linetype ortho
+entity "users" as users {
+  * id : BIGSERIAL <<PK>>
+  --
+  * email : VARCHAR(254) <<UQ>>
+  * password_hash : VARCHAR(100)
+  * full_name : VARCHAR(150)
+  * role : VARCHAR(30) <<CHECK>>
+  * active : BOOLEAN
+  * failed_attempts : INTEGER
+  locked_until : TIMESTAMPTZ
+  last_login_at : TIMESTAMPTZ
+}
+entity "patients" as patients {
+  * id : BIGSERIAL <<PK>>
+  --
+  * national_id : CHAR(10) <<UQ>>
+  * medical_record_number : VARCHAR(20) <<UQ>>
+  * first_name : VARCHAR(100)
+  * last_name : VARCHAR(100)
+  * birth_date : DATE
+  * sex : VARCHAR(10) <<CHECK>>
+  * phone : VARCHAR(20)
+  * email : VARCHAR(254)
+  * address : VARCHAR(255)
+  * occupation : VARCHAR(100)
+  * education_level : VARCHAR(50)
+  * health_insurance : VARCHAR(100)
+  ethnic_self_identification : VARCHAR(50)
+  religion : VARCHAR(50)
+  * admission_date : DATE
+  portal_user_id : BIGINT <<FK, UQ>>
+}
+entity "clinical_records" as cr {
+  * id : BIGSERIAL <<PK>>
+  --
+  * patient_id : BIGINT <<FK, UQ>>
+  * habits : TEXT
+  * physical_activity : TEXT
+  * allergies : TEXT
+  * current_medication : TEXT
+  * personal_history : TEXT
+  * surgical_history : TEXT
+  * family_history : TEXT
+}
+entity "icd10_diagnoses" as icd {
+  * code : VARCHAR(7) <<PK>>
+  --
+  * description : VARCHAR(255)
+}
+entity "treatments" as tr {
+  * id : BIGSERIAL <<PK>>
+  --
+  * clinical_record_id : BIGINT <<FK>>
+  * diagnosis_code : VARCHAR(7) <<FK>>
+  * chief_complaint : TEXT
+  * current_illness : TEXT
+  * referring_physician : VARCHAR(150)
+  * complementary_tests : TEXT
+  * severity : VARCHAR(10) <<CHECK>>
+  * pain_type : VARCHAR(50)
+  * pain_location : VARCHAR(100)
+  * initial_pain_score : SMALLINT (CHECK 0-10)
+  * pain_frequency : VARCHAR(50)
+  * session_frequency : VARCHAR(50)
+  * goal : TEXT
+  * planned_sessions : INTEGER (CHECK > 0)
+  * status : VARCHAR(15) <<CHECK>>
+  * start_date : DATE
+}
+entity "responsible_assignments" as ra {
+  * id : BIGSERIAL <<PK>>
+  --
+  * treatment_id : BIGINT <<FK>>
+  * physiotherapist_id : BIGINT <<FK>>
+  * valid_from : TIMESTAMPTZ
+  valid_to : TIMESTAMPTZ
+}
+entity "treatment_status_changes" as tsc {
+  * id : BIGSERIAL <<PK>>
+  --
+  * treatment_id : BIGINT <<FK>>
+  * user_id : BIGINT <<FK>>
+  * previous_status : VARCHAR(15)
+  * new_status : VARCHAR(15)
+  * reason : TEXT
+  * changed_at : TIMESTAMPTZ
+}
+entity "therapy_sessions" as ts {
+  * id : BIGSERIAL <<PK>>
+  --
+  * treatment_id : BIGINT <<FK>>
+  * responsible_id : BIGINT <<FK>>
+  * sequence_number : INTEGER
+  * session_date : DATE
+  * session_time : TIME
+  * session_type : VARCHAR(50)
+  * activities_performed : TEXT
+  * clinical_observations : TEXT
+  patient_instructions : TEXT
+  * pain_score : SMALLINT (CHECK 0-10)
+  * progress_status : VARCHAR(20) <<CHECK>>
+  * status : VARCHAR(15) <<CHECK>>
+  UQ (treatment_id, sequence_number)
+}
+entity "ai_summaries" as ai {
+  * id : BIGSERIAL <<PK>>
+  --
+  * treatment_id : BIGINT <<FK>>
+  * generated_by_id : BIGINT <<FK>>
+  reviewed_by_id : BIGINT <<FK>>
+  * generated_content : TEXT
+  final_content : TEXT
+  * status : VARCHAR(20) <<CHECK>>
+  * generated_at : TIMESTAMPTZ
+  reviewed_at : TIMESTAMPTZ
+}
+entity "audit_logs" as al {
+  * id : BIGSERIAL <<PK>>
+  --
+  user_id : BIGINT <<FK>>
+  * action : VARCHAR(20) <<CHECK>>
+  * entity_type : VARCHAR(60)
+  entity_id : BIGINT
+  * occurred_at : TIMESTAMPTZ
+  ip_address : VARCHAR(45)
+}
+patients ||--|| cr
+users |o--o| patients
+cr ||--|{ tr
+icd ||--o{ tr
+tr ||--|{ ra
+users ||--o{ ra
+tr ||--o{ tsc
+users ||--o{ tsc
+tr ||--o{ ts
+users ||--o{ ts
+tr ||--o{ ai
+users ||--o{ ai
+users |o--o{ al
+@enduml

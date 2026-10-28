@@ -1,0 +1,10 @@
+skinparam defaultFontName "DejaVu Sans"
+skinparam dpi 180
+skinparam shadowing false
+skinparam monochrome true
+skinparam classAttributeIconSize 0
+skinparam class {
+  BackgroundColor #F7F7F7
+  BorderColor #444444
+}
+skinparam linetype polyline

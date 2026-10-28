@@ -1,0 +1,21 @@
+@startuml
+!include <C4/C4_Container>
+!include c4-style.iuml
+Person(fisio, "Fisioterapeuta", "Personal clínico")
+Person(admin, "Administrador / Recepción", "Personal administrativo")
+Person(pac, "Paciente", "Usuario del portal")
+Person(dir, "Dirección operativa", "Control operativo")
+System_Boundary(sis, "Sistema Web Rehab Elite\n(despliegue en Render)") {
+  Container(spa, "Aplicación web SPA", "Angular 22, TypeScript, Angular Material", "Presenta las vistas por rol, valida formularios y protege rutas con guards.")
+  Container(api, "API REST monolítica modular", "Java 21, Spring Boot 4, Spring Security", "Expone los servicios REST, aplica autenticación JWT, autorización por rol, reglas de negocio y auditoría.")
+  ContainerDb(db, "Base de datos relacional", "PostgreSQL 16 (Render PostgreSQL)", "Almacena usuarios, pacientes, historiales, tratamientos, sesiones, resúmenes y auditoría. Respaldo diario.")
+}
+System_Ext(ia, "API de Claude\n(Anthropic)", "Genera la síntesis terapéutica a partir de texto seudonimizado.")
+Rel(fisio, spa, "Usa", "HTTPS")
+Rel(admin, spa, "Usa", "HTTPS")
+Rel(pac, spa, "Usa", "HTTPS")
+Rel(dir, spa, "Usa", "HTTPS")
+Rel(spa, api, "Invoca servicios", "JSON / HTTPS + token JWT")
+Rel(api, db, "Lee y escribe", "JDBC / TLS")
+Rel_R(api, ia, "Solicita síntesis", "HTTPS / JSON")
+@enduml
