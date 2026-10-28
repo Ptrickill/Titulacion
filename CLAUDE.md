@@ -168,7 +168,9 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
 - Commits en inglés con Conventional Commits y número de issue: `feat(patients): register patient #8`.
 - Ramas: `feature/HU-XX-short-description` creadas desde `develop`.
 - `.editorconfig`: UTF-8, LF, 4 espacios en Java/XML, 2 en TypeScript, HTML, SCSS, YAML y JSON.
-- `README.md` en inglés; documentación funcional en español en `docs/`.
+- `README.md` en inglés; documentación funcional en español en `docs/` (`docs/user-stories.md`, evidencias por sprint en `docs/evidence/sprint-N/`).
+- Cada historia es un issue con la plantilla **Historia de usuario** (Como/quiero/para + Dado/Cuando/Entonces); cada PR usa `.github/pull_request_template.md` e incluye `Closes #N`.
+- CI (`.github/workflows/ci.yml`) corre en push y PR hacia `main` y `develop`: backend `./mvnw -B verify`, frontend `npm ci` + `ng test` + `ng build`. No fusionar con CI en rojo. `backend/mvnw` debe conservar el modo ejecutable en Git (`git update-index --chmod=+x backend/mvnw`).
 
 ## Definición de terminado
 
@@ -177,7 +179,7 @@ Una historia está terminada cuando:
 - [ ] Cumple todos sus criterios de aceptación.
 - [ ] Tiene pruebas unitarias y de integración con Testcontainers.
 - [ ] Sus endpoints aparecen documentados en OpenAPI.
-- [ ] `.\mvnw.cmd verify` (en `backend/`) y `ng test` (en `frontend/`) están en verde.
+- [ ] `.\mvnw.cmd verify` (en `backend/`) y `ng test` (en `frontend/`) están en verde, también en la CI de GitHub Actions.
 - [ ] Se entrega un resumen de cambios.
 
 ## Forma de trabajo
