@@ -36,7 +36,7 @@ rehab-elite/
 │           ├── application.yml      common settings
 │           ├── application-dev.yml  local development (default profile)
 │           └── db/migration/        Flyway migrations (data model)
-├── frontend/                        Angular app (pending)
+├── frontend/                        Angular 22 + Material SPA (see frontend/README.md)
 ├── docs/                            functional documentation (Spanish)
 ├── .editorconfig
 ├── .env.example                     environment variable template
@@ -50,7 +50,7 @@ REST endpoints live under `/api` in plural kebab-case (`/api/patients`, `/api/cl
 ## Requirements
 
 - JDK 21 or later
-- Node.js 22 and Angular CLI (`npm install -g @angular/cli`) — frontend only
+- Node.js `^22.22.3` (required by Angular CLI 22) — frontend only; the CLI runs through `npx`
 - PostgreSQL 16
 - Docker (only to run the Testcontainers tests)
 
@@ -89,11 +89,21 @@ REST endpoints live under `/api` in plural kebab-case (`/api/patients`, `/api/cl
    - Health: <http://localhost:8080/actuator/health>
    - OpenAPI UI: <http://localhost:8080/swagger-ui.html> (requires a token until HU-01 opens it)
 
-4. **Tests** (Docker must be running):
+4. **Frontend.** In a second terminal:
 
    ```powershell
-   cd backend
-   .\mvnw.cmd clean verify
+   cd frontend
+   npm install
+   npm start
+   ```
+
+   Open <http://localhost:4200>. Requests to `/api` are proxied to the backend on port 8080.
+
+5. **Tests:**
+
+   ```powershell
+   cd backend;  .\mvnw.cmd clean verify        # Docker must be running
+   cd frontend; npx ng test --watch=false
    ```
 
 ## Workflow

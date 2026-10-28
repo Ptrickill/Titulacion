@@ -152,11 +152,15 @@ Valores de enums / CHECK:
 
 Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `app.admin.password`, `app.cors.allowed-origins`, `app.ai.anthropic-api-key`.
 
-## Frontend (Angular) — convención para el Prompt 3
+## Frontend (Angular 22 + Material)
 
-- Carpetas: `src/app/core` (servicios singleton, interceptores, guards), `src/app/shared` (componentes y pipes reutilizables), `src/app/features/auth`, `features/admin`, `features/physiotherapist`, `features/director`, `features/patient`.
-- Rutas: `/login`, `/admin`, `/physio`, `/director`, `/patient`.
-- Componentes, servicios, archivos y selectores en inglés (`patient-list.component.ts`, `app-patient-list`); textos de la interfaz en español.
+- Requiere Node.js `^22.22.3`. `npm start` sirve en `http://localhost:4200` y redirige `/api` a `http://localhost:8080` (`proxy.conf.json`).
+- Carpetas: `src/app/core` (sesión `AuthSession`, `authGuard`/`roleGuard`, `authInterceptor`, roles), `src/app/shared` (`layout/Shell` con barra lateral, `ui/` reutilizables), `src/app/features/auth`, `features/admin`, `features/physiotherapist`, `features/director`, `features/patient`.
+- Rutas: `/login`, `/admin`, `/physio`, `/director`, `/patient`; cada panel protegido por `authGuard` + `roleGuard(rol)` y cargado de forma diferida.
+- Nombres según la guía de estilo de Angular CLI 22, en inglés: archivo `patient-list.ts`, clase `PatientList`, selector `app-patient-list`; guards/interceptores `*-guard.ts` / `*-interceptor.ts`. Textos de la interfaz en español.
+- Tema: tokens `--re-navy` (#0F172A, barra lateral y cabeceras), `--re-teal` (#14B8A6, acción primaria con texto navy), `--re-field` (#F3F4F6, campos), `--re-card` (tarjetas blancas, radio 16px) en `src/styles.scss`. Usar esos tokens, no colores sueltos.
+- Nuevas entradas de menú por rol en `shared/layout/nav-items.ts`.
+- El bloque "Acceso de desarrollo" del login (solo `isDevMode()`) es temporal: **eliminarlo en HU-01**.
 - Indentación de 2 espacios (ver `.editorconfig`).
 
 ## Convenciones de repositorio
@@ -188,4 +192,9 @@ Una historia está terminada cuando:
 .\mvnw.cmd -q -DskipTests compile   # compilar
 .\mvnw.cmd clean verify             # pruebas (requiere Docker para Testcontainers)
 .\mvnw.cmd spring-boot:run          # arrancar con perfil dev (lee ../.env)
+
+# Frontend (desde frontend/)
+npm start                           # http://localhost:4200 con proxy /api -> :8080
+npx ng build                        # compilar
+npx ng test --watch=false           # pruebas (Vitest)
 ```
