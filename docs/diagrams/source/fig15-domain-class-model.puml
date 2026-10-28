@@ -1,0 +1,144 @@
+@startuml
+!include uml-style.iuml
+hide empty methods
+enum Role {
+  ADMINISTRATOR
+  PHYSIOTHERAPIST
+  PATIENT
+  OPERATIONS_DIRECTOR
+}
+enum TreatmentStatus {
+  ACTIVE
+  COMPLETED
+  ABANDONED
+}
+enum SessionStatus {
+  COMPLETED
+  RESCHEDULED
+  NO_SHOW
+}
+enum AiSummaryStatus {
+  PENDING_REVIEW
+  APPROVED
+  DISCARDED
+}
+class User {
+  - id: Long
+  - email: String
+  - passwordHash: String
+  - fullName: String
+  - role: Role
+  - active: boolean
+  - failedAttempts: int
+  - lockedUntil: Instant
+  - lastLoginAt: Instant
+}
+class Patient {
+  - id: Long
+  - nationalId: String
+  - medicalRecordNumber: String
+  - firstName: String
+  - lastName: String
+  - birthDate: LocalDate
+  - sex: Sex
+  - phone: String
+  - email: String
+  - address: String
+  - occupation: String
+  - educationLevel: String
+  - healthInsurance: String
+  - ethnicSelfIdentification: String [0..1]
+  - religion: String [0..1]
+  - admissionDate: LocalDate
+  + getAge(): int
+}
+class ClinicalRecord {
+  - id: Long
+  - habits: String
+  - physicalActivity: String
+  - allergies: String
+  - currentMedication: String
+  - personalHistory: String
+  - surgicalHistory: String
+  - familyHistory: String
+}
+class Treatment {
+  - id: Long
+  - chiefComplaint: String
+  - currentIllness: String
+  - referringPhysician: String
+  - complementaryTests: String
+  - severity: Severity
+  - painType: String
+  - painLocation: String
+  - initialPainScore: int {0..10}
+  - painFrequency: String
+  - sessionFrequency: String
+  - goal: String
+  - plannedSessions: int
+  - status: TreatmentStatus
+  - startDate: LocalDate
+  + completedSessions(): int
+  + changeStatus(newStatus, reason, user)
+}
+class Icd10Diagnosis {
+  - code: String
+  - description: String
+}
+class ResponsibleAssignment {
+  - id: Long
+  - validFrom: Instant
+  - validTo: Instant [0..1]
+}
+class TreatmentStatusChange {
+  - id: Long
+  - previousStatus: TreatmentStatus
+  - newStatus: TreatmentStatus
+  - reason: String
+  - changedAt: Instant
+}
+class TherapySession {
+  - id: Long
+  - sequenceNumber: int
+  - sessionDate: LocalDate
+  - sessionTime: LocalTime
+  - sessionType: String
+  - activitiesPerformed: String
+  - clinicalObservations: String
+  - patientInstructions: String
+  - painScore: int {0..10}
+  - progressStatus: ProgressStatus
+  - status: SessionStatus
+}
+class AiSummary {
+  - id: Long
+  - generatedContent: String
+  - finalContent: String
+  - status: AiSummaryStatus
+  - generatedAt: Instant
+  - reviewedAt: Instant [0..1]
+  + approve(user)
+  + discard(user)
+}
+class AuditLog {
+  - id: Long
+  - action: AuditAction
+  - entityType: String
+  - entityId: Long
+  - occurredAt: Instant
+  - ipAddress: String
+}
+Patient "1" -- "1" ClinicalRecord : has >
+Patient "0..1" -- "0..1" User : portal account >
+ClinicalRecord "1" *-- "1..*" Treatment : groups >
+Treatment "*" --> "1" Icd10Diagnosis : main diagnosis
+Treatment "1" *-- "1..*" ResponsibleAssignment
+ResponsibleAssignment "*" --> "1" User : physiotherapist
+Treatment "1" *-- "*" TreatmentStatusChange
+TreatmentStatusChange "*" --> "1" User : changed by
+Treatment "1" *-- "*" TherapySession : records >
+TherapySession "*" --> "1" User : responsible
+Treatment "1" *-- "*" AiSummary
+AiSummary "*" --> "1" User : generated / reviewed by
+AuditLog "*" --> "0..1" User : performed by
+@enduml

@@ -1,0 +1,39 @@
+@startuml
+!include <C4/C4_Component>
+!include c4-style.iuml
+skinparam linetype ortho
+Container(spa, "Aplicación web SPA", "Angular 22", "Envía peticiones REST con token JWT.")
+Container_Boundary(api, "API REST monolítica modular (Spring Boot 4)") {
+  Component(seg, "Filtro de seguridad", "Spring Security, JWT", "Valida el token, resuelve el rol y bloquea el acceso no autorizado (403).")
+  Component(auth, "Módulo Autenticación y Usuarios", "Controller, Service, Repository", "Inicio de sesión, bloqueo por intentos fallidos, alta y estado de cuentas por rol.")
+  Component(pacm, "Módulo Pacientes", "Controller, Service, Repository", "Registro único por cédula, número de historia clínica y datos demográficos.")
+  Component(hist, "Módulo Historial Clínico", "Controller, Service, Repository", "Antecedentes, tratamientos, diagnóstico CIE-10, plan, responsable y estado del tratamiento.")
+  Component(ses, "Módulo Sesiones y Línea de Tiempo", "Controller, Service, Repository", "Registro de sesiones con EVA, correlativo, versiones y consulta cronológica.")
+  Component(portal, "Módulo Portal del Paciente", "Controller, Service", "Consulta de solo lectura del progreso, sesiones e indicaciones propias.")
+  Component(rep, "Módulo Reportes", "Controller, Service, consultas JPQL", "Indicadores de tratamientos y sesiones con filtros y exportación PDF.")
+  Component(resia, "Módulo Resumen IA", "Controller, Service, Seudonimizador, Cliente IA", "Prepara el texto sin datos identificativos, invoca la API y gestiona validación, edición o descarte.")
+  Component(per, "Capa de persistencia", "Spring Data JPA, Hibernate, Flyway", "Repositorios por módulo, transacciones y migraciones versionadas del esquema.")
+  Component(aud, "Módulo Auditoría", "Event listener, Hibernate Envers", "Registra usuario, acción, entidad y fecha de cada operación clínica.")
+}
+ContainerDb(db, "PostgreSQL 16", "Render PostgreSQL", "Esquema relacional y tablas de auditoría.")
+System_Ext(ia, "API de Claude\n(Anthropic)", "Modelo de lenguaje")
+Rel(spa, seg, "Peticiones REST", "JSON / HTTPS")
+Rel(seg, auth, "Delega")
+Rel(seg, pacm, "Delega")
+Rel(seg, hist, "Delega")
+Rel(seg, ses, "Delega")
+Rel(seg, portal, "Delega")
+Rel(seg, rep, "Delega")
+Rel(seg, resia, "Delega")
+Rel(resia, ses, "Lee sesiones")
+Rel_R(resia, ia, "Solicita síntesis", "HTTPS")
+Rel(auth, per, "Usa")
+Rel(pacm, per, "Usa")
+Rel(hist, per, "Usa")
+Rel(ses, per, "Usa")
+Rel(portal, per, "Usa")
+Rel(rep, per, "Usa")
+Rel(resia, per, "Usa")
+Rel_L(aud, per, "Registra eventos")
+Rel(per, db, "Lee y escribe", "JDBC / TLS")
+@enduml
