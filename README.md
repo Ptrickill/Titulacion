@@ -21,6 +21,7 @@ The user interface and API error messages are in Spanish; code, database objects
 ```
 rehab-elite/
 ├── backend/                         Spring Boot REST API (modular monolith)
+│   ├── Dockerfile                   deployment image (Render, compose profile "full")
 │   └── src/main/
 │       ├── java/ec/rehabelite/
 │       │   ├── auth/                users, JWT login, security
@@ -38,6 +39,7 @@ rehab-elite/
 │           └── db/migration/        Flyway migrations (data model)
 ├── frontend/                        Angular 22 + Material SPA (see frontend/README.md)
 ├── docs/                            functional documentation (Spanish)
+├── docker-compose.yml               optional PostgreSQL 16 (port 5433) + backend
 ├── .editorconfig
 ├── .env.example                     environment variable template
 └── CLAUDE.md                        permanent project rules
@@ -51,8 +53,8 @@ REST endpoints live under `/api` in plural kebab-case (`/api/patients`, `/api/cl
 
 - JDK 21 or later
 - Node.js `^22.22.3` (required by Angular CLI 22) — frontend only; the CLI runs through `npx`
-- PostgreSQL 16
-- Docker (only to run the Testcontainers tests)
+- PostgreSQL 16 installed locally (main development database, port 5432)
+- Docker Desktop (Testcontainers tests, backend image, optional compose environment — see [Docker](#docker))
 
 ## Getting started
 
@@ -65,6 +67,7 @@ REST endpoints live under `/api` in plural kebab-case (`/api/patients`, `/api/cl
    | Variable | Purpose |
    |---|---|
    | `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | PostgreSQL connection |
+   | `POSTGRES_DB` | Database name of the optional Docker PostgreSQL (`docker-compose.yml`) |
    | `JWT_SECRET`, `JWT_EXPIRATION_MINUTES` | Token signing key (≥ 32 chars) and lifetime |
    | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Initial administrator account |
    | `ANTHROPIC_API_KEY` | Claude API key (AI summaries) |
@@ -105,6 +108,64 @@ REST endpoints live under `/api` in plural kebab-case (`/api/patients`, `/api/cl
    cd backend;  .\mvnw.cmd clean verify        # Docker must be running
    cd frontend; npx ng test --watch=false
    ```
+
+## Docker
+
+Docker is used for three things; **the main development database is still the PostgreSQL installed on Windows** and Docker never modifies it.
+
+| Use | What runs | Command |
+|---|---|---|
+| Integration tests | A throwaway `postgres:16` started by Testcontainers | `.\mvnw.cmd verify` (in `backend/`) |
+| Deployment (Render) | `backend/Dockerfile` | built by Render from the repository |
+| Optional full environment | `docker-compose.yml`: `db` (+ `backend` with profile `full`) | see below |
+
+### Ports
+
+| Port | Service |
+|---|---|
+| `5432` | PostgreSQL installed on Windows — main development database (`DB_URL` in `.env`) |
+| `5433` | PostgreSQL 16 in Docker (`db` service). Mapped to 5433 so it never collides with 5432 |
+| `8080` | Backend (local `spring-boot:run` **or** the `backend` container — not both at once) |
+
+Inside the compose network the backend reaches the database as `db:5432`; compose overrides `DB_URL` for the container, so `.env` keeps pointing at the Windows database.
+
+### Commands (from the repository root)
+
+```powershell
+docker compose up -d db                      # PostgreSQL 16 only, on localhost:5433
+docker compose ps                            # status; db should be "healthy"
+docker compose --profile full up --build     # db + backend image on http://localhost:8080 (add -d to detach)
+docker compose --profile full down           # stop and remove containers; data stays in the db-data volume
+docker compose --profile full down -v        # same, and also delete the Docker database volume
+```
+
+The compose database reads `POSTGRES_DB`, `DB_USERNAME` and `DB_PASSWORD` from `.env`. To point the local backend or DBeaver at it, use `jdbc:postgresql://localhost:5433/<POSTGRES_DB>`.
+
+### Backend image
+
+`backend/Dockerfile` is a multi-stage build: `eclipse-temurin:21-jdk` compiles with the Maven wrapper (the dependency layer is cached until `pom.xml` or `.mvn/` change) and `eclipse-temurin:21-jre` runs the Spring Boot layered jar as the non-root user `spring`. The image:
+
+- listens on `PORT` (default `8080`; Render sets it),
+- runs with profile `prod` (common settings only, no dev debug logging),
+- has a `HEALTHCHECK` on `/actuator/health`,
+- takes all configuration from environment variables (same names as `.env`); no `.env` is copied into it.
+
+Tests are not run during the image build; run `.\mvnw.cmd verify` before pushing.
+
+### Troubleshooting Testcontainers on Windows
+
+`Could not find a valid Docker environment` means Testcontainers could not reach the Docker daemon:
+
+1. Make sure **Docker Desktop is running** (whale icon steady, `docker version` shows a *Server* section).
+2. Docker Desktop → *Settings → General*: keep **Use the WSL 2 based engine** enabled. Testcontainers talks to Docker Desktop through the default named pipe `npipe:////./pipe/docker_engine`; no TCP exposure (port 2375) is needed.
+3. If `docker` works only from an elevated terminal, add your Windows user to the `docker-users` group and sign out/in.
+4. If you use a non-default context or a remote engine, tell Testcontainers explicitly in `%USERPROFILE%\.testcontainers.properties`:
+
+   ```properties
+   docker.host=npipe:////./pipe/docker_engine
+   ```
+
+5. `client version 1.xx is too old` errors come from an outdated docker-java client; keep Spring Boot (which manages the Testcontainers version) up to date rather than downgrading Docker Desktop.
 
 ## Workflow
 

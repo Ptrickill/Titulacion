@@ -8,18 +8,12 @@ import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationInfo;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 
 /**
- * Starts the full context against PostgreSQL 16 (Testcontainers) and checks the migrations.
+ * Checks the Flyway migrations against PostgreSQL 16 (Testcontainers).
  */
-@Import(TestcontainersConfiguration.class)
-@SpringBootTest
-@ActiveProfiles("test")
-class FlywayMigrationTests {
+class FlywayMigrationTests extends AbstractIntegrationTest {
 
     private final Flyway flyway;
     private final JdbcTemplate jdbc;
@@ -31,9 +25,16 @@ class FlywayMigrationTests {
     }
 
     @Test
+    void runsOnPostgres16() {
+        String version = jdbc.queryForObject("SHOW server_version", String.class);
+        assertThat(version).startsWith("16.");
+    }
+
+    @Test
     void appliesV1AndV2() {
         assertThat(Arrays.stream(flyway.info().applied()).map(MigrationInfo::getVersion).map(Object::toString))
                 .containsExactly("1", "2");
+        assertThat(flyway.info().applied()).allMatch(migration -> migration.getState().isApplied());
         assertThat(flyway.info().pending()).isEmpty();
     }
 
