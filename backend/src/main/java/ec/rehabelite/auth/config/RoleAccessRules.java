@@ -25,6 +25,9 @@ final class RoleAccessRules {
             // User and system administration (HU-02, HU-03)
             new Rule("/api/admin/**", Role.ADMINISTRATOR),
             new Rule("/api/users/**", Role.ADMINISTRATOR),
+            // Patients that can receive a portal account: only for account creation (HU-02).
+            // More specific than /api/patients/**, so it must stay before it (first match wins)
+            new Rule("/api/patients/portal-candidates", Role.ADMINISTRATOR),
             // Personal data: registered by the administrator, looked up by physiotherapists (HU-05, HU-06)
             new Rule("/api/patients/**", Role.ADMINISTRATOR, Role.PHYSIOTHERAPIST),
             // Clinical data: physiotherapists only; the administrator never sees it (HU-06, HU-09)

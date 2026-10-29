@@ -61,6 +61,7 @@ class RoleAccessIntegrationTests extends AbstractIntegrationTest {
     private static final List<Area> AREAS = List.of(
             new Area("/api/admin/settings", "admin", null, ADMINISTRATOR),
             new Area("/api/users/5", "users", 5L, ADMINISTRATOR),
+            new Area("/api/patients/portal-candidates", "patients", null, ADMINISTRATOR),
             new Area("/api/patients/12", "patients", 12L, ADMINISTRATOR, PHYSIOTHERAPIST),
             new Area("/api/clinical-records/7", "clinical-records", 7L, PHYSIOTHERAPIST),
             new Area("/api/treatments/3/status-changes", "treatments", 3L, PHYSIOTHERAPIST),
