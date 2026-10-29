@@ -1,14 +1,19 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { DatePipe } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, effect, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { map, timer } from 'rxjs';
 import { AuthService } from '../../core/auth/auth-service';
 import { Role, ROLE_LABELS } from '../../core/auth/role';
+import {
+  NO_SECTION_ACCESS_MESSAGE,
+  SectionAccessNotice,
+} from '../../core/auth/section-access-notice';
 import { APP_LOCALE } from '../../core/locale';
 import { StatusBadge } from '../ui/status-badge';
 import { NAV_ITEMS, PANEL_LABELS, ROLE_TONES } from './nav-items';
@@ -68,6 +73,17 @@ export class AppShell {
     const role = this.role();
     return role ? NAV_ITEMS[role] : [];
   });
+
+  constructor() {
+    // A role guard sent the user back to their own panel (HU-04): tell them why
+    const notice = inject(SectionAccessNotice);
+    const snackBar = inject(MatSnackBar);
+    effect(() => {
+      if (notice.isPending() && notice.consume()) {
+        snackBar.open(NO_SECTION_ACCESS_MESSAGE, 'Cerrar', { duration: 5000 });
+      }
+    });
+  }
 
   protected logout(): void {
     this.auth.logout();

@@ -78,17 +78,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return problem(HttpStatus.CONFLICT, "La operación viola una restricción de integridad de los datos.");
     }
 
-    // Missing, expired or invalid tokens: the security entry point delegates here to write the body
-    @ExceptionHandler(AuthenticationException.class)
-    ProblemDetail handleAuthentication(AuthenticationException ex) {
-        return problem(HttpStatus.UNAUTHORIZED, messageFor(HttpStatus.UNAUTHORIZED).detail());
-    }
-
-    // Method-security denials reach this handler instead of the security filter chain.
-    // TODO(HU-04): record ACCESS_DENIED in the audit log here as well.
-    @ExceptionHandler(AccessDeniedException.class)
-    ProblemDetail handleAccessDenied(AccessDeniedException ex) {
-        return problem(HttpStatus.FORBIDDEN, messageFor(HttpStatus.FORBIDDEN).detail());
+    /**
+     * Security exceptions raised inside controllers (e.g. by method security) are rethrown so they reach the
+     * security filter chain, which answers 401/403 and audits ACCESS_DENIED. Without this, the catch-all
+     * handler below would turn them into a 500.
+     */
+    @ExceptionHandler({AuthenticationException.class, AccessDeniedException.class})
+    void rethrowSecurityException(RuntimeException ex) {
+        throw ex;
     }
 
     @ExceptionHandler(Exception.class)

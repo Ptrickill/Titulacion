@@ -4,20 +4,16 @@ import static org.springframework.security.config.Customizer.withDefaults;
 
 import ec.rehabelite.auth.application.JwtClaims;
 import ec.rehabelite.shared.config.AppProperties;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
@@ -28,17 +24,16 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
-import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
-import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.servlet.HandlerExceptionResolver;
 
 /**
  * Stateless security: every request needs a valid HS256 JWT (issued by POST /api/auth/login) except login,
- * health and the OpenAPI documentation. The token's "role" claim becomes the ROLE_&lt;role&gt; authority.
+ * health and the OpenAPI documentation. The token's "role" claim becomes the ROLE_&lt;role&gt; authority and
+ * {@link RoleAccessRules} decides which roles may use each API area. Failures answer a Spanish problem
+ * response: 401 without a valid token, 403 (audited as ACCESS_DENIED) for a role outside the area.
  */
 @Configuration(proxyBeanMethods = false)
 class SecurityConfig {
@@ -48,37 +43,31 @@ class SecurityConfig {
     };
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationEntryPoint authenticationEntryPoint)
-            throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http,
+            ProblemDetailAuthenticationEntryPoint authenticationEntryPoint,
+            AuditingAccessDeniedHandler accessDeniedHandler) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(withDefaults())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(a -> a
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
-                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
-                        .requestMatchers(PUBLIC_DOCUMENTATION).permitAll()
-                        .requestMatchers("/error").permitAll()
-                        .anyRequest().authenticated())
+                .authorizeHttpRequests(a -> {
+                    a.requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                            .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                            .requestMatchers(PUBLIC_DOCUMENTATION).permitAll()
+                            .requestMatchers("/error").permitAll();
+                    for (RoleAccessRules.Rule rule : RoleAccessRules.RULES) {
+                        a.requestMatchers(rule.pathPattern()).hasAnyRole(rule.roleNames());
+                    }
+                    a.anyRequest().authenticated();
+                })
                 .oauth2ResourceServer(o -> o
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
-                        .authenticationEntryPoint(authenticationEntryPoint))
-                .exceptionHandling(e -> e.authenticationEntryPoint(authenticationEntryPoint));
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler))
+                .exceptionHandling(e -> e
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler));
         return http.build();
-    }
-
-    /**
-     * Answers 401 with the WWW-Authenticate header and a Spanish ProblemDetail body, which is written by
-     * the global exception handler.
-     */
-    @Bean
-    AuthenticationEntryPoint authenticationEntryPoint(
-            @Qualifier("handlerExceptionResolver") HandlerExceptionResolver handlerExceptionResolver) {
-        BearerTokenAuthenticationEntryPoint bearerEntryPoint = new BearerTokenAuthenticationEntryPoint();
-        return (HttpServletRequest request, HttpServletResponse response, AuthenticationException ex) -> {
-            bearerEntryPoint.commence(request, response, ex);
-            handlerExceptionResolver.resolveException(request, response, null, ex);
-        };
     }
 
     private static JwtAuthenticationConverter jwtAuthenticationConverter() {

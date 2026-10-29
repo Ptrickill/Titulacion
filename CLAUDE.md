@@ -95,6 +95,21 @@ Reglas:
   - `ec.rehabelite.audit.AuditLogService`: `record(AuditAction, entityType, entityId)` toma el usuario del token y la IP de la petición.
   - `audit` no depende de `auth`, para evitar un ciclo: `auth` registra el `LOGIN` con `recordFor(userId, ...)`.
 - Seguridad: JWT HS256 emitido por `POST /api/auth/login` (claims `sub` = id, `email`, `fullName`, `role`; el rol da la autoridad `ROLE_<rol>`). Públicos solo login, `/actuator/health` y la documentación OpenAPI. El reloj se inyecta como bean `Clock` (`shared.config`).
+- Acceso por rol (HU-04): la tabla vive en `auth.config.RoleAccessRules`. Al añadir un área de API nueva, registrarla ahí y en `RoleAccessIntegrationTests`.
+
+  | Área | Roles |
+  |---|---|
+  | `/api/admin/**`, `/api/users/**` | `ADMINISTRATOR` |
+  | `/api/patients/**` | `ADMINISTRATOR`, `PHYSIOTHERAPIST` |
+  | `/api/clinical-records/**`, `/api/treatments/**`, `/api/therapy-sessions/**`, `/api/ai-summaries/**` | `PHYSIOTHERAPIST` |
+  | `/api/reports/**`, `/api/audit-logs/**` | `OPERATIONS_DIRECTOR`, `ADMINISTRATOR` |
+  | `/api/portal/**` | `PATIENT` |
+  | Resto de `/api/**` | Cualquier usuario autenticado |
+
+- Respuestas de seguridad:
+  - `ProblemDetailAuthenticationEntryPoint`: 401 sin auditoría.
+  - `AuditingAccessDeniedHandler`: 403 y `ACCESS_DENIED` en `audit_logs`. La entidad se toma de la ruta (`/api/patients/12` → `patients`, 12); nunca se guarda la query string.
+  - `GlobalExceptionHandler` relanza `AccessDeniedException` y `AuthenticationException`, para que un futuro `@PreAuthorize` también quede auditado.
 
 ### Buenas prácticas backend
 
@@ -168,6 +183,10 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
 - Nombres según la guía de estilo de Angular CLI 22, en inglés: archivo `patient-list.ts`, clase `PatientList`, selector `app-patient-list`; guards/interceptores `*-guard.ts` / `*-interceptor.ts`. Textos de la interfaz en español.
 - Tema: tokens CSS `--re-*` definidos en `src/styles/_tokens.scss` (colores, grises, estados, radios, sombras, espaciados, tipografía Plus Jakarta Sans): `--re-navy` (#0F172A, barra lateral y cabeceras), `--re-teal` (#14B8A6, acción primaria e ítem activo **con texto navy**, contraste 7:1), `--re-text-teal` (#0F766E, texto teal sobre blanco), `--re-field` (#F3F4F6, campos), `--re-card` (tarjetas blancas, `--re-radius-lg` 16px). Usar siempre tokens, nunca colores sueltos; no poner texto blanco sobre `#14B8A6` (contraste 2.5:1).
 - Nuevas entradas de menú por rol en `shared/layout/nav-items.ts`.
+- Acceso por rol (HU-04):
+  - `roleGuard(rol)` protege cada grupo de rutas. Si el rol no coincide, redirige al panel del rol del usuario y `AppShell` muestra el aviso "No tiene acceso a esa sección." (`SectionAccessNotice`).
+  - Un 403 de la API lleva a `/access-denied` (`AccessDeniedPage`) sin cerrar la sesión.
+  - Las rutas desconocidas van al panel del rol.
 - Sesión: `AuthService` guarda token, expiración y usuario (`sessionStorage`, o `localStorage` con "Recordarme"); el usuario actual se lee con `user()` / `role()`. En pruebas unitarias iniciar sesión con `logInForTest(rol)` de `core/auth/auth-testing.ts`.
 - Indentación de 2 espacios (ver `.editorconfig`).
 

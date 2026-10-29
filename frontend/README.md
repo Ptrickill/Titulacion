@@ -34,6 +34,12 @@ src/
 
 Each role has its own `*.routes.ts`, lazy loaded inside `AppShell` and protected by `authGuard` + `roleGuard`. Sections whose user story is not implemented yet render `PlaceholderPage` with the title and subtitle given in the route `data`; the story replaces that component with the real page.
 
+Role access (HU-04):
+
+- **Another role's section:** `roleGuard` sends the user back to their own panel, and the shell shows "No tiene acceso a esa sección.".
+- **API 403:** opens `/access-denied`, a page inside the shell with a link to the user's panel.
+- **Unknown URLs:** go to the user's panel, or to `/login` without a session.
+
 ## Shared UI components
 
 | Component | Selector | Purpose |

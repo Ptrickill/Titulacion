@@ -1,5 +1,6 @@
 package ec.rehabelite.shared.web;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -11,6 +12,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -62,6 +64,14 @@ class GlobalExceptionHandlerTests {
                 .andExpect(jsonPath("$.errorId").isNotEmpty());
     }
 
+    @Test
+    void accessDeniedIsLeftToTheSecurityFilterChain() {
+        // Propagates out of MVC (instead of becoming a 500) so the AccessDeniedHandler answers 403 and audits it
+        assertThatThrownBy(() -> mockMvc.perform(get("/access-denied")))
+                .rootCause()
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
     record SampleRequest(@NotBlank String name) {
     }
 
@@ -85,6 +95,11 @@ class GlobalExceptionHandlerTests {
         @GetMapping("/unexpected")
         void unexpected() {
             throw new IllegalStateException("internal detail that must not leak");
+        }
+
+        @GetMapping("/access-denied")
+        void accessDenied() {
+            throw new AccessDeniedException("method security denial");
         }
 
     }
