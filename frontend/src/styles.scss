@@ -1,17 +1,6 @@
 @use '@angular/material' as mat;
 @use './styles/theme-colors' as theme;
-
-// Brand palette: navy for sidebar and headers, teal for primary actions,
-// light gray for form fields, white rounded cards.
-:root {
-  --re-navy: #0f172a;
-  --re-navy-hover: #1e293b;
-  --re-teal: #14b8a6;
-  --re-field: #f3f4f6;
-  --re-card: #ffffff;
-  --re-page: #f8fafc;
-  --re-radius: 16px;
-}
+@use './styles/tokens';
 
 html {
   height: 100%;
@@ -24,17 +13,26 @@ html {
         primary: theme.$primary-palette,
         tertiary: theme.$tertiary-palette,
       ),
-      typography: Roboto,
+      typography: (
+        plain-family: 'Plus Jakarta Sans',
+        brand-family: 'Plus Jakarta Sans',
+      ),
       density: 0,
     )
   );
 
-  // The generated primary tone (#006b5f) keeps text and focus rings readable on white;
-  // filled buttons use the exact brand teal with navy text (contrast 7:1).
+  // Primary actions use the exact brand teal with navy text (contrast 7:1);
+  // white text on #14B8A6 would only reach 2.5:1.
   @include mat.button-overrides(
     (
       filled-container-color: var(--re-teal),
       filled-label-text-color: var(--re-navy),
+      filled-container-shape: var(--re-radius-sm),
+      outlined-container-shape: var(--re-radius-sm),
+      outlined-outline-color: var(--re-gray-200),
+      outlined-label-text-color: var(--re-text-teal),
+      text-container-shape: var(--re-radius-sm),
+      text-label-text-color: var(--re-text-teal),
     )
   );
 
@@ -47,23 +45,24 @@ html {
   @include mat.card-overrides(
     (
       elevated-container-color: var(--re-card),
-      elevated-container-shape: var(--re-radius),
+      elevated-container-shape: var(--re-radius-lg),
       outlined-container-color: var(--re-card),
-      outlined-container-shape: var(--re-radius),
+      outlined-container-shape: var(--re-radius-lg),
+      outlined-outline-color: var(--re-gray-200),
     )
   );
 
-  @include mat.toolbar-overrides(
+  @include mat.dialog-overrides(
     (
-      container-background-color: var(--re-navy),
-      container-text-color: #ffffff,
+      container-color: var(--re-card),
+      container-shape: var(--re-radius-lg),
     )
   );
 
   @include mat.sidenav-overrides(
     (
       container-background-color: var(--re-navy),
-      container-text-color: #e2e8f0,
+      container-text-color: var(--re-gray-300),
       container-shape: 0,
     )
   );
@@ -73,6 +72,28 @@ body {
   margin: 0;
   height: 100%;
   background-color: var(--re-page);
-  color: var(--mat-sys-on-surface);
+  color: var(--re-text);
   font: var(--mat-sys-body-medium);
+  font-family: var(--re-font-sans);
+}
+
+// Shared building blocks used across pages
+.re-card {
+  background: var(--re-card);
+  border: 1px solid var(--re-gray-200);
+  border-radius: var(--re-radius-lg);
+  box-shadow: var(--re-shadow-sm);
+}
+
+.re-mono {
+  font-family: var(--re-font-mono);
+}
+
+.re-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }

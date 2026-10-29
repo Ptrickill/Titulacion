@@ -1,0 +1,100 @@
+// Design tokens taken from the prototype (docs/prototype). Exposed as CSS custom properties
+// so components use var(--re-*) instead of hard-coded values.
+
+$colors: (
+  // Brand
+  'navy': #0f172a,
+  'navy-800': #1e293b,
+  'navy-700': #334155,
+  'teal': #14b8a6,
+  'teal-600': #0d9488,
+  'teal-700': #0f766e,
+  'teal-100': #ccfbf1,
+  'teal-50': #f0fdfa,
+  // Surfaces
+  'page': #f8fafc,
+  'card': #ffffff,
+  'field': #f3f4f6,
+  // Grays (slate)
+  'gray-50': #f8fafc,
+  'gray-100': #f1f5f9,
+  'gray-200': #e2e8f0,
+  'gray-300': #cbd5e1,
+  'gray-400': #94a3b8,
+  'gray-500': #64748b,
+  'gray-600': #475569,
+  'gray-700': #334155,
+  // Text
+  'text': #0f172a,
+  'text-muted': #64748b,
+  'text-teal': #0f766e,
+  // Status (text / background / border)
+  'success': #047857,
+  'success-bg': #ecfdf5,
+  'success-border': #a7f3d0,
+  'warning': #b45309,
+  'warning-bg': #fffbeb,
+  'warning-border': #fde68a,
+  'danger': #be123c,
+  'danger-bg': #fff1f2,
+  'danger-border': #fecdd3,
+  'info': #1d4ed8,
+  'info-bg': #eff6ff,
+  'info-border': #bfdbfe,
+  'purple': #7e22ce,
+  'purple-bg': #faf5ff,
+  'purple-border': #e9d5ff,
+  'neutral': #475569,
+  'neutral-bg': #f1f5f9,
+  'neutral-border': #e2e8f0
+);
+
+$radii: (
+  sm: 8px,
+  md: 12px,
+  lg: 16px,
+  pill: 999px,
+);
+
+$shadows: (
+  sm: 0 1px 2px rgb(15 23 42 / 6%),
+  md: 0 4px 16px rgb(15 23 42 / 8%),
+  lg: 0 12px 32px rgb(15 23 42 / 14%),
+);
+
+$spacing: (
+  1: 4px,
+  2: 8px,
+  3: 12px,
+  4: 16px,
+  5: 20px,
+  6: 24px,
+  8: 32px,
+  10: 40px,
+  12: 48px,
+);
+
+:root {
+  @each $name, $value in $colors {
+    --re-#{$name}: #{$value};
+  }
+  @each $name, $value in $radii {
+    --re-radius-#{$name}: #{$value};
+  }
+  @each $name, $value in $shadows {
+    --re-shadow-#{$name}: #{$value};
+  }
+  @each $name, $value in $spacing {
+    --re-space-#{$name}: #{$value};
+  }
+
+  --re-font-sans: 'Plus Jakarta Sans', Roboto, 'Segoe UI', sans-serif;
+  --re-font-mono: ui-monospace, 'Cascadia Mono', Consolas, 'Liberation Mono', monospace;
+  --re-sidebar-width: 248px;
+  // Content column of the prototype (~840px) plus horizontal padding
+  --re-content-max-width: 900px;
+
+  // Backwards-compatible aliases used since TEC-01
+  --re-radius: var(--re-radius-lg);
+  --re-navy-hover: var(--re-navy-800);
+}
