@@ -3,15 +3,17 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { authInterceptor } from './auth-interceptor';
-import { AuthSession } from './auth-session';
+import { AuthService } from './auth-service';
+import { logInForTest } from './auth-testing';
 
 describe('authInterceptor', () => {
   let http: HttpClient;
   let backend: HttpTestingController;
-  let session: AuthSession;
+  let auth: AuthService;
 
   beforeEach(() => {
     sessionStorage.clear();
+    localStorage.clear();
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
@@ -21,20 +23,13 @@ describe('authInterceptor', () => {
     });
     http = TestBed.inject(HttpClient);
     backend = TestBed.inject(HttpTestingController);
-    session = TestBed.inject(AuthSession);
+    auth = TestBed.inject(AuthService);
   });
 
   afterEach(() => backend.verify());
 
-  function logIn(): void {
-    session.login({ email: 'admin@rehabelite.test', password: 'secret' }).subscribe();
-    backend
-      .expectOne('/api/auth/login')
-      .flush({ token: 'jwt-token', role: 'ADMINISTRATOR', fullName: 'Admin' });
-  }
-
   it('adds the bearer token to API requests', () => {
-    logIn();
+    logInForTest('ADMINISTRATOR');
 
     http.get('/api/patients').subscribe();
 
@@ -50,13 +45,24 @@ describe('authInterceptor', () => {
   });
 
   it('ends the session and goes to /login on 401', () => {
-    logIn();
+    logInForTest('ADMINISTRATOR');
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
 
     http.get('/api/patients').subscribe({ error: () => undefined });
     backend.expectOne('/api/patients').flush(null, { status: 401, statusText: 'Unauthorized' });
 
-    expect(session.isAuthenticated()).toBe(false);
+    expect(auth.isAuthenticated()).toBe(false);
     expect(navigate).toHaveBeenCalledWith(['/login']);
+  });
+
+  it('leaves a failed login to the login page', () => {
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+
+    auth
+      .login({ email: 'admin@rehabelite.test', password: 'wrong' })
+      .subscribe({ error: () => undefined });
+    backend.expectOne('/api/auth/login').flush(null, { status: 401, statusText: 'Unauthorized' });
+
+    expect(navigate).not.toHaveBeenCalled();
   });
 });

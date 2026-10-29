@@ -1,7 +1,7 @@
 import { inject, isDevMode } from '@angular/core';
 import { Routes } from '@angular/router';
 import { authGuard, roleGuard } from './core/auth/auth-guard';
-import { AuthSession } from './core/auth/auth-session';
+import { AuthService } from './core/auth/auth-service';
 import { ROLE_HOME } from './core/auth/role';
 
 export const routes: Routes = [
@@ -9,8 +9,8 @@ export const routes: Routes = [
     path: '',
     pathMatch: 'full',
     redirectTo: () => {
-      const role = inject(AuthSession).role();
-      return role ? ROLE_HOME[role] : '/login';
+      const auth = inject(AuthService);
+      return auth.hasValidSession() ? ROLE_HOME[auth.role()!] : '/login';
     },
   },
   {

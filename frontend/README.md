@@ -20,7 +20,7 @@ src/
 ├── styles.scss            Material theme + component overrides
 ├── styles/_tokens.scss    design tokens (--re-* CSS custom properties)
 └── app/
-    ├── core/              session (AuthSession), guards, HTTP interceptor, roles, es-EC locale
+    ├── core/              AuthService (login + session), guards, HTTP interceptor, roles, es-EC locale
     ├── shared/layout/     AppShell (sidebar per role, header with user/role/date), nav-items, PlaceholderPage
     ├── shared/ui/         reusable standalone components (see below)
     └── features/
@@ -63,6 +63,13 @@ Design tokens live in `src/styles/_tokens.scss` and are exposed as `--re-*` CSS 
 
 Status colors (`--re-success`, `--re-warning`, `--re-danger`, `--re-info`, `--re-purple`, `--re-neutral` with `-bg` / `-border` variants), slate grays (`--re-gray-50` … `--re-gray-700`), radii, shadows and spacing are also tokens. Never hard-code colors in components.
 
-## Development login
+## Authentication
 
-Until HU-01 delivers `POST /api/auth/login`, development builds show an "Acceso de desarrollo" block on the login page and a "Cambiar de rol (prueba)" button in the sidebar to open each role panel without a backend. Both are hidden in production builds (`isDevMode()`) and must be removed in HU-01.
+`AuthService` (`core/auth/auth-service.ts`) calls `POST /api/auth/login` and keeps the session (JWT, expiry and user) in signals:
+
+- **Storage:** `sessionStorage` by default (ends with the tab); `localStorage` when "Recordarme en este dispositivo" is checked.
+- **Expiry:** the session ends when the token expires (timer plus a check in `authGuard`), and the user is sent to `/login`.
+- **Requests:** `authInterceptor` adds `Authorization: Bearer <token>` to `/api` calls; a 401 from any endpoint other than the login ends the session and redirects to `/login`.
+- **Redirects:** after login, and when opening `/` or `/login` with a valid session, the user goes to the panel of their role (`ROLE_HOME`).
+
+To log in locally, start the backend: the first start creates the administrator from `ADMIN_EMAIL` / `ADMIN_PASSWORD` in `.env`. In unit tests, use `logInForTest(role)` from `core/auth/auth-testing.ts`.

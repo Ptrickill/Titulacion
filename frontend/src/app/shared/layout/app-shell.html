@@ -33,19 +33,6 @@
     </nav>
 
     <div class="sidebar-footer">
-      @if (showRoleSwitcher) {
-        <button type="button" class="role-switcher" [matMenuTriggerFor]="rolesMenu">
-          <mat-icon aria-hidden="true">swap_horiz</mat-icon>
-          Cambiar de rol (prueba)
-        </button>
-        <mat-menu #rolesMenu="matMenu">
-          @for (option of roles; track option) {
-            <button mat-menu-item type="button" (click)="switchRole(option)">
-              {{ roleLabels[option] }}
-            </button>
-          }
-        </mat-menu>
-      }
       <button type="button" class="logout" (click)="logout()">
         <mat-icon aria-hidden="true">logout</mat-icon>
         Cerrar sesión

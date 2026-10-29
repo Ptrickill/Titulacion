@@ -32,6 +32,8 @@ spring:
 server:
   # Hosting platforms such as Render inject PORT
   port: ${PORT:8080}
+  # Behind a reverse proxy (Render) take the client IP from X-Forwarded-For, trusting only internal proxies
+  forward-headers-strategy: native
 
 management:
   endpoints:
