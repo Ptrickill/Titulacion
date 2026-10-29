@@ -1,0 +1,163 @@
+<header class="header">
+  <div class="icon-tile" aria-hidden="true">
+    <mat-icon>person_add</mat-icon>
+  </div>
+  <div>
+    <h2 mat-dialog-title class="title">Crear usuario</h2>
+    <p class="subtitle">La cuenta queda activa y la contraseña se guarda cifrada.</p>
+  </div>
+</header>
+
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <mat-dialog-content>
+    <app-form-section [step]="1" title="Datos de la cuenta">
+      <mat-form-field appearance="fill" subscriptSizing="dynamic">
+        <mat-label>Rol</mat-label>
+        <mat-select formControlName="role">
+          @for (role of roles; track role) {
+            <mat-option [value]="role">{{ roleLabels[role] }}</mat-option>
+          }
+        </mat-select>
+        @if (form.controls.role.hasError('required')) {
+          <mat-error>Seleccione un rol.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" subscriptSizing="dynamic">
+        <mat-label>Correo electrónico</mat-label>
+        <input matInput type="email" formControlName="email" autocomplete="off" />
+        @if (form.controls.email.hasError('required')) {
+          <mat-error>Ingrese el correo electrónico.</mat-error>
+        } @else if (form.controls.email.hasError('email')) {
+          <mat-error>Ingrese un correo electrónico válido.</mat-error>
+        } @else if (form.controls.email.getError('server'); as message) {
+          <mat-error>{{ message }}</mat-error>
+        }
+      </mat-form-field>
+
+      @if (isPatientRole()) {
+        <mat-form-field appearance="fill" class="full" subscriptSizing="dynamic">
+          <mat-label>Paciente vinculado</mat-label>
+          <mat-icon matPrefix aria-hidden="true">search</mat-icon>
+          <input
+            matInput
+            formControlName="patientSearch"
+            [matAutocomplete]="patients"
+            [errorStateMatcher]="patientErrorMatcher"
+            (input)="onPatientSearchInput()"
+            placeholder="Buscar por apellidos, nombres o cédula"
+          />
+          @if (searchingCandidates()) {
+            <mat-spinner matSuffix diameter="18" aria-label="Buscando pacientes" />
+          }
+          <mat-autocomplete
+            #patients="matAutocomplete"
+            [displayWith]="displayCandidate"
+            (optionSelected)="selectPatient($event.option.value)"
+          >
+            @for (candidate of candidates(); track candidate.id) {
+              <mat-option [value]="candidate">
+                <span class="candidate-name">{{ candidate.fullName }}</span>
+                <span class="candidate-id">C.I. {{ candidate.nationalId }}</span>
+              </mat-option>
+            }
+          </mat-autocomplete>
+          <mat-hint>Solo pacientes registrados que aún no tienen cuenta de portal.</mat-hint>
+          @if (form.controls.patient.hasError('required')) {
+            <mat-error>La cuenta de paciente debe vincularse a un paciente registrado.</mat-error>
+          }
+        </mat-form-field>
+        @if (!searchingCandidates() && candidates().length === 0) {
+          <p class="full notice" role="status">
+            <mat-icon aria-hidden="true">info</mat-icon>
+            @if (form.controls.patientSearch.value) {
+              Ningún paciente sin cuenta de portal coincide con la búsqueda.
+            } @else {
+              No hay pacientes registrados sin cuenta de portal.
+            }
+          </p>
+        }
+      }
+
+      <mat-form-field appearance="fill" class="full" subscriptSizing="dynamic">
+        <mat-label>Nombres y apellidos</mat-label>
+        <input matInput formControlName="fullName" autocomplete="off" />
+        @if (form.controls.fullName.hasError('required')) {
+          <mat-error>Ingrese los nombres y apellidos.</mat-error>
+        } @else if (form.controls.fullName.hasError('maxlength')) {
+          <mat-error>Máximo 150 caracteres.</mat-error>
+        }
+      </mat-form-field>
+    </app-form-section>
+
+    <app-form-section
+      [step]="2"
+      title="Contraseña inicial"
+      description="Comuníquela al usuario por un canal seguro. Debe tener de 8 a 72 caracteres, con al menos una letra y un número."
+    >
+      <mat-form-field appearance="fill" subscriptSizing="dynamic">
+        <mat-label>Contraseña</mat-label>
+        <input
+          matInput
+          [type]="hidePassword() ? 'password' : 'text'"
+          formControlName="password"
+          autocomplete="new-password"
+        />
+        <button
+          mat-icon-button
+          matSuffix
+          type="button"
+          [attr.aria-label]="hidePassword() ? 'Mostrar contraseña' : 'Ocultar contraseña'"
+          (click)="hidePassword.set(!hidePassword())"
+        >
+          <mat-icon>{{ hidePassword() ? 'visibility' : 'visibility_off' }}</mat-icon>
+        </button>
+        @if (form.controls.password.hasError('required')) {
+          <mat-error>Ingrese la contraseña inicial.</mat-error>
+        } @else if (form.controls.password.hasError('minlength')) {
+          <mat-error>Debe tener al menos 8 caracteres.</mat-error>
+        } @else if (form.controls.password.hasError('maxlength')) {
+          <mat-error>Máximo 72 caracteres.</mat-error>
+        } @else if (form.controls.password.hasError('pattern')) {
+          <mat-error>Debe contener al menos una letra y un número.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" subscriptSizing="dynamic">
+        <mat-label>Confirmar contraseña</mat-label>
+        <input
+          matInput
+          [type]="hidePassword() ? 'password' : 'text'"
+          formControlName="passwordConfirmation"
+          autocomplete="new-password"
+        />
+        @if (form.controls.passwordConfirmation.hasError('required')) {
+          <mat-error>Confirme la contraseña.</mat-error>
+        } @else if (form.controls.passwordConfirmation.hasError('mismatch')) {
+          <mat-error>Las contraseñas no coinciden.</mat-error>
+        }
+      </mat-form-field>
+    </app-form-section>
+
+    @if (errorMessage(); as message) {
+      <div class="error" role="alert">
+        <mat-icon aria-hidden="true">error</mat-icon>
+        <span>{{ message }}</span>
+      </div>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button type="button" mat-dialog-close [disabled]="submitting()">
+      Cancelar
+    </button>
+    <button mat-flat-button type="submit" [disabled]="submitting()">
+      @if (submitting()) {
+        <mat-spinner diameter="18" aria-label="Guardando" />
+      } @else {
+        <mat-icon aria-hidden="true">person_add</mat-icon>
+      }
+      Crear usuario
+    </button>
+  </mat-dialog-actions>
+</form>

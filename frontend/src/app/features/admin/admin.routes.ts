@@ -10,12 +10,7 @@ export const ADMIN_ROUTES: Routes = [
   {
     path: 'users',
     title: 'Gestión de Usuarios | Rehab Elite',
-    component: PlaceholderPage,
-    data: {
-      heading: 'Gestión de Usuarios y Roles',
-      subtitle: 'Control de accesos, roles autorizados y seguridad de la plataforma',
-      icon: 'shield_person',
-    } satisfies PlaceholderPageData,
+    loadComponent: () => import('./users/user-list').then((m) => m.UserList),
   },
   {
     path: 'patients',

@@ -26,7 +26,7 @@ src/
     └── features/
         ├── auth/login/       /login
         ├── physiotherapist/  /physio, /physio/patients, /physio/clinical-records, /physio/timeline, /physio/ai-assistant
-        ├── admin/            /admin, /admin/users, /admin/patients, /admin/reports
+        ├── admin/            /admin, /admin/users (users/: list + create dialog, HU-02), /admin/patients, /admin/reports
         ├── director/         /director/reports
         ├── patient/          /patient
         └── dev/              /ui-kit (development only)
@@ -45,9 +45,9 @@ Role access (HU-04):
 | Component | Selector | Purpose |
 |---|---|---|
 | `PageHeader` | `app-page-header` | Title, subtitle, optional back link and an `[actions]` slot |
-| `StatCard` | `app-stat-card` | KPI card with pastel icon tile, label, value and hint |
+| `StatCard` | `app-stat-card` | KPI card with pastel icon tile, label, value and hint; `compact` for rows of four cards |
 | `StatusBadge` | `app-status-badge` | Status/role/severity pill (`success`, `warning`, `danger`, `info`, `purple`, `teal`, `neutral`) |
-| `DataTable` | `app-data-table` | Card table with client-side pagination; custom cells with `<ng-template appDataTableCell="key" let-row>` |
+| `DataTable` | `app-data-table` | Card table with client-side pagination; custom cells with `<ng-template appDataTableCell="key" [appDataTableCellOf]="rows" let-row>` (the optional `appDataTableCellOf` types `row`) |
 | `FormSection` | `app-form-section` | Numbered form block with a responsive two-column grid (`class="full"` spans both) |
 | `EmptyState` | `app-empty-state` | Empty list / not-yet-available message with an optional action |
 | `ConfirmDialog` | `openConfirmDialog(dialog, data)` | Navy-header confirmation modal; emits `true` only on confirm |
