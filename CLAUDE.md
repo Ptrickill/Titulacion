@@ -99,6 +99,13 @@ Reglas:
     - `patients` lo escucha de forma síncrona (`@EventListener`, misma transacción), llena `portal_user_id` y audita `UPDATE Patient`. Si el vínculo falla, la cuenta tampoco se crea.
     - `patients` puede depender de `auth`, pero `auth` nunca de `patients`.
 - Seguridad: JWT HS256 emitido por `POST /api/auth/login` (claims `sub` = id, `email`, `fullName`, `role`; el rol da la autoridad `ROLE_<rol>`). Públicos solo login, `/actuator/health` y la documentación OpenAPI. El reloj se inyecta como bean `Clock` (`shared.config`).
+- Estado de cuentas (HU-03):
+  - `PATCH /api/users/{id}/status` con `{ "active": boolean }` (`UserManagementService.changeStatus`).
+  - Nunca se borra una cuenta: se desactiva. Reactivarla reinicia intentos fallidos y bloqueo.
+  - Un administrador no puede desactivar su propia cuenta (422).
+  - Cada cambio real audita `STATUS_CHANGE User`; pedir el estado actual no cambia ni audita nada.
+  - El login rechaza la cuenta inactiva con el mensaje genérico de HU-01.
+  - `ActiveAccountTokenValidator` (validador del `JwtDecoder`, después de firma, expiración y emisor) da 401 a los tokens ya emitidos de una cuenta inactiva o inexistente. Las pruebas deben emitir tokens solo para usuarios guardados.
 - Acceso por rol (HU-04): la tabla vive en `auth.config.RoleAccessRules`. Al añadir un área de API nueva, registrarla ahí y en `RoleAccessIntegrationTests`.
 
   | Área | Roles |
@@ -112,7 +119,7 @@ Reglas:
   | Resto de `/api/**` | Cualquier usuario autenticado |
 
 - Respuestas de seguridad:
-  - `ProblemDetailAuthenticationEntryPoint`: 401 sin auditoría.
+  - `ProblemDetailAuthenticationEntryPoint`: 401 sin auditoría (también para el token de una cuenta inactiva).
   - `AuditingAccessDeniedHandler`: 403 y `ACCESS_DENIED` en `audit_logs`. La entidad se toma de la ruta (`/api/patients/12` → `patients`, 12); nunca se guarda la query string.
   - `GlobalExceptionHandler` relanza `AccessDeniedException` y `AuthenticationException`, para que un futuro `@PreAuthorize` también quede auditado.
 
@@ -192,7 +199,8 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
   - `roleGuard(rol)` protege cada grupo de rutas. Si el rol no coincide, redirige al panel del rol del usuario y `AppShell` muestra el aviso "No tiene acceso a esa sección." (`SectionAccessNotice`).
   - Un 403 de la API lleva a `/access-denied` (`AccessDeniedPage`) sin cerrar la sesión.
   - Las rutas desconocidas van al panel del rol.
-- Sesión: `AuthService` guarda token, expiración y usuario (`sessionStorage`, o `localStorage` con "Recordarme"); el usuario actual se lee con `user()` / `role()`. En pruebas unitarias iniciar sesión con `logInForTest(rol)` de `core/auth/auth-testing.ts`.
+- Sesión: `AuthService` guarda token, expiración y usuario (`sessionStorage`, o `localStorage` con "Recordarme"); el usuario actual se lee con `user()` / `role()`. En pruebas unitarias iniciar sesión con `logInForTest(rol, nombre?, id?)` de `core/auth/auth-testing.ts`.
+- Errores de la API: mostrar el `detail` en español con `problemDetailMessage(error, textoAlternativo)` de `core/http/problem-detail.ts`.
 - Indentación de 2 espacios (ver `.editorconfig`).
 
 ## Convenciones de repositorio

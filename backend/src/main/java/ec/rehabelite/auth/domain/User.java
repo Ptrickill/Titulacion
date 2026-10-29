@@ -114,4 +114,23 @@ public class User {
         lastLoginAt = now;
     }
 
+    /** Lets the account log in again; it starts with a clean failed-attempt count and no lock. */
+    public void activate(Long updatedBy, Instant now) {
+        active = true;
+        failedAttempts = 0;
+        lockedUntil = null;
+        markUpdated(updatedBy, now);
+    }
+
+    /** Blocks the login and the tokens already issued; the account and its history are kept. */
+    public void deactivate(Long updatedBy, Instant now) {
+        active = false;
+        markUpdated(updatedBy, now);
+    }
+
+    private void markUpdated(Long updatedBy, Instant now) {
+        this.updatedBy = updatedBy;
+        this.updatedAt = now;
+    }
+
 }
