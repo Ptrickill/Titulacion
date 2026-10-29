@@ -103,5 +103,24 @@
         <app-status-badge label="Inactivo" tone="neutral" />
       }
     </ng-template>
+    <ng-template appDataTableCell="id" [appDataTableCellOf]="filteredUsers()" let-user>
+      @let ownAccount = isOwnAccount(user);
+      @let action = user.active ? 'Desactivar cuenta' : 'Activar cuenta';
+      <button
+        mat-icon-button
+        type="button"
+        class="status-action"
+        [class.deactivate]="user.active"
+        disabledInteractive
+        [disabled]="ownAccount || pendingIds().has(user.id)"
+        [matTooltip]="ownAccount ? 'No puede desactivar su propia cuenta' : action"
+        [attr.aria-label]="
+          ownAccount ? 'No puede desactivar su propia cuenta' : action + ' de ' + user.fullName
+        "
+        (click)="toggleStatus(user)"
+      >
+        <mat-icon aria-hidden="true">{{ user.active ? 'lock' : 'lock_open' }}</mat-icon>
+      </button>
+    </ng-template>
   </app-data-table>
 }
