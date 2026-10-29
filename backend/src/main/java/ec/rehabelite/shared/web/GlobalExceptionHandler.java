@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -77,8 +78,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return problem(HttpStatus.CONFLICT, "La operación viola una restricción de integridad de los datos.");
     }
 
+    // Missing, expired or invalid tokens: the security entry point delegates here to write the body
+    @ExceptionHandler(AuthenticationException.class)
+    ProblemDetail handleAuthentication(AuthenticationException ex) {
+        return problem(HttpStatus.UNAUTHORIZED, messageFor(HttpStatus.UNAUTHORIZED).detail());
+    }
+
     // Method-security denials reach this handler instead of the security filter chain.
-    // TODO(HU-01): record ACCESS_DENIED in the audit log here as well.
+    // TODO(HU-04): record ACCESS_DENIED in the audit log here as well.
     @ExceptionHandler(AccessDeniedException.class)
     ProblemDetail handleAccessDenied(AccessDeniedException ex) {
         return problem(HttpStatus.FORBIDDEN, messageFor(HttpStatus.FORBIDDEN).detail());

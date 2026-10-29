@@ -100,7 +100,8 @@ Architecture overview (C4 Level 2, containers):
    ```
 
    - Health: <http://localhost:8080/actuator/health>
-   - OpenAPI UI: <http://localhost:8080/swagger-ui.html> (requires a token until HU-01 opens it)
+   - OpenAPI UI: <http://localhost:8080/swagger-ui.html> (public; use **Authorize** with the token from `POST /api/auth/login`)
+   - On first start, if no administrator exists, the account from `ADMIN_EMAIL` / `ADMIN_PASSWORD` is created
 
 4. **Frontend.** In a second terminal:
 
