@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { booleanAttribute, Component, input } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 
 export type StatTone = 'teal' | 'info' | 'warning' | 'danger' | 'purple';
@@ -7,6 +7,7 @@ export type StatTone = 'teal' | 'info' | 'warning' | 'danger' | 'purple';
 @Component({
   selector: 'app-stat-card',
   imports: [MatIconModule],
+  host: { '[class.compact]': 'compact()' },
   template: `
     <div class="icon-tile" [class]="'icon-tile tone-' + tone()">
       <mat-icon aria-hidden="true">{{ icon() }}</mat-icon>
@@ -71,6 +72,15 @@ export type StatTone = 'teal' | 'info' | 'warning' | 'danger' | 'purple';
       letter-spacing: 0.05em;
       text-transform: uppercase;
     }
+    /* Compact: for rows of four cards in the 900px content area (e.g. user management) */
+    :host(.compact) {
+      gap: 12px;
+      padding: 16px;
+    }
+    :host(.compact) .icon-tile {
+      width: 40px;
+      height: 40px;
+    }
     .value {
       margin-top: 2px;
       color: var(--re-text);
@@ -91,4 +101,6 @@ export class StatCard {
   readonly icon = input('insights');
   readonly hint = input<string>();
   readonly tone = input<StatTone>('teal');
+  /** Smaller icon and padding, so four cards fit side by side without wrapping their labels. */
+  readonly compact = input(false, { transform: booleanAttribute });
 }

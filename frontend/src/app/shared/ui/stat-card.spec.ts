@@ -25,4 +25,17 @@ describe('StatCard', () => {
 
     expect((fixture.nativeElement as HTMLElement).querySelector('.hint')).toBeNull();
   });
+
+  it('applies the compact variant on request', () => {
+    const fixture = TestBed.createComponent(StatCard);
+    fixture.componentRef.setInput('label', 'Administradores');
+    fixture.componentRef.setInput('value', 1);
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.classList).not.toContain('compact');
+
+    fixture.componentRef.setInput('compact', '');
+    fixture.detectChanges();
+    expect(host.classList).toContain('compact');
+  });
 });
