@@ -1,5 +1,5 @@
 import { Component, computed, inject } from '@angular/core';
-import { AuthSession } from '../../core/auth/auth-session';
+import { AuthService } from '../../core/auth/auth-service';
 import { EmptyState } from '../../shared/ui/empty-state';
 import { HeroBanner } from '../../shared/ui/hero-banner';
 
@@ -20,10 +20,10 @@ import { HeroBanner } from '../../shared/ui/hero-banner';
   `,
 })
 export class PatientDashboard {
-  private readonly session = inject(AuthSession);
+  private readonly auth = inject(AuthService);
 
   protected readonly greeting = computed(() => {
-    const firstName = this.session.session()?.fullName.split(/\s+/)[0];
+    const firstName = this.auth.user()?.fullName.split(/\s+/)[0];
     return firstName ? `¡Hola, ${firstName}!` : '¡Hola!';
   });
 }

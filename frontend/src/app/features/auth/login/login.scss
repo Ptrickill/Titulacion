@@ -57,8 +57,26 @@
 form {
   display: flex;
   flex-direction: column;
-  gap: 4px;
   text-align: left;
+}
+
+.field-label {
+  margin: 0 0 6px;
+  color: var(--re-gray-700);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+mat-form-field {
+  margin-bottom: 16px;
+}
+
+.remember {
+  margin: -4px 0 12px -8px;
+  color: var(--re-gray-600);
+  font-size: 13px;
 }
 
 mat-icon[matPrefix] {
@@ -77,31 +95,15 @@ mat-icon[matPrefix] {
   border: 1px solid var(--re-danger-border);
   border-radius: var(--re-radius-sm);
   font-size: 13px;
+
+  mat-icon {
+    flex-shrink: 0;
+  }
 }
 
 .submit {
   height: 46px;
   font-weight: 700;
-}
-
-.preview {
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--re-gray-200);
-}
-
-.preview-title {
-  margin: 0 0 8px;
-  color: var(--re-gray-600);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.preview-roles {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px;
 }
 
 .footer {

@@ -1,7 +1,9 @@
 import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
-import { AuthSession } from '../../core/auth/auth-session';
+import { AuthService } from '../../core/auth/auth-service';
+import { logInForTest } from '../../core/auth/auth-testing';
 import { Role } from '../../core/auth/role';
 import { AppShell } from './app-shell';
 
@@ -10,7 +12,7 @@ describe('AppShell', () => {
   let element: HTMLElement;
 
   async function renderAs(role: Role): Promise<void> {
-    TestBed.inject(AuthSession).startPreviewSession(role);
+    logInForTest(role);
     fixture = TestBed.createComponent(AppShell);
     element = fixture.nativeElement as HTMLElement;
     await fixture.whenStable();
@@ -21,7 +23,10 @@ describe('AppShell', () => {
 
   beforeEach(() => {
     sessionStorage.clear();
-    TestBed.configureTestingModule({ providers: [provideRouter([]), provideHttpClient()] });
+    localStorage.clear();
+    TestBed.configureTestingModule({
+      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
+    });
   });
 
   afterEach(() => fixture.destroy());
@@ -76,7 +81,7 @@ describe('AppShell', () => {
 
     element.querySelector<HTMLButtonElement>('.logout')!.click();
 
-    expect(TestBed.inject(AuthSession).isAuthenticated()).toBe(false);
+    expect(TestBed.inject(AuthService).isAuthenticated()).toBe(false);
     expect(navigate).toHaveBeenCalledWith(['/login']);
   });
 });
