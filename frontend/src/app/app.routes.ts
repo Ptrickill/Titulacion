@@ -1,18 +1,17 @@
 import { inject, isDevMode } from '@angular/core';
-import { Routes } from '@angular/router';
+import { RedirectFunction, Routes } from '@angular/router';
 import { authGuard, roleGuard } from './core/auth/auth-guard';
 import { AuthService } from './core/auth/auth-service';
 import { ROLE_HOME } from './core/auth/role';
 
+/** Home panel of the logged-in user's role, or /login without a valid session. */
+const toRoleHome: RedirectFunction = () => {
+  const auth = inject(AuthService);
+  return auth.hasValidSession() ? ROLE_HOME[auth.role()!] : '/login';
+};
+
 export const routes: Routes = [
-  {
-    path: '',
-    pathMatch: 'full',
-    redirectTo: () => {
-      const auth = inject(AuthService);
-      return auth.hasValidSession() ? ROLE_HOME[auth.role()!] : '/login';
-    },
-  },
+  { path: '', pathMatch: 'full', redirectTo: toRoleHome },
   {
     path: 'login',
     title: 'Iniciar sesión | Rehab Elite',
@@ -47,6 +46,13 @@ export const routes: Routes = [
           import('./features/patient/patient.routes').then((m) => m.PATIENT_ROUTES),
       },
       {
+        // Shown when the API answers 403 (see authInterceptor)
+        path: 'access-denied',
+        title: 'Acceso denegado | Rehab Elite',
+        loadComponent: () =>
+          import('./shared/layout/access-denied-page').then((m) => m.AccessDeniedPage),
+      },
+      {
         // Development-only component gallery; not matched in production builds
         path: 'ui-kit',
         title: 'Catálogo de componentes | Rehab Elite',
@@ -55,5 +61,6 @@ export const routes: Routes = [
       },
     ],
   },
-  { path: '**', redirectTo: 'login' },
+  // Unknown URLs go to the user's own panel (or to /login without a session)
+  { path: '**', redirectTo: toRoleHome },
 ];

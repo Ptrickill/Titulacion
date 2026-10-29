@@ -55,6 +55,21 @@ describe('authInterceptor', () => {
     expect(navigate).toHaveBeenCalledWith(['/login']);
   });
 
+  it('keeps the session and shows the access denied page on 403', () => {
+    logInForTest('PATIENT');
+    const navigateByUrl = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+    let failed = false;
+
+    http.get('/api/clinical-records/7').subscribe({ error: () => (failed = true) });
+    backend
+      .expectOne('/api/clinical-records/7')
+      .flush({ title: 'Acceso denegado', status: 403 }, { status: 403, statusText: 'Forbidden' });
+
+    expect(failed).toBe(true);
+    expect(auth.isAuthenticated()).toBe(true);
+    expect(navigateByUrl).toHaveBeenCalledWith('/access-denied');
+  });
+
   it('leaves a failed login to the login page', () => {
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
 
