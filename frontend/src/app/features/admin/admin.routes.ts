@@ -23,6 +23,11 @@ export const ADMIN_ROUTES: Routes = [
     loadComponent: () => import('./patients/patient-detail').then((m) => m.PatientDetail),
   },
   {
+    path: 'audit',
+    title: 'Auditoría | Rehab Elite',
+    loadComponent: () => import('../audit/audit-log-list').then((m) => m.AuditLogList),
+  },
+  {
     path: 'reports',
     title: 'Reportes Consolidados | Rehab Elite',
     component: PlaceholderPage,

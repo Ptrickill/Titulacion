@@ -23,9 +23,11 @@ export const NAV_ITEMS: Record<Role, readonly NavItem[]> = {
     { label: 'Gestión de Usuarios', icon: 'shield_person', route: '/admin/users' },
     { label: 'Registro de Pacientes', icon: 'group', route: '/admin/patients' },
     { label: 'Reportes Consolidados', icon: 'bar_chart', route: '/admin/reports' },
+    { label: 'Auditoría', icon: 'policy', route: '/admin/audit' },
   ],
   OPERATIONS_DIRECTOR: [
     { label: 'Reportes Consolidados', icon: 'bar_chart', route: '/director/reports' },
+    { label: 'Auditoría', icon: 'policy', route: '/director/audit' },
   ],
   PATIENT: [{ label: 'Mi Tratamiento', icon: 'home', route: '/patient', exact: true }],
 };
