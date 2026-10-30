@@ -31,11 +31,36 @@ class FlywayMigrationTests extends AbstractIntegrationTest {
     }
 
     @Test
-    void appliesV1AndV2() {
+    void appliesV1ToV3() {
         assertThat(Arrays.stream(flyway.info().applied()).map(MigrationInfo::getVersion).map(Object::toString))
-                .containsExactly("1", "2");
+                .containsExactly("1", "2", "3");
         assertThat(flyway.info().applied()).allMatch(migration -> migration.getState().isApplied());
         assertThat(flyway.info().pending()).isEmpty();
+    }
+
+    /** HU-18: Envers tables of V3 (the context starting at all proves they match the mapping, ddl-auto=validate). */
+    @Test
+    void v3CreatesTheEnversTables() {
+        assertThat(jdbc.queryForList("""
+                SELECT table_name FROM information_schema.tables
+                WHERE table_schema = 'public' AND table_name IN ('revinfo', 'treatments_aud', 'therapy_sessions_aud')
+                ORDER BY table_name""", String.class))
+                .containsExactly("revinfo", "therapy_sessions_aud", "treatments_aud");
+        assertThat(jdbc.queryForObject("""
+                SELECT is_nullable FROM information_schema.columns
+                WHERE table_name = 'revinfo' AND column_name = 'user_id'""", String.class)).isEqualTo("YES");
+    }
+
+    /** Until HU-10 maps TherapySession, its _aud table must mirror therapy_sessions column by column. */
+    @Test
+    void theTherapySessionVersionsHaveTheSameColumnsAsTheSessions() {
+        String columns = """
+                SELECT column_name || ':' || data_type FROM information_schema.columns
+                WHERE table_name = ? AND column_name NOT IN ('rev', 'revtype') ORDER BY column_name""";
+        assertThat(jdbc.queryForList(columns, String.class, "therapy_sessions_aud"))
+                .isEqualTo(jdbc.queryForList(columns, String.class, "therapy_sessions"));
+        assertThat(jdbc.queryForList(columns, String.class, "treatments_aud"))
+                .isEqualTo(jdbc.queryForList(columns, String.class, "treatments"));
     }
 
     @Test

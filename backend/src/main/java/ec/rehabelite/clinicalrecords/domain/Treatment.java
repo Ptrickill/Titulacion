@@ -25,14 +25,18 @@ import java.util.Set;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.envers.Audited;
+import org.hibernate.envers.NotAudited;
+import org.hibernate.envers.RelationTargetAuditMode;
 
 /**
  * A treatment of a clinical record: diagnostic information, initial pain assessment and therapy plan. It starts
  * ACTIVE with the physiotherapist who opens it as the current responsible; HU-08 changes its status and responsible,
- * keeping both histories.
+ * keeping both histories. Hibernate Envers keeps every version of its row in treatments_aud (HU-18).
  */
 @Entity
 @Table(name = "treatments")
+@Audited
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Treatment {
@@ -59,12 +63,16 @@ public class Treatment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** The versions keep only the record id: the record itself is not versioned. */
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "clinical_record_id", nullable = false)
+    @Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)
     private ClinicalRecord clinicalRecord;
 
+    /** The versions keep only the code: the catalog is not versioned. */
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "diagnosis_code", nullable = false)
+    @Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)
     private Icd10Diagnosis diagnosis;
 
     @Column(name = "chief_complaint", nullable = false)
@@ -124,7 +132,9 @@ public class Treatment {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
+    /** Not versioned: responsible_assignments is already the history of responsibles. */
     @OneToMany(mappedBy = "treatment", cascade = CascadeType.PERSIST)
+    @NotAudited
     private List<ResponsibleAssignment> responsibleAssignments = new ArrayList<>();
 
     /**

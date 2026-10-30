@@ -34,7 +34,8 @@ rehab-elite/
 │       │   ├── aisummary/           AI summaries
 │       │   ├── portal/              patient portal
 │       │   ├── reports/             operational reports
-│       │   ├── audit/               audit log
+│       │   ├── audit/               append-only audit log (read-only API for the administrator and the director)
+│       │   │                        and Hibernate Envers revisions of treatments and therapy sessions
 │       │   └── shared/              cross-cutting config and error handling
 │       └── resources/
 │           ├── application.yml      common settings

@@ -1,0 +1,100 @@
+<app-page-header
+  title="Auditoría"
+  subtitle="Quién creó, modificó o consultó información clínica, y los accesos denegados (solo lectura)"
+/>
+
+<form class="filters" [formGroup]="filters" aria-label="Filtros de la auditoría" novalidate>
+  <mat-form-field appearance="fill" subscriptSizing="dynamic">
+    <mat-label>Usuario</mat-label>
+    <mat-select formControlName="userId">
+      <mat-option [value]="null">Todos</mat-option>
+      @for (user of users(); track user.id) {
+        <mat-option [value]="user.id">{{ user.fullName }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="fill" subscriptSizing="dynamic">
+    <mat-label>Acción</mat-label>
+    <mat-select formControlName="action">
+      <mat-option [value]="null">Todas</mat-option>
+      @for (action of actions; track action) {
+        <mat-option [value]="action">{{ actionLabels[action] }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="fill" subscriptSizing="dynamic">
+    <mat-label>Entidad</mat-label>
+    <mat-select formControlName="entityType">
+      <mat-option [value]="null">Todas</mat-option>
+      @for (entityType of entityTypes(); track entityType) {
+        <mat-option [value]="entityType">{{ entityLabel(entityType) }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="fill" subscriptSizing="dynamic">
+    <mat-label>Desde</mat-label>
+    <input matInput type="date" formControlName="from" />
+  </mat-form-field>
+
+  <mat-form-field appearance="fill" subscriptSizing="dynamic">
+    <mat-label>Hasta</mat-label>
+    <input matInput type="date" formControlName="to" />
+  </mat-form-field>
+
+  <button mat-stroked-button type="button" class="clear" (click)="clear()">
+    <mat-icon aria-hidden="true">filter_alt_off</mat-icon>
+    Limpiar
+  </button>
+</form>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Cargando auditoría" />
+}
+
+<!-- With an inverted range nothing is searched, so the previous results are not shown either -->
+@if (filters.hasError('range')) {
+  <p class="range-error" role="alert">La fecha inicial no puede ser posterior a la fecha final.</p>
+} @else if (loadError(); as message) {
+  <app-empty-state icon="cloud_off" title="No se pudo cargar la auditoría" [message]="message">
+    <button mat-stroked-button type="button" (click)="reload()">Reintentar</button>
+  </app-empty-state>
+} @else if (results(); as page) {
+  <app-data-table
+    [columns]="columns"
+    [rows]="page.content"
+    [totalItems]="page.totalElements"
+    [pageSize]="pageSize"
+    [pageIndex]="query().page"
+    (pageIndexChange)="goToPage($event)"
+    caption="Registro de auditoría"
+    itemLabel="registros"
+    emptyMessage="No hay registros que coincidan con los filtros."
+  >
+    <ng-template appDataTableCell="occurredAt" [appDataTableCellOf]="page.content" let-entry>
+      <span class="when">{{ entry.occurredAt | date: 'dd/MM/yyyy HH:mm:ss' : quitoOffset }}</span>
+    </ng-template>
+    <ng-template appDataTableCell="userName" [appDataTableCellOf]="page.content" let-entry>
+      @if (entry.userId === null) {
+        <span class="anonymous">Sin sesión</span>
+      } @else {
+        <div class="user">{{ entry.userName ?? 'Usuario #' + entry.userId }}</div>
+        <div class="muted">#{{ entry.userId }}</div>
+      }
+    </ng-template>
+    <ng-template appDataTableCell="action" [appDataTableCellOf]="page.content" let-entry>
+      <app-status-badge [label]="actionLabels[entry.action]" [tone]="actionTones[entry.action]" />
+    </ng-template>
+    <ng-template appDataTableCell="entityType" [appDataTableCellOf]="page.content" let-entry>
+      <span class="entity">{{ entityLabel(entry.entityType) }}</span>
+      @if (entry.entityId !== null) {
+        <span class="muted"> #{{ entry.entityId }}</span>
+      }
+    </ng-template>
+    <ng-template appDataTableCell="ipAddress" [appDataTableCellOf]="page.content" let-entry>
+      <span class="ip">{{ entry.ipAddress ?? '—' }}</span>
+    </ng-template>
+  </app-data-table>
+}

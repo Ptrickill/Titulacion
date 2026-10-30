@@ -59,21 +59,30 @@ public class TreatmentService {
     }
 
     /**
-     * @throws ResourceNotFoundException if the treatment does not exist
+     * The treatment with its plan; the read is audited as READ (HU-18). Not read-only: the audit entry is inserted
+     * in the same transaction.
+     *
+     * @throws ResourceNotFoundException if the treatment does not exist (not audited)
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public Treatment find(Long treatmentId) {
-        return treatmentRepository.findWithDetailsById(treatmentId)
+        Treatment treatment = treatmentRepository.findWithDetailsById(treatmentId)
                 .orElseThrow(() -> new ResourceNotFoundException(TREATMENT_NOT_FOUND));
+        auditLogService.record(AuditAction.READ, ClinicalRecordService.TREATMENT_ENTITY, treatment.getId());
+        return treatment;
     }
 
     /**
-     * @throws ResourceNotFoundException if the treatment does not exist
+     * The responsible and status histories; the read is audited as READ (HU-18).
+     *
+     * @throws ResourceNotFoundException if the treatment does not exist (not audited)
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public TreatmentHistory history(Long treatmentId) {
-        return historyOf(treatmentRepository.findById(treatmentId)
-                .orElseThrow(() -> new ResourceNotFoundException(TREATMENT_NOT_FOUND)));
+        Treatment treatment = treatmentRepository.findById(treatmentId)
+                .orElseThrow(() -> new ResourceNotFoundException(TREATMENT_NOT_FOUND));
+        auditLogService.record(AuditAction.READ, ClinicalRecordService.TREATMENT_ENTITY, treatment.getId());
+        return historyOf(treatment);
     }
 
     /** Active physiotherapists who can become responsible of a treatment. */

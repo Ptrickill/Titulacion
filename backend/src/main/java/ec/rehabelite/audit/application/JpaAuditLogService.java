@@ -4,14 +4,15 @@ import ec.rehabelite.audit.AuditAction;
 import ec.rehabelite.audit.AuditLogService;
 import ec.rehabelite.audit.domain.AuditLog;
 import ec.rehabelite.audit.domain.AuditLogRepository;
+import ec.rehabelite.audit.domain.AuthenticatedUser;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.Clock;
+import java.time.Instant;
+import java.util.Collection;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -35,7 +36,23 @@ class JpaAuditLogService implements AuditLogService {
     @Override
     @Transactional
     public void record(AuditAction action, String entityType, Long entityId) {
-        recordFor(currentUserId(), action, entityType, entityId);
+        recordFor(AuthenticatedUser.currentId(), action, entityType, entityId);
+    }
+
+    @Override
+    @Transactional
+    public void recordAll(AuditAction action, String entityType, Collection<Long> entityIds) {
+        if (entityIds.isEmpty()) {
+            return;
+        }
+        Long userId = AuthenticatedUser.currentId();
+        Instant now = clock.instant();
+        String ip = clientIp();
+        List<AuditLog> entries = entityIds.stream()
+                .map(entityId -> new AuditLog(userId, action, entityType, entityId, now, ip))
+                .toList();
+        auditLogRepository.saveAll(entries);
+        log.debug("Audit entries recorded count={} action={} entityType={}", entries.size(), action, entityType);
     }
 
     @Override
@@ -46,20 +63,10 @@ class JpaAuditLogService implements AuditLogService {
         log.debug("Audit entry recorded id={} action={} entityType={}", entry.getId(), action, entityType);
     }
 
-    private static Long currentUserId() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()
-                || authentication instanceof AnonymousAuthenticationToken) {
-            return null;
-        }
-        try {
-            return Long.valueOf(authentication.getName());
-        } catch (NumberFormatException ex) {
-            return null;
-        }
-    }
-
-    /** Client IP of the current request; behind a proxy it relies on server.forward-headers-strategy. */
+    /**
+     * Client IP of the current request. Behind the Render proxy it is the address in X-Forwarded-For, applied by
+     * Spring's ForwardedHeaderFilter (server.forward-headers-strategy=framework).
+     */
     private static String clientIp() {
         if (!(RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes)) {
             return null;

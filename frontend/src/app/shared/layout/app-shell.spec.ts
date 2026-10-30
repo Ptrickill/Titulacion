@@ -65,11 +65,12 @@ describe('AppShell', () => {
       'Gestión de Usuarios',
       'Registro de Pacientes',
       'Reportes Consolidados',
+      'Auditoría',
     ]);
     fixture.destroy();
 
     await renderAs('OPERATIONS_DIRECTOR');
-    expect(menuLabels()).toEqual(['Reportes Consolidados']);
+    expect(menuLabels()).toEqual(['Reportes Consolidados', 'Auditoría']);
     fixture.destroy();
 
     await renderAs('PATIENT');

@@ -38,8 +38,10 @@ src/
         ├── admin/            /admin, /admin/users (users/: list + create dialog, HU-02; activate/deactivate, HU-03),
         │                     /admin/patients and /admin/patients/:id (patients/: search with server-side pagination,
         │                     register/edit form dialog and patient record, HU-05 and HU-06),
-        │                     /admin/reports
-        ├── director/         /director/reports
+        │                     /admin/reports, /admin/audit
+        ├── director/         /director/reports, /director/audit
+        ├── audit/            audit log page shared by /admin/audit and /director/audit (filters by user, action,
+        │                     entity and dates; metadata only, HU-18)
         ├── patient/          /patient
         └── dev/              /ui-kit (development only)
 ```

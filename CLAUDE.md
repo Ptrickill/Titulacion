@@ -58,7 +58,7 @@ Los comentarios `# TODO` de `.env` / `.env.example` son instrucciones para el de
 
 ## Stack
 
-- **Backend:** Java 21, Spring Boot 4, Spring Security con JWT HS256 (OAuth2 Resource Server), Spring Data JPA, Flyway, Spring Modulith, Bean Validation, MapStruct, springdoc-openapi.
+- **Backend:** Java 21, Spring Boot 4, Spring Security con JWT HS256 (OAuth2 Resource Server), Spring Data JPA, Flyway, Hibernate Envers (HU-18), Spring Modulith, Bean Validation, MapStruct, springdoc-openapi.
 - **Frontend:** Angular 22 con Angular Material.
 - **Base de datos:** PostgreSQL 16.
 - **IA:** API de Claude (Sprint 7, módulo `aisummary`).
@@ -92,8 +92,9 @@ Reglas:
 - `ModularityTests` debe pasar siempre.
 - APIs públicas disponibles:
   - `ec.rehabelite.auth.CurrentUserProvider`: usuario autenticado (`CurrentUser`: id, email, fullName, `Role`).
-  - `ec.rehabelite.audit.AuditLogService`: `record(AuditAction, entityType, entityId)` toma el usuario del token y la IP de la petición.
+  - `ec.rehabelite.audit.AuditLogService`: `record(AuditAction, entityType, entityId)` toma el usuario del token y la IP de la petición. `recordAll(acción, entidad, ids)` (HU-18) registra una entrada por id, por ejemplo los historiales de una lista.
   - `audit` no depende de `auth`, para evitar un ciclo: `auth` registra el `LOGIN` con `recordFor(userId, ...)`.
+  - `ec.rehabelite.audit.AuditUserDirectory` (HU-18): `fullNames(ids)` y `users()` (`AuditUser`: id y nombre) para la auditoría. La declara `audit` y la implementa `auth` (`AuditUserDirectoryService`), que ya depende de `audit`; así `audit` nunca depende de `auth`.
   - `ec.rehabelite.auth.PortalAccountCreated(userId, patientId)` (HU-02):
     - Evento que `auth` publica al crear una cuenta `PATIENT`.
     - `patients` lo escucha de forma síncrona (`@EventListener`, misma transacción), llena `portal_user_id` y audita `UPDATE Patient`. Si el vínculo falla, la cuenta tampoco se crea.
@@ -163,7 +164,7 @@ Reglas:
   - `GET /api/treatments/{id}/history`: estado, `allowedNextStatuses`, responsable vigente, responsables y cambios de estado (del más reciente al más antiguo) con los nombres de `StaffDirectory`. `PUT` y `PATCH` devuelven este mismo cuerpo.
   - `GET /api/treatments/{id}` (plan, estado, paciente y responsable vigente) usa `findWithDetailsById` con `@EntityGraph`. Un grafo de tipo fetch vuelve diferido todo lo que no lista: hay que incluir también las relaciones EAGER que se mapean (como `diagnosis`).
   - `GET /api/physio/physiotherapists`: fisioterapeutas activos (id y nombre) para elegir el responsable.
-  - Estas consultas no se auditan: la auditoría `READ` del resto de lecturas clínicas llega con HU-18.
+  - `GET /api/treatments/{id}` y `GET /api/treatments/{id}/history` auditan `READ Treatment` (HU-18). `PUT` y `PATCH` devuelven el historial sin `READ`: ya auditan su cambio.
 - Consulta y edición del historial (HU-09), solo `PHYSIOTHERAPIST`:
   - `GET /api/patients/{patientId}/clinical-record` (`ClinicalRecordViewService.view`):
     - Devuelve el expediente completo: datos personales (`PatientProfile`), hábitos y antecedentes, `activeTreatment` (o `null`) con `currentResponsible`, y `previousTreatments` (del más reciente al más antiguo, cada uno con su último responsable).
@@ -180,6 +181,41 @@ Reglas:
     - Errores 404: los mismos dos mensajes que el `GET`.
     - `ClinicalRecord.update` llena `updated_by` y `updated_at`, y se audita `UPDATE ClinicalRecord`. Enviar los mismos datos no cambia ni audita nada.
     - Responde los hábitos y antecedentes con `updatedAt`.
+- Auditoría de información clínica (HU-18, LOPDP):
+  - **Regla:** toda operación sobre datos clínicos registra en `audit_logs` el usuario, la acción, la entidad, su id, la fecha (`occurred_at`) y la IP. Los datos personales del paciente no se auditan al leerlos (sí al crearlos o modificarlos). Las peticiones rechazadas (400, 404, 422) no se auditan; los 403 sí (`ACCESS_DENIED`). Un servicio que lee y audita es `@Transactional` sin `readOnly`, porque la auditoría inserta en la misma transacción.
+
+    | Endpoint | Acción registrada |
+    |---|---|
+    | `POST /api/patients` | `CREATE Patient` |
+    | `PUT /api/patients/{id}` | `UPDATE Patient` (solo si cambia algo) |
+    | Evento `PortalAccountCreated` (`POST /api/users` con rol `PATIENT`) | `UPDATE Patient` |
+    | `GET /api/patients`, `GET /api/patients/{id}`, `GET /api/patients/portal-candidates` | ninguna (datos personales) |
+    | `POST /api/patients/{id}/clinical-record` | `CREATE ClinicalRecord` + `CREATE Treatment` |
+    | `GET /api/patients/{id}/clinical-record` | `READ ClinicalRecord` |
+    | `PUT /api/patients/{id}/clinical-record` | `UPDATE ClinicalRecord` (solo si cambia algo) |
+    | `POST /api/clinical-records/{id}/treatments` | `CREATE Treatment` |
+    | `GET /api/treatments/{id}`, `GET /api/treatments/{id}/history` | `READ Treatment` |
+    | `PUT /api/treatments/{id}/responsible` | `UPDATE Treatment` (solo si cambia algo) |
+    | `PATCH /api/treatments/{id}/status` | `STATUS_CHANGE Treatment` |
+    | `GET /api/physio/patients` | `READ ClinicalRecord` por cada historial de la página (`PhysioPatientService`, `recordAll`) |
+    | `GET /api/icd10-diagnoses`, `GET /api/physio/physiotherapists` | ninguna (catálogo y personal) |
+
+    Al añadir un endpoint clínico, agregarlo a esta tabla y a `ClinicalAuditIntegrationTests`.
+  - **IP del cliente:** `server.forward-headers-strategy: framework`. La IP se toma de `X-Forwarded-For` (`ForwardedHeaderFilter`) **solo porque en producción la aplicación está detrás del proxy de Render**, que pone esa cabecera. El filtro confía en la cabecera de cualquier cliente, así que el backend nunca debe quedar expuesto sin el proxy. Sin la cabecera (desarrollo, pruebas) se usa la dirección de la conexión.
+  - **`audit_logs` es de solo inserción:** los triggers de V1 rechazan `UPDATE`, `DELETE` y `TRUNCATE` (`AuditLogAppendOnlyIntegrationTests`). La entidad `AuditLog` es `@Immutable`.
+  - **`GET /api/audit-logs`** (`AuditLogQueryService`), solo `ADMINISTRATOR` y `OPERATIONS_DIRECTOR`, de solo lectura (otros métodos: 405):
+    - Paginado (`size` 1–100, 20 por defecto), de lo más reciente a lo más antiguo.
+    - Filtros opcionales `userId`, `action`, `entityType`, `entityId`, `from` y `to`. Las fechas son días de Quito, ambos incluidos (`AuditLogFilter`, una Specification). `from` posterior a `to` responde 400.
+    - Responde solo metadatos: `id`, `occurredAt`, `userId`, `userName`, `action`, `entityType`, `entityId` e `ipAddress`.
+    - `GET /api/audit-logs/entity-types` y `GET /api/audit-logs/users` alimentan los filtros (vía `AuditUserDirectory`).
+    - Consultar la auditoría no se audita.
+  - **Hibernate Envers** (`hibernate-envers`), versiones completas de `treatments` y `therapy_sessions`:
+    - V3 crea `revinfo` (`rev`, `revision_timestamp`, `user_id`) y las tablas `treatments_aud` y `therapy_sessions_aud` (columnas de la tabla, todas opcionales, más `rev` y `revtype`: 0 alta, 1 cambio, 2 baja).
+    - `AuditRevision` (`audit.domain`, `@RevisionEntity`) y `AuditRevisionListener` llenan `revinfo.user_id` con el usuario del token, o `null` sin usuario autenticado (inicializadores, seed `dev`).
+    - `Treatment` es `@Audited`. `clinicalRecord` y `diagnosis` guardan solo el id (`RelationTargetAuditMode.NOT_AUDITED`), y `responsibleAssignments` es `@NotAudited` porque ya es un historial.
+    - Configuración en `application.yml` (`org.hibernate.envers.*`): sufijo `_aud`, `rev`, `revtype` y `store_data_at_delete`.
+    - **Regla:** todo cambio futuro de columnas en `treatments` o `therapy_sessions` incluye el mismo cambio en su tabla `_aud` **en la misma migración**. Hibernate valida ambas (`ddl-auto: validate`), y `FlywayMigrationTests` compara sus columnas.
+    - **HU-10** debe mapear `TherapySession` con `@Audited` y validar que `therapy_sessions_aud` coincide con las columnas de `therapy_sessions`. Si cambia algo, lo hace una migración nueva, nunca editando V3.
 - Respuestas paginadas: devolver `PageResponse.of(page, mapper)` (`content`, `page`, `size`, `totalElements`, `totalPages`), nunca el `Page` de Spring Data.
 - Acceso por rol (HU-04): la tabla vive en `auth.config.RoleAccessRules`. Una regla puede limitarse a un método HTTP y gana la primera que coincide. Al añadir un área de API nueva, registrarla ahí y en `RoleAccessIntegrationTests`.
 
@@ -239,7 +275,7 @@ Ejemplos: `GET /api/patients?query=...`, `PATCH /api/treatments/{id}/status`, `P
 
 ## Modelo de datos
 
-Fuente de verdad: `backend/src/main/resources/db/migration/` (`V1__initial_schema.sql`, `V2__icd10_initial_catalog.sql`).
+Fuente de verdad: `backend/src/main/resources/db/migration/` (`V1__initial_schema.sql`, `V2__icd10_initial_catalog.sql`, `V3__envers_audit_tables.sql`: `revinfo`, `treatments_aud`, `therapy_sessions_aud` e índice `ix_audit_logs_occurred_at`).
 
 - Tablas en inglés, plural, snake_case: `users`, `patients`, `clinical_records`, `icd10_diagnoses`, `treatments`, `responsible_assignments`, `treatment_status_changes`, `therapy_sessions`, `ai_summaries`, `audit_logs`.
 - Prefijos: `pk_`, `fk_`, `uq_`, `ck_`, `ix_`; triggers `trg_`.
@@ -284,7 +320,7 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
 
 - Requiere Node.js `^22.22.3`. `npm start` sirve en `http://localhost:4200` y redirige `/api` a `http://localhost:8080` (`proxy.conf.json`).
 - Carpetas: `src/app/core` (`AuthService` con login y sesión en signals, `authGuard`/`roleGuard`, `authInterceptor`, roles, locale `es-EC`), `src/app/shared/layout` (`AppShell`, `nav-items.ts`, `PlaceholderPage`), `src/app/shared/ui` (componentes reutilizables), `src/app/features/auth`, `features/admin`, `features/physiotherapist`, `features/director`, `features/patient`, `features/dev` (solo desarrollo).
-- Rutas: `/login` y, dentro de `AppShell`, un `*.routes.ts` por rol: `/physio` (`patients`, `clinical-records`, `timeline`, `ai-assistant`), `/admin` (`users`, `patients`, `reports`), `/director` (`reports`), `/patient`. Cada rol protegido por `authGuard` + `roleGuard(rol)` y cargado de forma diferida. Las secciones sin historia implementada usan `PlaceholderPage` (título y subtítulo en `data`); la historia reemplaza ese `component` por su página real.
+- Rutas: `/login` y, dentro de `AppShell`, un `*.routes.ts` por rol: `/physio` (`patients`, `clinical-records`, `timeline`, `ai-assistant`), `/admin` (`users`, `patients`, `reports`, `audit`), `/director` (`reports`, `audit`), `/patient`. Cada rol protegido por `authGuard` + `roleGuard(rol)` y cargado de forma diferida. Las secciones sin historia implementada usan `PlaceholderPage` (título y subtítulo en `data`); la historia reemplaza ese `component` por su página real.
 - Componentes de `shared/ui` (standalone, con pruebas): `page-header`, `stat-card` (variante `compact` para filas de cuatro tarjetas), `status-badge`, `data-table` (paginación en cliente, o en servidor con `[totalItems]` y `[(pageIndex)]`; `appDataTableCell` para celdas personalizadas, y `[appDataTableCellOf]="filas"` tipa `let-row`), `form-section`, `empty-state` (admite varias acciones, separadas), `confirm-dialog` (`openConfirmDialog()` devuelve `Observable<boolean>`) y `hero-banner`. Usarlos antes de crear componentes nuevos. Catálogo visual en `/ui-kit` (solo `isDevMode()`).
 - Diseño: seguir `docs/prototype/`. Capturas de comparación por tarea en `docs/screenshots/<tarea>/`.
 - Nombres según la guía de estilo de Angular CLI 22, en inglés: archivo `patient-list.ts`, clase `PatientList`, selector `app-patient-list`; guards/interceptores `*-guard.ts` / `*-interceptor.ts`. Textos de la interfaz en español.
@@ -325,6 +361,11 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
     - `edit`, que se activa con `data: { mode: 'edit' }` en la ruta y muestra solo "Hábitos y antecedentes", precargado desde el expediente, con `PUT`.
   - Al guardar en cualquier modo, el formulario abre el expediente.
   - La lista del fisioterapeuta muestra "Ver historial" a los pacientes que ya tienen historial.
+- Auditoría (HU-18):
+  - `features/audit/AuditLogList` se reutiliza en `/admin/audit` y `/director/audit`, con la entrada "Auditoría" en el menú de ambos roles.
+  - Tabla paginada en el servidor (20 por página) con fecha y hora de Quito, usuario, acción (badge), entidad con id e IP. Solo metadatos.
+  - Filtros por usuario (`GET /api/audit-logs/users`), acción, entidad (`/entity-types`) y rango de fechas. Cada cambio recarga la primera página. Con "Desde" posterior a "Hasta" no busca y solo muestra el aviso.
+  - Etiquetas en `audit-labels.ts`. Un `ACCESS_DENIED` muestra el área de la ruta tal cual (p. ej. `patients`).
 - Validaciones compartidas en `src/app/shared/validation`. `national-id.ts` aplica las mismas reglas de cédula que el backend: `nationalIdValidator` da `{ nationalId: regla }` y `NATIONAL_ID_MESSAGES` tiene el mensaje de cada regla.
 - Pacientes del administrador (HU-05, HU-06):
   - `/admin/patients` (`PatientRegistry`) busca con espera de 300 ms y muestra una tabla paginada en el servidor con identificación y contacto. Las columnas de sesiones y estado del prototipo son datos clínicos y no se muestran.
