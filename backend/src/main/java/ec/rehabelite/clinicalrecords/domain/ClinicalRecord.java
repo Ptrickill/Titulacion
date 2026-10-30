@@ -97,12 +97,16 @@ public class ClinicalRecord {
      */
     public Treatment openTreatment(Icd10Diagnosis diagnosis, TreatmentData data, Long physiotherapistId,
             LocalDate startDate, Instant now) {
-        if (treatments.stream().anyMatch(Treatment::isActive)) {
+        if (hasActiveTreatment()) {
             throw new BusinessRuleException(ACTIVE_TREATMENT_EXISTS);
         }
         Treatment treatment = Treatment.open(this, diagnosis, data, physiotherapistId, startDate, now);
         treatments.add(treatment);
         return treatment;
+    }
+
+    public boolean hasActiveTreatment() {
+        return treatments.stream().anyMatch(Treatment::isActive);
     }
 
 }

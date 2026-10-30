@@ -102,6 +102,9 @@ Reglas:
     - `find(id)` y `search(q, pageable)` devuelven `PatientCard` (id, cédula, número de historia, nombres, apellidos, fecha de nacimiento y `ageOn(fecha)`).
     - Es la única forma en que otros módulos (`clinicalrecords`, `sessions`, ...) consultan pacientes.
     - `patients` nunca depende de `clinicalrecords`.
+  - `ec.rehabelite.auth.StaffDirectory` (HU-08):
+    - `findActivePhysiotherapist(id)`, `activePhysiotherapists()` y `fullNames(ids)` devuelven `StaffMember` (id y nombre) o los nombres, también de cuentas desactivadas.
+    - Es la única forma en que otros módulos consultan cuentas del personal; `auth` nunca depende de ellos.
 - Seguridad: JWT HS256 emitido por `POST /api/auth/login` (claims `sub` = id, `email`, `fullName`, `role`; el rol da la autoridad `ROLE_<rol>`). Públicos solo login, `/actuator/health` y la documentación OpenAPI. El reloj se inyecta como bean `Clock` (`shared.config`).
 - Estado de cuentas (HU-03):
   - `PATCH /api/users/{id}/status` con `{ "active": boolean }` (`UserManagementService.changeStatus`).
@@ -141,6 +144,25 @@ Reglas:
     - Pacientes de `PatientDirectory` con el resumen del tratamiento vigente (el activo o, si no hay, el más reciente).
     - El resumen sale de **una** consulta por página (`ClinicalRecordRepository.findCurrentTreatments`).
     - La paginación y la búsqueda son las de pacientes: no se filtra por datos clínicos.
+- Responsable y estado del tratamiento (HU-08), `TreatmentService`, solo `PHYSIOTHERAPIST` (cualquier fisioterapeuta, no solo el responsable vigente):
+  - **Transiciones de estado permitidas** (regla en `Treatment.changeStatus`):
+    - `ACTIVE → COMPLETED` y `ACTIVE → ABANDONED`.
+    - `ABANDONED → ACTIVE`, solo si el historial no tiene otro tratamiento activo (si lo tiene, 422 "El paciente ya tiene un tratamiento activo.").
+    - `COMPLETED` es un estado final: si el paciente vuelve, se abre un tratamiento nuevo.
+    - Cualquier otra transición, incluido el cambio al mismo estado, responde 422 "Transición de estado no permitida.".
+    - `Treatment.allowedNextStatuses()` da los destinos permitidos; la API los devuelve en `allowedNextStatuses` y el frontend solo ofrece esos.
+  - `PATCH /api/treatments/{id}/status` con `newStatus` y `reason` (obligatorio, hasta 1000 caracteres):
+    - Guarda en `treatment_status_changes` el estado anterior, el nuevo, el motivo, el usuario y la fecha.
+    - Llena `updated_by` y `updated_at` del tratamiento y audita `STATUS_CHANGE Treatment`.
+  - `PUT /api/treatments/{id}/responsible` con `physiotherapistId`:
+    - Cierra la asignación vigente (`valid_to` = ahora) y abre una nueva. Solo en tratamientos `ACTIVE` (si no, 422).
+    - El nuevo responsable debe ser un usuario activo con rol `PHYSIOTHERAPIST` (si no, 422). Elegir al responsable vigente no cambia ni audita nada; un cambio real audita `UPDATE Treatment`.
+    - Hibernate ejecuta los INSERT antes que los UPDATE y el índice único parcial solo admite un responsable vigente: por eso `Treatment.reassignResponsible` devuelve la nueva asignación sin añadirla a la colección, y el servicio hace `flush` del cierre antes de guardarla.
+  - Los cambios leen el tratamiento con bloqueo `PESSIMISTIC_WRITE` (`TreatmentRepository.findForUpdate`).
+  - `GET /api/treatments/{id}/history`: estado, `allowedNextStatuses`, responsable vigente, responsables y cambios de estado (del más reciente al más antiguo) con los nombres de `StaffDirectory`. `PUT` y `PATCH` devuelven este mismo cuerpo.
+  - `GET /api/treatments/{id}` (plan, estado, paciente y responsable vigente) usa `findWithDetailsById` con `@EntityGraph`. Un grafo de tipo fetch vuelve diferido todo lo que no lista: hay que incluir también las relaciones EAGER que se mapean (como `diagnosis`).
+  - `GET /api/physio/physiotherapists`: fisioterapeutas activos (id y nombre) para elegir el responsable.
+  - Las consultas no se auditan: la auditoría `READ` llega con HU-09 y HU-18.
 - Respuestas paginadas: devolver `PageResponse.of(page, mapper)` (`content`, `page`, `size`, `totalElements`, `totalPages`), nunca el `Page` de Spring Data.
 - Acceso por rol (HU-04): la tabla vive en `auth.config.RoleAccessRules`. Una regla puede limitarse a un método HTTP y gana la primera que coincide. Al añadir un área de API nueva, registrarla ahí y en `RoleAccessIntegrationTests`.
 
@@ -193,9 +215,10 @@ En inglés, plural, kebab-case, bajo `/api`:
 
 Excepciones acordadas en HU-07 (fuera del patrón de recurso plural):
 - `POST /api/patients/{patientId}/clinical-record`: singular, porque es el único historial del paciente.
-- `GET /api/physio/patients`: vista de pacientes con datos clínicos, separada de `/api/patients`, que no los incluye.
+- `GET /api/physio/patients`: vista de pacientes con datos clínicos, separada de `/api/patients`, que no los incluye. `GET /api/physio/physiotherapists` (HU-08) sigue el mismo criterio.
+- HU-08: `PUT /api/treatments/{id}/responsible` y `PATCH /api/treatments/{id}/status` (sub-recursos en singular del tratamiento).
 
-Ejemplos: `GET /api/patients?query=...`, `POST /api/treatments/{id}/status-changes`, `POST /api/ai-summaries/{id}/approve`.
+Ejemplos: `GET /api/patients?query=...`, `PATCH /api/treatments/{id}/status`, `POST /api/ai-summaries/{id}/approve`.
 
 ## Modelo de datos
 
@@ -263,6 +286,12 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
     - `/physio/patients/:patientId/clinical-record/new`: cuatro secciones.
     - `/physio/patients/:patientId/clinical-record/:recordId/treatments/new`: sin "Hábitos y antecedentes".
   - `Icd10Picker` es un control de formulario (`ControlValueAccessor`) con autocompletado. Su valor es el `Icd10Diagnosis` elegido de la lista, o `null`.
+  - `PatientSummaryCard` es la tarjeta del paciente (prototipo 04) de las páginas clínicas.
+- Plan terapéutico y asignación (HU-08):
+  - `/physio/patients/:patientId/treatments/:treatmentId` (`TreatmentPage`): tarjeta del paciente y `TreatmentPlanCard`. Si el tratamiento es de otro paciente, muestra un aviso. La lista enlaza aquí con "Plan y asignación".
+  - `TreatmentPlanCard` ("Plan terapéutico y asignación clínica") carga el historial con `rxResource` y tiene las acciones "Cambiar responsable" (solo tratamientos activos) y "Cambiar estado" (solo si hay destinos permitidos). HU-09 la reutiliza en la vista completa del historial.
+  - `ChangeStatusDialog` ofrece solo los estados de `allowedNextStatuses` y pide un motivo obligatorio. `ChangeResponsibleDialog` lista los fisioterapeutas activos, excepto el responsable vigente.
+  - En pruebas, un componente con `rxResource` pendiente nunca queda estable: llamar `TestBed.tick()` para lanzar la petición, responderla y solo después `whenStable()`.
 - Validaciones compartidas en `src/app/shared/validation`. `national-id.ts` aplica las mismas reglas de cédula que el backend: `nationalIdValidator` da `{ nationalId: regla }` y `NATIONAL_ID_MESSAGES` tiene el mensaje de cada regla.
 - Pacientes del administrador (HU-05, HU-06):
   - `/admin/patients` (`PatientRegistry`) busca con espera de 300 ms y muestra una tabla paginada en el servidor con identificación y contacto. Las columnas de sesiones y estado del prototipo son datos clínicos y no se muestran.

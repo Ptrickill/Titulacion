@@ -20,4 +20,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findByEmailEndingWith(String suffix);
 
+    Optional<User> findByIdAndRoleAndActiveTrue(Long id, Role role);
+
+    List<User> findByRoleAndActiveTrueOrderByFullNameAsc(Role role);
+
 }

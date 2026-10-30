@@ -16,10 +16,8 @@ import { problemDetailMessage } from '../../../core/http/problem-detail';
 import { EmptyState } from '../../../shared/ui/empty-state';
 import { FormSection } from '../../../shared/ui/form-section';
 import { PageHeader } from '../../../shared/ui/page-header';
-import { formatAge } from '../../admin/patients/patient-age';
 // GET /api/patients/{id} is shared by the administrator and the physiotherapist (personal data only)
 import { Patient, PatientApi } from '../../admin/patients/patient-api';
-import { SEX_LABELS } from '../../admin/patients/patient-options';
 import { SEVERITIES, SEVERITY_LABELS } from './clinical-labels';
 import {
   ClinicalRecordApi,
@@ -29,6 +27,7 @@ import {
   TreatmentRequest,
 } from './clinical-record-api';
 import { Icd10Picker } from './icd10-picker';
+import { PatientSummaryCard } from './patient-summary-card';
 
 /** Same limit as the backend for the free-text columns. */
 const TEXT_MAX = 4000;
@@ -70,6 +69,7 @@ type HistoryField =
     FormSection,
     EmptyState,
     Icd10Picker,
+    PatientSummaryCard,
   ],
   templateUrl: './clinical-record-form.html',
   styleUrl: './clinical-record-form.scss',
@@ -91,8 +91,6 @@ export class ClinicalRecordForm {
   protected readonly textMax = TEXT_MAX;
   protected readonly severities = SEVERITIES;
   protected readonly severityLabels = SEVERITY_LABELS;
-  protected readonly sexLabels = SEX_LABELS;
-  protected readonly formatAge = formatAge;
   protected readonly historyFields: readonly { name: HistoryField; label: string }[] = [
     { name: 'habits', label: 'Hábitos' },
     { name: 'physicalActivity', label: 'Actividad física' },

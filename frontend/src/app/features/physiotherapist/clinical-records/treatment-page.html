@@ -1,0 +1,24 @@
+<app-page-header
+  title="Plan Terapéutico y Asignación"
+  subtitle="Responsable del tratamiento, estado y trazabilidad de los cambios"
+  backLink="/physio/patients"
+/>
+
+@if (loadError(); as message) {
+  <app-empty-state
+    icon="assignment_late"
+    title="No se pudo abrir el tratamiento"
+    [message]="message"
+  >
+    <a mat-stroked-button routerLink="/physio/patients">Volver a pacientes</a>
+  </app-empty-state>
+} @else {
+  @if (patient(); as p) {
+    <app-patient-summary-card [patient]="p" />
+  }
+  @if (treatment(); as t) {
+    <app-treatment-plan-card [treatment]="t" />
+  } @else {
+    <mat-progress-bar mode="indeterminate" aria-label="Cargando tratamiento" />
+  }
+}

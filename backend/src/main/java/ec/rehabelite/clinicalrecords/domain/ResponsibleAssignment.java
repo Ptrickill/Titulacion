@@ -54,4 +54,9 @@ public class ResponsibleAssignment {
         return validTo == null;
     }
 
+    /** Closes the period: the assignment stays as history. */
+    void end(Instant now) {
+        validTo = now;
+    }
+
 }

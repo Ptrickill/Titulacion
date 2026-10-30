@@ -1,0 +1,63 @@
+<header class="header">
+  <div class="icon-tile" aria-hidden="true">
+    <mat-icon>manage_accounts</mat-icon>
+  </div>
+  <div>
+    <h2 mat-dialog-title class="title">Cambiar fisioterapeuta responsable</h2>
+    <p class="subtitle">Responsable vigente: {{ data.currentResponsibleName ?? 'sin asignar' }}</p>
+  </div>
+</header>
+
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <mat-dialog-content>
+    @if (loading()) {
+      <mat-progress-bar mode="indeterminate" aria-label="Cargando fisioterapeutas" />
+    } @else if (loadError()) {
+      <div class="error" role="alert">
+        <mat-icon aria-hidden="true">error</mat-icon>
+        <span>No se pudo cargar la lista de fisioterapeutas.</span>
+      </div>
+    } @else if (candidates().length === 0) {
+      <p class="notice" role="status">
+        <mat-icon aria-hidden="true">info</mat-icon>
+        No hay otros fisioterapeutas activos para asignar.
+      </p>
+    } @else {
+      <mat-form-field appearance="fill" subscriptSizing="dynamic">
+        <mat-label>Nuevo responsable</mat-label>
+        <mat-select formControlName="physiotherapistId">
+          @for (physiotherapist of candidates(); track physiotherapist.id) {
+            <mat-option [value]="physiotherapist.id">{{ physiotherapist.fullName }}</mat-option>
+          }
+        </mat-select>
+        <mat-hint>La asignación vigente se cierra y se conserva en el historial.</mat-hint>
+        @if (form.controls.physiotherapistId.hasError('required')) {
+          <mat-error>Seleccione el nuevo responsable.</mat-error>
+        }
+      </mat-form-field>
+    }
+
+    @if (errorMessage(); as message) {
+      <div class="error" role="alert">
+        <mat-icon aria-hidden="true">error</mat-icon>
+        <span>{{ message }}</span>
+      </div>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button type="button" mat-dialog-close [disabled]="submitting()">
+      Cancelar
+    </button>
+    <button
+      mat-flat-button
+      type="submit"
+      [disabled]="submitting() || loading() || candidates().length === 0"
+    >
+      @if (submitting()) {
+        <mat-spinner diameter="18" aria-label="Guardando" />
+      }
+      Asignar responsable
+    </button>
+  </mat-dialog-actions>
+</form>

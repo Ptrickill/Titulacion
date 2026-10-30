@@ -9,34 +9,7 @@
 />
 
 @if (patient(); as p) {
-  <section class="patient-card" aria-label="Paciente">
-    <span class="avatar" aria-hidden="true"
-      >{{ p.firstName.charAt(0) }}{{ p.lastName.charAt(0) }}</span
-    >
-    <div class="identity">
-      <span class="hc">HC: {{ p.medicalRecordNumber }}</span>
-      <h2 class="name">{{ p.firstName }} {{ p.lastName }}</h2>
-      <span class="meta">Cédula: {{ p.nationalId }}</span>
-    </div>
-    <dl class="facts">
-      <div>
-        <dt>Edad</dt>
-        <dd>{{ formatAge(p.age) }}</dd>
-      </div>
-      <div>
-        <dt>Sexo</dt>
-        <dd>{{ sexLabels[p.sex] }}</dd>
-      </div>
-      <div>
-        <dt>Ocupación</dt>
-        <dd>{{ p.occupation }}</dd>
-      </div>
-      <div>
-        <dt>Teléfono</dt>
-        <dd>{{ p.phone }}</dd>
-      </div>
-    </dl>
-  </section>
+  <app-patient-summary-card [patient]="p" />
 } @else if (patientError()) {
   <app-empty-state
     icon="person_off"
