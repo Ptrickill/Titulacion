@@ -77,16 +77,41 @@ public class ClinicalRecord {
     public static ClinicalRecord create(Long patientId, ClinicalHistoryData history, Long createdBy, Instant now) {
         ClinicalRecord record = new ClinicalRecord();
         record.patientId = patientId;
-        record.habits = history.habits();
-        record.physicalActivity = history.physicalActivity();
-        record.allergies = history.allergies();
-        record.currentMedication = history.currentMedication();
-        record.personalHistory = history.personalHistory();
-        record.surgicalHistory = history.surgicalHistory();
-        record.familyHistory = history.familyHistory();
+        record.apply(history);
         record.createdBy = createdBy;
         record.createdAt = now;
         return record;
+    }
+
+    /**
+     * Replaces the habits and medical history (HU-09); the treatments are not touched. Nothing changes when the data
+     * is the same.
+     *
+     * @return whether something changed (and updatedBy/updatedAt were set)
+     */
+    public boolean update(ClinicalHistoryData history, Long updatedBy, Instant now) {
+        if (history.equals(historyData())) {
+            return false;
+        }
+        apply(history);
+        this.updatedBy = updatedBy;
+        this.updatedAt = now;
+        return true;
+    }
+
+    public ClinicalHistoryData historyData() {
+        return new ClinicalHistoryData(habits, physicalActivity, allergies, currentMedication, personalHistory,
+                surgicalHistory, familyHistory);
+    }
+
+    private void apply(ClinicalHistoryData history) {
+        habits = history.habits();
+        physicalActivity = history.physicalActivity();
+        allergies = history.allergies();
+        currentMedication = history.currentMedication();
+        personalHistory = history.personalHistory();
+        surgicalHistory = history.surgicalHistory();
+        familyHistory = history.familyHistory();
     }
 
     /**

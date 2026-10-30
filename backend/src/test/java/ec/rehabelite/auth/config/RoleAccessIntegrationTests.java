@@ -178,6 +178,28 @@ class RoleAccessIntegrationTests extends AbstractIntegrationTest {
         }
     }
 
+    /** The clinical record rule goes before PUT /api/patients/**: only physiotherapists edit the record (HU-09). */
+    @ParameterizedTest(name = "PUT /api/patients/12/clinical-record → {0}")
+    @MethodSource("roles")
+    void onlyPhysiotherapistsEditClinicalRecords(Role role) throws Exception {
+        User user = createUser(role);
+        String token = tokenService.issue(user, Instant.now()).token();
+
+        var result = mockMvc.perform(put("/api/patients/12/clinical-record")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON).content("{}"));
+
+        if (role == PHYSIOTHERAPIST) {
+            result.andExpect(status().isBadRequest());
+            assertThat(accessDeniedEntries(user)).isEmpty();
+        } else {
+            result.andExpect(status().isForbidden());
+            assertThat(accessDeniedEntries(user)).singleElement().satisfies(entry -> assertThat(entry)
+                    .containsEntry("entity_type", "patients")
+                    .containsEntry("entity_id", 12L));
+        }
+    }
+
     static Stream<Role> roles() {
         return Arrays.stream(Role.values());
     }

@@ -12,6 +12,9 @@ public interface PatientDirectory {
 
     Optional<PatientCard> find(Long patientId);
 
+    /** Personal and contact data, for the full clinical record view (HU-09). */
+    Optional<PatientProfile> findProfile(Long patientId);
+
     /**
      * Same search as GET /api/patients (HU-06): digits match the beginning of the national ID, otherwise every word
      * must appear in the name ignoring accents and case; ordered by last name. The pageable's sort is ignored.

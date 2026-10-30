@@ -100,6 +100,7 @@ Reglas:
     - `patients` puede depender de `auth`, pero `auth` nunca de `patients`.
   - `ec.rehabelite.patients.PatientDirectory` (HU-07):
     - `find(id)` y `search(q, pageable)` devuelven `PatientCard` (id, cédula, número de historia, nombres, apellidos, fecha de nacimiento y `ageOn(fecha)`).
+    - `findProfile(id)` (HU-09) devuelve `PatientProfile`: además, sexo, contacto, ocupación, instrucción, seguro y fecha de ingreso. Sin etnia ni religión.
     - Es la única forma en que otros módulos (`clinicalrecords`, `sessions`, ...) consultan pacientes.
     - `patients` nunca depende de `clinicalrecords`.
   - `ec.rehabelite.auth.StaffDirectory` (HU-08):
@@ -162,7 +163,23 @@ Reglas:
   - `GET /api/treatments/{id}/history`: estado, `allowedNextStatuses`, responsable vigente, responsables y cambios de estado (del más reciente al más antiguo) con los nombres de `StaffDirectory`. `PUT` y `PATCH` devuelven este mismo cuerpo.
   - `GET /api/treatments/{id}` (plan, estado, paciente y responsable vigente) usa `findWithDetailsById` con `@EntityGraph`. Un grafo de tipo fetch vuelve diferido todo lo que no lista: hay que incluir también las relaciones EAGER que se mapean (como `diagnosis`).
   - `GET /api/physio/physiotherapists`: fisioterapeutas activos (id y nombre) para elegir el responsable.
-  - Las consultas no se auditan: la auditoría `READ` llega con HU-09 y HU-18.
+  - Estas consultas no se auditan: la auditoría `READ` del resto de lecturas clínicas llega con HU-18.
+- Consulta y edición del historial (HU-09), solo `PHYSIOTHERAPIST`:
+  - `GET /api/patients/{patientId}/clinical-record` (`ClinicalRecordViewService.view`):
+    - Devuelve el expediente completo: datos personales (`PatientProfile`), hábitos y antecedentes, `activeTreatment` (o `null`) con `currentResponsible`, y `previousTreatments` (del más reciente al más antiguo, cada uno con su último responsable).
+    - Cada consulta correcta audita `READ ClinicalRecord` con el id del historial.
+    - Errores: 404 "El paciente no existe." o "El paciente no tiene historial clínico.". Ninguno se audita.
+    - **Número fijo de sentencias, sin N+1**: el paciente, el historial con tratamientos y diagnósticos (`ClinicalRecordRepository.findWithTreatmentsByPatientId`, `JOIN FETCH`), los responsables vigentes de todos los tratamientos en una consulta `IN` (`ResponsibleAssignmentRepository.findCurrentByTreatmentIds`) y sus nombres (`StaffDirectory.fullNames`).
+    - Con la validación del token y el `INSERT` de auditoría son 6 sentencias, tenga el paciente 1 o 50 tratamientos.
+    - No se pueden traer los responsables en el mismo `JOIN FETCH`: `treatments` y `responsibleAssignments` son dos `List` (bags), y Hibernate no admite cargar dos bags a la vez (`MultipleBagFetchException`).
+    - `ClinicalRecordViewPerformanceIntegrationTests` (200 pacientes con 5 tratamientos cada uno) exige menos de 2 s por consulta y como máximo 6 sentencias, y compara el conteo con 1 y con 5 tratamientos. Las sentencias se cuentan con Hibernate Statistics, activadas solo en `application-test.yml` (`hibernate.generate_statistics`).
+    - El servicio es `@Transactional` sin `readOnly`, porque la auditoría inserta en la misma transacción.
+  - `PUT /api/patients/{patientId}/clinical-record` (`ClinicalRecordService.updateHistory`):
+    - Reemplaza hábitos, actividad física, alergias, medicación y antecedentes personales, quirúrgicos y familiares. No toca los tratamientos.
+    - Usa las mismas validaciones que HU-07 (400).
+    - Errores 404: los mismos dos mensajes que el `GET`.
+    - `ClinicalRecord.update` llena `updated_by` y `updated_at`, y se audita `UPDATE ClinicalRecord`. Enviar los mismos datos no cambia ni audita nada.
+    - Responde los hábitos y antecedentes con `updatedAt`.
 - Respuestas paginadas: devolver `PageResponse.of(page, mapper)` (`content`, `page`, `size`, `totalElements`, `totalPages`), nunca el `Page` de Spring Data.
 - Acceso por rol (HU-04): la tabla vive en `auth.config.RoleAccessRules`. Una regla puede limitarse a un método HTTP y gana la primera que coincide. Al añadir un área de API nueva, registrarla ahí y en `RoleAccessIntegrationTests`.
 
@@ -214,7 +231,7 @@ En inglés, plural, kebab-case, bajo `/api`:
 `/api/auth`, `/api/users`, `/api/patients`, `/api/clinical-records`, `/api/treatments`, `/api/therapy-sessions`, `/api/ai-summaries`, `/api/reports`, `/api/audit-logs`, `/api/portal`, `/api/icd10-diagnoses`.
 
 Excepciones acordadas en HU-07 (fuera del patrón de recurso plural):
-- `POST /api/patients/{patientId}/clinical-record`: singular, porque es el único historial del paciente.
+- `POST`, `GET` (HU-09) y `PUT` (HU-09) `/api/patients/{patientId}/clinical-record`: singular, porque es el único historial del paciente.
 - `GET /api/physio/patients`: vista de pacientes con datos clínicos, separada de `/api/patients`, que no los incluye. `GET /api/physio/physiotherapists` (HU-08) sigue el mismo criterio.
 - HU-08: `PUT /api/treatments/{id}/responsible` y `PATCH /api/treatments/{id}/status` (sub-recursos en singular del tratamiento).
 
@@ -268,7 +285,7 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
 - Requiere Node.js `^22.22.3`. `npm start` sirve en `http://localhost:4200` y redirige `/api` a `http://localhost:8080` (`proxy.conf.json`).
 - Carpetas: `src/app/core` (`AuthService` con login y sesión en signals, `authGuard`/`roleGuard`, `authInterceptor`, roles, locale `es-EC`), `src/app/shared/layout` (`AppShell`, `nav-items.ts`, `PlaceholderPage`), `src/app/shared/ui` (componentes reutilizables), `src/app/features/auth`, `features/admin`, `features/physiotherapist`, `features/director`, `features/patient`, `features/dev` (solo desarrollo).
 - Rutas: `/login` y, dentro de `AppShell`, un `*.routes.ts` por rol: `/physio` (`patients`, `clinical-records`, `timeline`, `ai-assistant`), `/admin` (`users`, `patients`, `reports`), `/director` (`reports`), `/patient`. Cada rol protegido por `authGuard` + `roleGuard(rol)` y cargado de forma diferida. Las secciones sin historia implementada usan `PlaceholderPage` (título y subtítulo en `data`); la historia reemplaza ese `component` por su página real.
-- Componentes de `shared/ui` (standalone, con pruebas): `page-header`, `stat-card` (variante `compact` para filas de cuatro tarjetas), `status-badge`, `data-table` (paginación en cliente, o en servidor con `[totalItems]` y `[(pageIndex)]`; `appDataTableCell` para celdas personalizadas, y `[appDataTableCellOf]="filas"` tipa `let-row`), `form-section`, `empty-state`, `confirm-dialog` (`openConfirmDialog()` devuelve `Observable<boolean>`) y `hero-banner`. Usarlos antes de crear componentes nuevos. Catálogo visual en `/ui-kit` (solo `isDevMode()`).
+- Componentes de `shared/ui` (standalone, con pruebas): `page-header`, `stat-card` (variante `compact` para filas de cuatro tarjetas), `status-badge`, `data-table` (paginación en cliente, o en servidor con `[totalItems]` y `[(pageIndex)]`; `appDataTableCell` para celdas personalizadas, y `[appDataTableCellOf]="filas"` tipa `let-row`), `form-section`, `empty-state` (admite varias acciones, separadas), `confirm-dialog` (`openConfirmDialog()` devuelve `Observable<boolean>`) y `hero-banner`. Usarlos antes de crear componentes nuevos. Catálogo visual en `/ui-kit` (solo `isDevMode()`).
 - Diseño: seguir `docs/prototype/`. Capturas de comparación por tarea en `docs/screenshots/<tarea>/`.
 - Nombres según la guía de estilo de Angular CLI 22, en inglés: archivo `patient-list.ts`, clase `PatientList`, selector `app-patient-list`; guards/interceptores `*-guard.ts` / `*-interceptor.ts`. Textos de la interfaz en español.
 - Tema: tokens CSS `--re-*` definidos en `src/styles/_tokens.scss` (colores, grises, estados, radios, sombras, espaciados, tipografía Plus Jakarta Sans): `--re-navy` (#0F172A, barra lateral y cabeceras), `--re-teal` (#14B8A6, acción primaria e ítem activo **con texto navy**, contraste 7:1), `--re-text-teal` (#0F766E, texto teal sobre blanco), `--re-field` (#F3F4F6, campos), `--re-card` (tarjetas blancas, `--re-radius-lg` 16px). Usar siempre tokens, nunca colores sueltos; no poner texto blanco sobre `#14B8A6` (contraste 2.5:1).
@@ -286,12 +303,28 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
     - `/physio/patients/:patientId/clinical-record/new`: cuatro secciones.
     - `/physio/patients/:patientId/clinical-record/:recordId/treatments/new`: sin "Hábitos y antecedentes".
   - `Icd10Picker` es un control de formulario (`ControlValueAccessor`) con autocompletado. Su valor es el `Icd10Diagnosis` elegido de la lista, o `null`.
-  - `PatientSummaryCard` es la tarjeta del paciente (prototipo 04) de las páginas clínicas.
+  - `PatientSummaryCard` es la tarjeta del paciente (prototipo 04) de las páginas clínicas. Recibe un `SummaryCardPatient`, que cumplen tanto el paciente de `GET /api/patients/{id}` como el del expediente. Con `[showContact]="true"` añade la fecha de ingreso, el correo, la dirección y el seguro.
+  - `CLINICAL_HISTORY_FIELDS`, `initialsOf()` y `painScoreTone()` viven en `clinical-labels.ts`.
 - Plan terapéutico y asignación (HU-08):
   - `/physio/patients/:patientId/treatments/:treatmentId` (`TreatmentPage`): tarjeta del paciente y `TreatmentPlanCard`. Si el tratamiento es de otro paciente, muestra un aviso. La lista enlaza aquí con "Plan y asignación".
-  - `TreatmentPlanCard` ("Plan terapéutico y asignación clínica") carga el historial con `rxResource` y tiene las acciones "Cambiar responsable" (solo tratamientos activos) y "Cambiar estado" (solo si hay destinos permitidos). HU-09 la reutiliza en la vista completa del historial.
+  - `TreatmentPlanCard` ("Plan terapéutico y asignación clínica") carga el historial con `rxResource` y tiene las acciones "Cambiar responsable" (solo tratamientos activos) y "Cambiar estado" (solo si hay destinos permitidos). La vista del expediente (HU-09) no la reutiliza: muestra una versión de solo lectura con los datos de su única consulta y enlaza aquí con "Plan y asignación".
   - `ChangeStatusDialog` ofrece solo los estados de `allowedNextStatuses` y pide un motivo obligatorio. `ChangeResponsibleDialog` lista los fisioterapeutas activos, excepto el responsable vigente.
   - En pruebas, un componente con `rxResource` pendiente nunca queda estable: llamar `TestBed.tick()` para lanzar la petición, responderla y solo después `whenStable()`.
+- Expediente del paciente (HU-09):
+  - `/physio/patients/:patientId/clinical-record` (`ClinicalRecordView`) es de solo lectura (prototipo 04) y se arma con una sola petición. Muestra:
+    - la tarjeta del paciente con contacto;
+    - "Información diagnóstica" (con la gravedad);
+    - "Evaluación del dolor" (EVA con color según `painScoreTone`);
+    - "Plan terapéutico y asignación clínica" con el responsable;
+    - "Hábitos y antecedentes" (con la última edición);
+    - "Tratamientos anteriores".
+  - Sin tratamiento activo, ofrece "Nuevo tratamiento". Sin historial (404), ofrece "Crear historial".
+  - "Editar historial" abre `/physio/patients/:patientId/clinical-record/edit`. "Ver sesiones" está deshabilitado hasta el sprint 5 (HU-10/HU-11).
+  - `ClinicalRecordForm` tiene tres modos:
+    - `record` y `treatment`, los de HU-07;
+    - `edit`, que se activa con `data: { mode: 'edit' }` en la ruta y muestra solo "Hábitos y antecedentes", precargado desde el expediente, con `PUT`.
+  - Al guardar en cualquier modo, el formulario abre el expediente.
+  - La lista del fisioterapeuta muestra "Ver historial" a los pacientes que ya tienen historial.
 - Validaciones compartidas en `src/app/shared/validation`. `national-id.ts` aplica las mismas reglas de cédula que el backend: `nationalIdValidator` da `{ nationalId: regla }` y `NATIONAL_ID_MESSAGES` tiene el mensaje de cada regla.
 - Pacientes del administrador (HU-05, HU-06):
   - `/admin/patients` (`PatientRegistry`) busca con espera de 300 ms y muestra una tabla paginada en el servidor con identificación y contacto. Las columnas de sesiones y estado del prototipo son datos clínicos y no se muestran.

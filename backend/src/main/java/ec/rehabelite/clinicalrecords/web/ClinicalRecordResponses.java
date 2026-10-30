@@ -70,6 +70,108 @@ final class ClinicalRecordResponses {
 
     }
 
+    @Schema(description = "Hábitos y antecedentes del historial clínico")
+    record ClinicalHistoryResponse(
+            Long id,
+            Long patientId,
+            String habits,
+            String physicalActivity,
+            String allergies,
+            String currentMedication,
+            String personalHistory,
+            String surgicalHistory,
+            String familyHistory,
+            Instant createdAt,
+            @Schema(description = "Última edición de hábitos y antecedentes; null si nunca se editó")
+            Instant updatedAt) {
+
+        @Override
+        public String toString() {
+            return "ClinicalHistoryResponse[id=" + id + "]";
+        }
+
+    }
+
+    @Schema(description = "Datos personales y de contacto del paciente")
+    record PatientProfileResponse(
+            Long id,
+            String nationalId,
+            String medicalRecordNumber,
+            String firstName,
+            String lastName,
+            LocalDate birthDate,
+            @Schema(description = "Edad calculada desde la fecha de nacimiento") int age,
+            @Schema(allowableValues = {"MALE", "FEMALE"}) String sex,
+            String phone,
+            String email,
+            String address,
+            String occupation,
+            String educationLevel,
+            String healthInsurance,
+            LocalDate admissionDate) {
+
+        @Override
+        public String toString() {
+            return "PatientProfileResponse[id=" + id + "]";
+        }
+
+    }
+
+    @Schema(description = "Tratamiento activo: información diagnóstica, evaluación del dolor, plan y responsable vigente")
+    record ActiveTreatmentResponse(
+            Long id,
+            Icd10DiagnosisResponse diagnosis,
+            String chiefComplaint,
+            String currentIllness,
+            String referringPhysician,
+            String complementaryTests,
+            Severity severity,
+            String painType,
+            String painLocation,
+            @Schema(description = "EVA inicial, 0 a 10") int initialPainScore,
+            String painFrequency,
+            String sessionFrequency,
+            String goal,
+            int plannedSessions,
+            TreatmentStatus status,
+            LocalDate startDate,
+            @Schema(description = "Responsable vigente; null si no hay") ResponsibleResponse currentResponsible) {
+
+        @Override
+        public String toString() {
+            return "ActiveTreatmentResponse[id=" + id + "]";
+        }
+
+    }
+
+    @Schema(description = "Tratamiento anterior (finalizado o abandonado)")
+    record PreviousTreatmentResponse(
+            Long id,
+            Icd10DiagnosisResponse diagnosis,
+            Severity severity,
+            TreatmentStatus status,
+            LocalDate startDate,
+            int plannedSessions,
+            @Schema(description = "Último cambio del tratamiento (p. ej. su cierre); null si no cambió")
+            Instant updatedAt,
+            @Schema(description = "Último responsable; null si no hay") ResponsibleResponse responsible) {
+    }
+
+    @Schema(description = "Expediente completo del paciente: datos personales, hábitos y antecedentes, tratamiento "
+            + "activo con su responsable y tratamientos anteriores (del más reciente al más antiguo)")
+    record ClinicalRecordViewResponse(
+            PatientProfileResponse patient,
+            ClinicalHistoryResponse clinicalRecord,
+            @Schema(description = "Tratamiento activo; null si no hay") ActiveTreatmentResponse activeTreatment,
+            List<PreviousTreatmentResponse> previousTreatments) {
+
+        @Override
+        public String toString() {
+            return "ClinicalRecordViewResponse[clinicalRecordId=" + clinicalRecord.id() + "]";
+        }
+
+    }
+
     @Schema(description = "Resumen del tratamiento vigente: el activo o, si no hay, el más reciente")
     record CurrentTreatmentResponse(
             Long id,

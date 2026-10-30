@@ -1,10 +1,14 @@
 package ec.rehabelite.clinicalrecords.web;
 
 import ec.rehabelite.clinicalrecords.application.ClinicalRecordService;
+import ec.rehabelite.clinicalrecords.application.ClinicalRecordViewService;
 import ec.rehabelite.clinicalrecords.domain.ClinicalRecord;
 import ec.rehabelite.clinicalrecords.domain.Treatment;
+import ec.rehabelite.clinicalrecords.web.ClinicalRecordResponses.ClinicalHistoryResponse;
 import ec.rehabelite.clinicalrecords.web.ClinicalRecordResponses.ClinicalRecordResponse;
+import ec.rehabelite.clinicalrecords.web.ClinicalRecordResponses.ClinicalRecordViewResponse;
 import ec.rehabelite.clinicalrecords.web.ClinicalRecordResponses.TreatmentResponse;
+import ec.rehabelite.shared.domain.ClinicCalendar;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -12,12 +16,15 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.net.URI;
+import java.time.Clock;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -27,7 +34,9 @@ import org.springframework.web.bind.annotation.RestController;
 class ClinicalRecordController {
 
     private final ClinicalRecordService clinicalRecordService;
+    private final ClinicalRecordViewService viewService;
     private final ClinicalRecordWebMapper mapper;
+    private final Clock clock;
 
     @PostMapping(path = "/api/patients/{patientId}/clinical-record", consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
@@ -57,6 +66,43 @@ class ClinicalRecordController {
                 request.treatment().diagnosisCode(), request.treatment().toData());
         return ResponseEntity.created(URI.create("/api/clinical-records/" + record.getId()))
                 .body(mapper.toResponse(record));
+    }
+
+    @GetMapping(path = "/api/patients/{patientId}/clinical-record", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Consultar el expediente del paciente",
+            description = "Devuelve los datos personales del paciente, los hábitos y antecedentes, el tratamiento "
+                    + "activo con su responsable vigente y los tratamientos anteriores (del más reciente al más "
+                    + "antiguo). El número de consultas a la base no depende del número de tratamientos. Cada "
+                    + "consulta queda auditada como READ del historial.")
+    @ApiResponse(responseCode = "200", description = "Expediente del paciente")
+    @ApiResponse(responseCode = "403", description = "El rol no es fisioterapeuta", content = @Content(
+            mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "404", description = "El paciente no existe o no tiene historial clínico",
+            content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                    schema = @Schema(implementation = ProblemDetail.class)))
+    ClinicalRecordViewResponse view(@PathVariable Long patientId) {
+        return mapper.toResponse(viewService.view(patientId), ClinicCalendar.today(clock));
+    }
+
+    @PutMapping(path = "/api/patients/{patientId}/clinical-record", consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Editar hábitos y antecedentes del historial",
+            description = "Reemplaza hábitos, actividad física, alergias, medicación actual y antecedentes "
+                    + "personales, quirúrgicos y familiares; no modifica los tratamientos. Un cambio registra el "
+                    + "usuario y la fecha de la edición y queda auditado como UPDATE; enviar los mismos datos no "
+                    + "cambia ni audita nada.")
+    @ApiResponse(responseCode = "200", description = "Hábitos y antecedentes actualizados")
+    @ApiResponse(responseCode = "400", description = "Datos no válidos (campos vacíos o demasiado largos)",
+            content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                    schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "403", description = "El rol no es fisioterapeuta", content = @Content(
+            mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "404", description = "El paciente no existe o no tiene historial clínico",
+            content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                    schema = @Schema(implementation = ProblemDetail.class)))
+    ClinicalHistoryResponse updateHistory(@PathVariable Long patientId,
+            @Valid @RequestBody UpdateClinicalHistoryRequest request) {
+        return mapper.toHistoryResponse(clinicalRecordService.updateHistory(patientId, request.toHistory()));
     }
 
     @PostMapping(path = "/api/clinical-records/{clinicalRecordId}/treatments",
