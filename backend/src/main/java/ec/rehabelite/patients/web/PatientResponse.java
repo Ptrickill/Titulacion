@@ -29,7 +29,9 @@ record PatientResponse(
         @Schema(description = "Autoidentificación étnica; null si no se indicó", example = "Mestizo")
         String ethnicSelfIdentification,
         @Schema(description = "Religión; null si no se indicó", example = "Católica") String religion,
-        @Schema(description = "Fecha y hora de registro") Instant createdAt) {
+        @Schema(description = "Fecha y hora de registro") Instant createdAt,
+        @Schema(description = "Fecha y hora de la última actualización; null si nunca se actualizó")
+        Instant updatedAt) {
 
     /** Never print personal data, e.g. in logs or debugger views. */
     @Override

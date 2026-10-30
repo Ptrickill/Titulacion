@@ -106,28 +106,54 @@ public class Patient {
      */
     public static Patient register(String nationalId, LocalDate admissionDate, PersonalData data, Long createdBy,
             Instant now) {
-        if (data.birthDate().isAfter(admissionDate)) {
-            throw new BusinessRuleException(BORN_AFTER_ADMISSION);
-        }
         Patient patient = new Patient();
         patient.nationalId = nationalId;
         patient.medicalRecordNumber = nationalId;
-        patient.admissionDate = admissionDate;
-        patient.firstName = data.firstName();
-        patient.lastName = data.lastName();
-        patient.birthDate = data.birthDate();
-        patient.sex = data.sex();
-        patient.phone = data.phone();
-        patient.email = data.email();
-        patient.address = data.address();
-        patient.occupation = data.occupation();
-        patient.educationLevel = data.educationLevel();
-        patient.healthInsurance = data.healthInsurance();
-        patient.ethnicSelfIdentification = data.ethnicSelfIdentification();
-        patient.religion = data.religion();
+        patient.apply(admissionDate, data);
         patient.createdBy = createdBy;
         patient.createdAt = now;
         return patient;
+    }
+
+    /**
+     * Replaces the admission date and the personal data (HU-06). The national ID and the medical record number
+     * never change. Nothing is touched when the data is the same.
+     *
+     * @return whether something changed (and updatedBy/updatedAt were set)
+     * @throws BusinessRuleException if the birth date is after the admission date
+     */
+    public boolean update(LocalDate admissionDate, PersonalData data, Long updatedBy, Instant now) {
+        if (admissionDate.equals(this.admissionDate) && data.equals(personalData())) {
+            return false;
+        }
+        apply(admissionDate, data);
+        this.updatedBy = updatedBy;
+        this.updatedAt = now;
+        return true;
+    }
+
+    public PersonalData personalData() {
+        return new PersonalData(firstName, lastName, birthDate, sex, phone, email, address, occupation,
+                educationLevel, healthInsurance, ethnicSelfIdentification, religion);
+    }
+
+    private void apply(LocalDate admissionDate, PersonalData data) {
+        if (data.birthDate().isAfter(admissionDate)) {
+            throw new BusinessRuleException(BORN_AFTER_ADMISSION);
+        }
+        this.admissionDate = admissionDate;
+        firstName = data.firstName();
+        lastName = data.lastName();
+        birthDate = data.birthDate();
+        sex = data.sex();
+        phone = data.phone();
+        email = data.email();
+        address = data.address();
+        occupation = data.occupation();
+        educationLevel = data.educationLevel();
+        healthInsurance = data.healthInsurance();
+        ethnicSelfIdentification = data.ethnicSelfIdentification();
+        religion = data.religion();
     }
 
     /** Completed years on the given date. */
