@@ -66,7 +66,7 @@ class PatientControllerIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$[*].id").value(hasItem(free.intValue())))
                 .andExpect(jsonPath("$[*].id").value(not(hasItem(linked.intValue()))))
                 .andExpect(jsonPath("$[0].fullName").value(surname + " José Andrés"))
-                .andExpect(jsonPath("$[0].medicalRecordNumber").value("HC-" + TestPatients.nationalIdOf(jdbc, free)));
+                .andExpect(jsonPath("$[0].medicalRecordNumber").value(TestPatients.nationalIdOf(jdbc, free)));
 
         candidates(surname.toLowerCase(), Role.ADMINISTRATOR)
                 .andExpect(jsonPath("$.length()").value(1));

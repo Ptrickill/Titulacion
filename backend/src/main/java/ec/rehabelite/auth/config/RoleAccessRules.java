@@ -2,6 +2,7 @@ package ec.rehabelite.auth.config;
 
 import ec.rehabelite.auth.Role;
 import java.util.List;
+import org.springframework.http.HttpMethod;
 
 /**
  * Which roles may call each API area. Requests to an area by any other role get 403 (audited as
@@ -9,10 +10,15 @@ import java.util.List;
  */
 final class RoleAccessRules {
 
-    record Rule(String pathPattern, List<Role> roles) {
+    /** A null method means every HTTP method. */
+    record Rule(HttpMethod method, String pathPattern, List<Role> roles) {
 
         Rule(String pathPattern, Role... roles) {
-            this(pathPattern, List.of(roles));
+            this(null, pathPattern, List.of(roles));
+        }
+
+        Rule(HttpMethod method, String pathPattern, Role... roles) {
+            this(method, pathPattern, List.of(roles));
         }
 
         String[] roleNames() {
@@ -28,6 +34,8 @@ final class RoleAccessRules {
             // Patients that can receive a portal account: only for account creation (HU-02).
             // More specific than /api/patients/**, so it must stay before it (first match wins)
             new Rule("/api/patients/portal-candidates", Role.ADMINISTRATOR),
+            // Only the administrator registers patients (HU-05); also before /api/patients/**
+            new Rule(HttpMethod.POST, "/api/patients", Role.ADMINISTRATOR),
             // Personal data: registered by the administrator, looked up by physiotherapists (HU-05, HU-06)
             new Rule("/api/patients/**", Role.ADMINISTRATOR, Role.PHYSIOTHERAPIST),
             // Clinical data: physiotherapists only; the administrator never sees it (HU-06, HU-09)

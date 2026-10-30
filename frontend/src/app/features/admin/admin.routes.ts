@@ -15,12 +15,12 @@ export const ADMIN_ROUTES: Routes = [
   {
     path: 'patients',
     title: 'Registro de Pacientes | Rehab Elite',
-    component: PlaceholderPage,
-    data: {
-      heading: 'Registro y Control de Pacientes',
-      subtitle: 'Admisión de pacientes, datos personales y actualización de expedientes',
-      icon: 'group',
-    } satisfies PlaceholderPageData,
+    loadComponent: () => import('./patients/patient-registry').then((m) => m.PatientRegistry),
+  },
+  {
+    path: 'patients/:id',
+    title: 'Paciente | Rehab Elite',
+    loadComponent: () => import('./patients/patient-detail').then((m) => m.PatientDetail),
   },
   {
     path: 'reports',

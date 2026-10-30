@@ -1,0 +1,241 @@
+<header class="header">
+  <div class="icon-tile" aria-hidden="true">
+    <mat-icon>person</mat-icon>
+  </div>
+  <div class="heading">
+    <h2 mat-dialog-title class="title">Registrar Nuevo Paciente</h2>
+    <p class="subtitle">Rehab Elite Admisión</p>
+  </div>
+  <button
+    mat-icon-button
+    type="button"
+    class="close"
+    mat-dialog-close
+    aria-label="Cerrar"
+    [disabled]="submitting()"
+  >
+    <mat-icon>close</mat-icon>
+  </button>
+</header>
+
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <mat-dialog-content>
+    <app-form-section [step]="1" title="Datos de admisión">
+      <mat-form-field appearance="fill" subscriptSizing="dynamic" floatLabel="always">
+        <mat-label>N.º de historia clínica</mat-label>
+        <input
+          matInput
+          readonly
+          [value]="medicalRecordNumber()"
+          placeholder="Se genera desde la cédula"
+        />
+        <mat-hint>Autogenerado desde la cédula</mat-hint>
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" subscriptSizing="dynamic">
+        <mat-label>Fecha de ingreso</mat-label>
+        <input matInput type="date" formControlName="admissionDate" [max]="today" />
+        @if (form.controls.admissionDate.hasError('required')) {
+          <mat-error>Ingrese la fecha de ingreso.</mat-error>
+        } @else if (form.controls.admissionDate.hasError('future')) {
+          <mat-error>La fecha de ingreso no puede ser futura.</mat-error>
+        }
+      </mat-form-field>
+    </app-form-section>
+
+    <app-form-section [step]="2" title="Datos personales">
+      <mat-form-field appearance="fill" subscriptSizing="dynamic">
+        <mat-label>Cédula / Identificación</mat-label>
+        <input
+          matInput
+          id="patient-national-id"
+          formControlName="nationalId"
+          inputmode="numeric"
+          maxlength="10"
+          autocomplete="off"
+        />
+        @if (form.controls.nationalId.hasError('required')) {
+          <mat-error>Ingrese la cédula.</mat-error>
+        } @else if (nationalIdMessage(); as message) {
+          <mat-error>{{ message }}</mat-error>
+        } @else if (form.controls.nationalId.hasError('duplicate')) {
+          <mat-error>Esta cédula ya está registrada.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" subscriptSizing="dynamic">
+        <mat-label>Nombres</mat-label>
+        <input matInput formControlName="firstName" autocomplete="off" />
+        @if (form.controls.firstName.hasError('required')) {
+          <mat-error>Ingrese los nombres.</mat-error>
+        } @else if (form.controls.firstName.hasError('maxlength')) {
+          <mat-error>Máximo 100 caracteres.</mat-error>
+        }
+      </mat-form-field>
+
+      @if (existingPatientId(); as patientId) {
+        <div class="full duplicate" role="alert">
+          <mat-icon aria-hidden="true">warning</mat-icon>
+          <span>Ya existe un paciente registrado con esta cédula.</span>
+          <a
+            mat-stroked-button
+            class="existing-link"
+            [routerLink]="['/admin/patients', patientId]"
+            mat-dialog-close
+          >
+            Ver registro existente
+          </a>
+        </div>
+      }
+
+      <mat-form-field appearance="fill" subscriptSizing="dynamic">
+        <mat-label>Apellidos</mat-label>
+        <input matInput formControlName="lastName" autocomplete="off" />
+        @if (form.controls.lastName.hasError('required')) {
+          <mat-error>Ingrese los apellidos.</mat-error>
+        } @else if (form.controls.lastName.hasError('maxlength')) {
+          <mat-error>Máximo 100 caracteres.</mat-error>
+        }
+      </mat-form-field>
+
+      <div class="birth-age">
+        <mat-form-field appearance="fill" subscriptSizing="dynamic">
+          <mat-label>Fecha de nacimiento</mat-label>
+          <input matInput type="date" formControlName="birthDate" [max]="today" />
+          @if (form.controls.birthDate.hasError('required')) {
+            <mat-error>Ingrese la fecha de nacimiento.</mat-error>
+          } @else if (form.controls.birthDate.hasError('notPast')) {
+            <mat-error>Debe ser anterior a hoy.</mat-error>
+          } @else if (form.controls.birthDate.hasError('afterAdmission')) {
+            <mat-error>No puede ser posterior a la fecha de ingreso.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" subscriptSizing="dynamic" floatLabel="always" class="age">
+          <mat-label>Edad (calculada)</mat-label>
+          <input matInput readonly [value]="age()" />
+          <mat-hint class="read-only-tag">Solo lectura</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <mat-form-field appearance="fill" subscriptSizing="dynamic">
+        <mat-label>Sexo</mat-label>
+        <mat-select formControlName="sex">
+          @for (sex of sexes; track sex) {
+            <mat-option [value]="sex">{{ sexLabels[sex] }}</mat-option>
+          }
+        </mat-select>
+        @if (form.controls.sex.hasError('required')) {
+          <mat-error>Seleccione el sexo.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" subscriptSizing="dynamic">
+        <mat-label>Teléfono</mat-label>
+        <input matInput type="tel" formControlName="phone" autocomplete="off" />
+        @if (form.controls.phone.hasError('required')) {
+          <mat-error>Ingrese el teléfono.</mat-error>
+        } @else if (form.controls.phone.hasError('maxlength')) {
+          <mat-error>Máximo 20 caracteres.</mat-error>
+        } @else if (form.controls.phone.hasError('pattern')) {
+          <mat-error>Use solo números, espacios y el prefijo +.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" subscriptSizing="dynamic">
+        <mat-label>Correo electrónico</mat-label>
+        <input matInput type="email" formControlName="email" autocomplete="off" />
+        @if (form.controls.email.hasError('required')) {
+          <mat-error>Ingrese el correo electrónico.</mat-error>
+        } @else if (form.controls.email.hasError('email')) {
+          <mat-error>Ingrese un correo electrónico válido.</mat-error>
+        } @else if (form.controls.email.hasError('maxlength')) {
+          <mat-error>Máximo 254 caracteres.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" subscriptSizing="dynamic">
+        <mat-label>Dirección</mat-label>
+        <input matInput formControlName="address" autocomplete="off" />
+        @if (form.controls.address.hasError('required')) {
+          <mat-error>Ingrese la dirección.</mat-error>
+        } @else if (form.controls.address.hasError('maxlength')) {
+          <mat-error>Máximo 255 caracteres.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" subscriptSizing="dynamic">
+        <mat-label>Ocupación</mat-label>
+        <input matInput formControlName="occupation" autocomplete="off" />
+        @if (form.controls.occupation.hasError('required')) {
+          <mat-error>Ingrese la ocupación.</mat-error>
+        } @else if (form.controls.occupation.hasError('maxlength')) {
+          <mat-error>Máximo 100 caracteres.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" subscriptSizing="dynamic">
+        <mat-label>Nivel de instrucción</mat-label>
+        <mat-select formControlName="educationLevel">
+          @for (level of educationLevels; track level) {
+            <mat-option [value]="level">{{ level }}</mat-option>
+          }
+        </mat-select>
+        @if (form.controls.educationLevel.hasError('required')) {
+          <mat-error>Seleccione el nivel de instrucción.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" subscriptSizing="dynamic">
+        <mat-label>Seguro de salud</mat-label>
+        <mat-select formControlName="healthInsurance">
+          @for (insurance of healthInsurances; track insurance) {
+            <mat-option [value]="insurance">{{ insurance }}</mat-option>
+          }
+        </mat-select>
+        @if (form.controls.healthInsurance.hasError('required')) {
+          <mat-error>Seleccione el seguro de salud.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" subscriptSizing="dynamic">
+        <mat-label>Autoidentificación étnica (opcional)</mat-label>
+        <mat-select formControlName="ethnicSelfIdentification">
+          <mat-option value="">Sin especificar</mat-option>
+          @for (identification of ethnicIdentifications; track identification) {
+            <mat-option [value]="identification">{{ identification }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" subscriptSizing="dynamic" class="full">
+        <mat-label>Religión (opcional)</mat-label>
+        <input matInput formControlName="religion" autocomplete="off" />
+        @if (form.controls.religion.hasError('maxlength')) {
+          <mat-error>Máximo 50 caracteres.</mat-error>
+        }
+      </mat-form-field>
+    </app-form-section>
+
+    @if (errorMessage(); as message) {
+      <div class="error" role="alert">
+        <mat-icon aria-hidden="true">error</mat-icon>
+        <span>{{ message }}</span>
+      </div>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button type="button" mat-dialog-close [disabled]="submitting()">
+      Cancelar
+    </button>
+    <button mat-flat-button type="submit" [disabled]="submitting()">
+      @if (submitting()) {
+        <mat-spinner diameter="18" aria-label="Guardando" />
+      } @else {
+        <mat-icon aria-hidden="true">person_add</mat-icon>
+      }
+      Registrar paciente
+    </button>
+  </mat-dialog-actions>
+</form>

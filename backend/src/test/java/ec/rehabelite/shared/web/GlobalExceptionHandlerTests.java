@@ -7,9 +7,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import ec.rehabelite.shared.domain.BusinessRuleException;
+import ec.rehabelite.shared.domain.ConflictException;
 import ec.rehabelite.shared.domain.ResourceNotFoundException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
@@ -39,6 +41,15 @@ class GlobalExceptionHandlerTests {
         mockMvc.perform(get("/business-rule"))
                 .andExpect(status().isUnprocessableContent())
                 .andExpect(jsonPath("$.title").value("Regla de negocio incumplida"));
+    }
+
+    @Test
+    void conflictReturns409WithItsProperties() throws Exception {
+        mockMvc.perform(get("/conflict"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.title").value("Conflicto"))
+                .andExpect(jsonPath("$.detail").value("Ya existe un paciente registrado con esta cédula."))
+                .andExpect(jsonPath("$.existingPatientId").value(12));
     }
 
     @Test
@@ -86,6 +97,12 @@ class GlobalExceptionHandlerTests {
         @GetMapping("/business-rule")
         void businessRule() {
             throw new BusinessRuleException("El tratamiento ya fue finalizado.");
+        }
+
+        @GetMapping("/conflict")
+        void conflict() {
+            throw new ConflictException("Ya existe un paciente registrado con esta cédula.",
+                    Map.of("existingPatientId", 12L));
         }
 
         @PostMapping("/validated")

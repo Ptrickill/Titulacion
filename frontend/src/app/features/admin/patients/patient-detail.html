@@ -1,0 +1,116 @@
+@let current = state();
+@switch (current.status) {
+  @case ('loading') {
+    <app-page-header title="Registro del paciente" backLink="/admin/patients" />
+    <mat-progress-bar mode="indeterminate" aria-label="Cargando paciente" />
+  }
+  @case ('notFound') {
+    <app-page-header title="Registro del paciente" backLink="/admin/patients" />
+    <app-empty-state
+      icon="person_off"
+      title="El paciente no existe"
+      message="Revise el enlace o vuelva al registro de pacientes."
+    >
+      <a mat-stroked-button routerLink="/admin/patients">Volver a pacientes</a>
+    </app-empty-state>
+  }
+  @case ('error') {
+    <app-page-header title="Registro del paciente" backLink="/admin/patients" />
+    <app-empty-state
+      icon="cloud_off"
+      title="No se pudo cargar el paciente"
+      message="Revise su conexión e intente nuevamente."
+    />
+  }
+  @case ('loaded') {
+    @let patient = current.patient;
+    <app-page-header
+      [title]="patient.firstName + ' ' + patient.lastName"
+      [subtitle]="'Historia clínica N.º ' + patient.medicalRecordNumber"
+      backLink="/admin/patients"
+    />
+
+    <section class="record" aria-label="Datos del paciente">
+      <app-form-section [step]="1" title="Datos de admisión">
+        <div class="item">
+          <span class="label">N.º de historia clínica</span>
+          <span class="value mono">{{ patient.medicalRecordNumber }}</span>
+        </div>
+        <div class="item">
+          <span class="label">Fecha de ingreso</span>
+          <span class="value">{{ patient.admissionDate | date: 'dd/MM/yyyy' }}</span>
+        </div>
+        <div class="item">
+          <span class="label">Registrado el</span>
+          <span class="value">{{ patient.createdAt | date: 'dd/MM/yyyy, HH:mm' }}</span>
+        </div>
+      </app-form-section>
+
+      <app-form-section [step]="2" title="Datos personales">
+        <div class="item">
+          <span class="label">Cédula</span>
+          <span class="value mono">{{ patient.nationalId }}</span>
+        </div>
+        <div class="item">
+          <span class="label">Nombres</span>
+          <span class="value">{{ patient.firstName }}</span>
+        </div>
+        <div class="item">
+          <span class="label">Apellidos</span>
+          <span class="value">{{ patient.lastName }}</span>
+        </div>
+        <div class="item">
+          <span class="label">Fecha de nacimiento</span>
+          <span class="value">
+            {{ patient.birthDate | date: 'dd/MM/yyyy' }}
+            <span class="age">({{ formatAge(patient.age) }})</span>
+          </span>
+        </div>
+        <div class="item">
+          <span class="label">Sexo</span>
+          <span class="value">{{ sexLabels[patient.sex] }}</span>
+        </div>
+        <div class="item">
+          <span class="label">Teléfono</span>
+          <span class="value">{{ patient.phone }}</span>
+        </div>
+        <div class="item">
+          <span class="label">Correo electrónico</span>
+          <span class="value">{{ patient.email }}</span>
+        </div>
+        <div class="item">
+          <span class="label">Dirección</span>
+          <span class="value">{{ patient.address }}</span>
+        </div>
+        <div class="item">
+          <span class="label">Ocupación</span>
+          <span class="value">{{ patient.occupation }}</span>
+        </div>
+        <div class="item">
+          <span class="label">Nivel de instrucción</span>
+          <span class="value">{{ patient.educationLevel }}</span>
+        </div>
+        <div class="item">
+          <span class="label">Seguro de salud</span>
+          <span class="value">{{ patient.healthInsurance }}</span>
+        </div>
+        <div class="item">
+          <span class="label">Autoidentificación étnica</span>
+          @if (patient.ethnicSelfIdentification) {
+            <span class="value">{{ patient.ethnicSelfIdentification }}</span>
+          } @else {
+            <span class="value empty">No especificada</span>
+          }
+        </div>
+        <div class="item">
+          <span class="label">Religión</span>
+          @if (patient.religion) {
+            <span class="value">{{ patient.religion }}</span>
+          } @else {
+            <span class="value empty">No especificada</span>
+          }
+        </div>
+      </app-form-section>
+    </section>
+  }
+}

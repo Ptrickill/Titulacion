@@ -61,7 +61,10 @@ class SecurityConfig {
                             .requestMatchers(PUBLIC_DOCUMENTATION).permitAll()
                             .requestMatchers("/error").permitAll();
                     for (RoleAccessRules.Rule rule : RoleAccessRules.RULES) {
-                        a.requestMatchers(rule.pathPattern()).hasAnyRole(rule.roleNames());
+                        var matcher = rule.method() == null
+                                ? a.requestMatchers(rule.pathPattern())
+                                : a.requestMatchers(rule.method(), rule.pathPattern());
+                        matcher.hasAnyRole(rule.roleNames());
                     }
                     a.anyRequest().authenticated();
                 })
