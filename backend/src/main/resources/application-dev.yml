@@ -1,9 +1,18 @@
-# Local development profile (active by default)
+# Local development profile. Not active by default: start with -Dspring-boot.run.profiles=dev
+# or SPRING_PROFILES_ACTIVE=dev (see README, "Development data").
 spring:
   jpa:
     # SQL logging is off by default; to inspect queries temporarily, set
     # logging.level.org.hibernate.SQL=DEBUG and org.hibernate.orm.jdbc.bind=TRACE (never commit that change)
     show-sql: false
+  flyway:
+    # Synthetic development data (db/dev-seed/R__dev_seed.sql), loaded only with this profile
+    locations: classpath:db/migration,classpath:db/dev-seed
+
+app:
+  dev-seed:
+    # Password of the seed accounts, from DEV_SEED_PASSWORD in .env; hashed with BCrypt at startup
+    password: ${DEV_SEED_PASSWORD:}
 
 logging:
   level:

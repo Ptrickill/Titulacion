@@ -1,9 +1,8 @@
 spring:
   application:
     name: rehab-elite
-  profiles:
-    # Profile used when none is given explicitly (tests activate "test")
-    default: dev
+  # No default profile: without one the app runs with these common settings only. Activate "dev" explicitly
+  # (synthetic seed data and debug logging, see README); tests activate "test", the Docker image "prod".
   config:
     # The .env file lives in the repository root: ../.env when started from backend/, ./.env when started from the root
     import:
@@ -25,6 +24,12 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+    # A database once started with the dev profile has the R__dev_seed repeatable migration in its history;
+    # without dev that script is not on the locations, which must not fail validation. Missing versioned
+    # migrations are still an error.
+    ignore-migration-patterns:
+      - "*:future"
+      - "repeatable:missing"
   docker:
     compose:
       enabled: false

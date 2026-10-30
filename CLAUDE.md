@@ -153,7 +153,18 @@ Reglas:
 - Fechas de calendario ("hoy", edades, fecha de ingreso): usar `ClinicCalendar.today(clock)` de `shared.domain`, con la zona `America/Guayaquil`. Los instantes se guardan en UTC. Las anotaciones `@Past` y `@PastOrPresent` usan el mismo reloj (`ValidationConfig`).
 - Logs con SLF4J (`LoggerFactory.getLogger`), en inglés, **sin datos personales ni clínicos** (nada de cédulas, nombres, correos, diagnósticos ni valores de columnas; usar ids).
 - Configuración propia bajo `app.*` en el record validado `ec.rehabelite.shared.config.AppProperties`.
-- Perfiles: `application.yml` (común; `server.port` lee `PORT`), `application-dev.yml` (por defecto; logs SQL apagados), `application-test.yml` (Testcontainers, en `src/test/resources`), `prod` (lo activa la imagen Docker; solo configuración común).
+- Perfiles: **no hay perfil por defecto**; sin perfil solo aplica la configuración común.
+  - `application.yml`: común; `server.port` lee `PORT`.
+  - `application-dev.yml`: se activa explícitamente; carga los datos sintéticos y los logs `DEBUG`.
+  - `application-test.yml`: Testcontainers, en `src/test/resources`.
+  - `prod`: lo activa la imagen Docker; solo configuración común.
+- Datos sintéticos de desarrollo (TEC-06), **solo con el perfil `dev`**:
+  - `db/dev-seed/R__dev_seed.sql` es una migración repetible e idempotente (`ON CONFLICT DO NOTHING`) que `application-dev.yml` añade a `spring.flyway.locations`.
+  - Las cuentas del seed usan el dominio `@dev-seed.rehabelite.test` y se crean con un marcador que no es BCrypt.
+  - `DevSeedPasswordInitializer` (`@Profile("dev")`) les guarda el BCrypt de `DEV_SEED_PASSWORD` al arrancar. Nunca escribir contraseñas ni hashes en el SQL.
+  - Toda cédula nueva del seed debe pasar `NationalId` (lo comprueba `DevSeedDataTests`).
+  - `spring.flyway.ignore-migration-patterns` incluye `repeatable:missing` para que una base sembrada arranque sin `dev`.
+  - Las pruebas de integración nunca activan `dev` sobre el contenedor compartido (`DevSeedIntegrationTests` usa uno propio).
 - Pruebas de integración: extender `ec.rehabelite.AbstractIntegrationTest` (contexto completo, perfil `test`, un único `postgres:16` de Testcontainers compartido). No asumir base vacía: cada prueba crea sus propios datos con valores únicos. Para pacientes de prueba que no son el objeto de la prueba, usar `ec.rehabelite.TestPatients`: los inserta por SQL, sin auditoría, con cédulas sintéticas de dígito verificador válido y el número de historia igual a la cédula.
 
 ### Endpoints REST
@@ -203,9 +214,9 @@ Valores de enums / CHECK:
 
 ### Variables de entorno
 
-`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `POSTGRES_DB` (solo para el PostgreSQL de Docker), `JWT_SECRET` (≥ 32 caracteres), `JWT_EXPIRATION_MINUTES`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ANTHROPIC_API_KEY`, `CORS_ALLOWED_ORIGINS`.
+`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `POSTGRES_DB` (solo para el PostgreSQL de Docker), `JWT_SECRET` (≥ 32 caracteres), `JWT_EXPIRATION_MINUTES`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ANTHROPIC_API_KEY`, `CORS_ALLOWED_ORIGINS`, `DEV_SEED_PASSWORD` (solo perfil `dev`).
 
-Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `app.admin.password`, `app.cors.allowed-origins`, `app.ai.anthropic-api-key`.
+Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `app.admin.password`, `app.cors.allowed-origins`, `app.ai.anthropic-api-key` y, solo en `application-dev.yml`, `app.dev-seed.password`.
 
 ## Frontend (Angular 22 + Material)
 
@@ -268,7 +279,8 @@ Una historia está terminada cuando:
 # Backend (desde backend/)
 .\mvnw.cmd -q -DskipTests compile   # compilar
 .\mvnw.cmd clean verify             # pruebas (requiere Docker para Testcontainers)
-.\mvnw.cmd spring-boot:run          # arrancar con perfil dev (lee ../.env)
+.\mvnw.cmd spring-boot:run          # arrancar sin perfil (lee ../.env; sin datos sintéticos)
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=dev"   # con datos sintéticos (se insertan en la base de DB_URL)
 
 # Docker (desde la raíz)
 docker compose up -d db                     # PostgreSQL 16 en localhost:5433
