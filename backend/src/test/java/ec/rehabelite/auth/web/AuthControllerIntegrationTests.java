@@ -143,9 +143,10 @@ class AuthControllerIntegrationTests extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/patients").header(HttpHeaders.AUTHORIZATION, "Bearer " + token + "x"))
                 .andExpect(status().isUnauthorized());
 
-        // Authenticated: the request passes security and reaches MVC (no controller yet, hence 404)
-        mockMvc.perform(get("/api/patients").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
-                .andExpect(status().isNotFound());
+        // Authenticated: the request passes security and reaches the controller (an unknown patient, hence 404)
+        mockMvc.perform(get("/api/patients/999999999").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.detail").value("El paciente no existe."));
     }
 
     @Test

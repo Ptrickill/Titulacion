@@ -1,6 +1,7 @@
 package ec.rehabelite.shared.web;
 
 import ec.rehabelite.shared.domain.BusinessRuleException;
+import ec.rehabelite.shared.domain.ConflictException;
 import ec.rehabelite.shared.domain.ResourceNotFoundException;
 import java.util.List;
 import java.util.Map;
@@ -69,6 +70,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(BusinessRuleException.class)
     ProblemDetail handleBusinessRule(BusinessRuleException ex) {
         return problem(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage());
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    ProblemDetail handleConflict(ConflictException ex) {
+        ProblemDetail problem = problem(HttpStatus.CONFLICT, ex.getMessage());
+        ex.getProperties().forEach(problem::setProperty);
+        return problem;
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)

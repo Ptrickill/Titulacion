@@ -4,8 +4,9 @@ import java.util.concurrent.ThreadLocalRandom;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
- * Synthetic patients for integration tests, inserted with SQL until the patients module can register them
- * (HU-05). National IDs are random but carry a valid Ecuadorian check digit (modulo 10).
+ * Synthetic patients for integration tests, inserted with SQL (faster than POST /api/patients and without an
+ * audit entry). As in HU-05, the medical record number is the national ID; national IDs are random but carry a
+ * valid Ecuadorian check digit (modulo 10).
  */
 public final class TestPatients {
 
@@ -20,7 +21,7 @@ public final class TestPatients {
                                       phone, email, address, occupation, education_level, health_insurance)
                 VALUES (?, ?, ?, ?, DATE '1985-04-12', 'FEMALE', '0990000000', 'paciente@rehabelite.test',
                         'Dirección de prueba', 'Ocupación de prueba', 'Superior', 'Ninguno')
-                RETURNING id""", Long.class, nationalId, "HC-" + nationalId, firstName, lastName);
+                RETURNING id""", Long.class, nationalId, nationalId, firstName, lastName);
     }
 
     public static String nationalIdOf(JdbcTemplate jdbc, Long patientId) {
