@@ -13,4 +13,9 @@ export const DIRECTOR_ROUTES: Routes = [
       icon: 'bar_chart',
     } satisfies PlaceholderPageData,
   },
+  {
+    path: 'audit',
+    title: 'Auditoría | Rehab Elite',
+    loadComponent: () => import('../audit/audit-log-list').then((m) => m.AuditLogList),
+  },
 ];

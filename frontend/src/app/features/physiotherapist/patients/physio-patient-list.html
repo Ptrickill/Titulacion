@@ -1,0 +1,151 @@
+<app-page-header
+  title="Gestión de Pacientes"
+  subtitle="Registro, expedientes clínicos y control terapéutico"
+/>
+
+<section class="filters" aria-label="Búsqueda de pacientes">
+  <mat-form-field appearance="fill" subscriptSizing="dynamic" class="search">
+    <mat-icon matPrefix aria-hidden="true">search</mat-icon>
+    <input
+      matInput
+      type="search"
+      placeholder="Buscar por nombres o cédula..."
+      aria-label="Buscar por nombres o cédula"
+      autocomplete="off"
+      (input)="onSearch($event)"
+    />
+  </mat-form-field>
+</section>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Cargando pacientes" />
+}
+
+@if (loadError()) {
+  <app-empty-state
+    icon="cloud_off"
+    title="No se pudieron cargar los pacientes"
+    message="Revise su conexión e intente nuevamente."
+  >
+    <button mat-stroked-button type="button" (click)="reload()">Reintentar</button>
+  </app-empty-state>
+} @else if (results(); as page) {
+  <app-data-table
+    [columns]="columns"
+    [rows]="page.content"
+    [totalItems]="page.totalElements"
+    [pageSize]="pageSize"
+    [pageIndex]="search().page"
+    (pageIndexChange)="goToPage($event)"
+    caption="Pacientes con su tratamiento"
+    itemLabel="pacientes"
+    [emptyMessage]="
+      search().query
+        ? 'Ningún paciente coincide con la búsqueda.'
+        : 'Aún no hay pacientes registrados.'
+    "
+  >
+    <ng-template appDataTableCell="lastName" [appDataTableCellOf]="page.content" let-patient>
+      <div class="patient">
+        <span class="avatar" aria-hidden="true">{{ initials(patient) }}</span>
+        <div>
+          <div class="name">{{ patient.firstName }} {{ patient.lastName }}</div>
+          <div class="meta">Cédula: {{ patient.nationalId }} • {{ formatAge(patient.age) }}</div>
+        </div>
+      </div>
+    </ng-template>
+
+    <ng-template
+      appDataTableCell="currentTreatment"
+      [appDataTableCellOf]="page.content"
+      let-patient
+    >
+      @if (patient.currentTreatment; as treatment) {
+        <div class="diagnosis">{{ treatment.diagnosisDescription }}</div>
+        <div class="severity">
+          <span class="code">{{ treatment.diagnosisCode }}</span> · Severidad:
+          <strong [class]="'tone-' + severityTones[treatment.severity]">
+            {{ severityLabels[treatment.severity] }}
+          </strong>
+        </div>
+      } @else {
+        <span class="none">Sin valoración inicial</span>
+      }
+    </ng-template>
+
+    <ng-template appDataTableCell="nationalId" [appDataTableCellOf]="page.content" let-patient>
+      @if (patient.currentTreatment; as treatment) {
+        <span
+          class="sessions"
+          [attr.aria-label]="treatment.plannedSessions + ' sesiones planificadas'"
+          [title]="treatment.plannedSessions + ' sesiones planificadas'"
+          >{{ treatment.plannedSessions }}</span
+        >
+      } @else {
+        <span class="none">—</span>
+      }
+    </ng-template>
+
+    <ng-template appDataTableCell="age" [appDataTableCellOf]="page.content" let-patient>
+      @if (patient.currentTreatment; as treatment) {
+        <app-status-badge
+          [label]="statusLabels[treatment.status]"
+          [tone]="statusTones[treatment.status]"
+        />
+      } @else {
+        <app-status-badge label="Sin historial" tone="neutral" />
+      }
+    </ng-template>
+
+    <ng-template appDataTableCell="id" [appDataTableCellOf]="page.content" let-patient>
+      <div class="actions">
+        @if (patient.clinicalRecordId !== null) {
+          <a
+            mat-flat-button
+            class="action"
+            [routerLink]="['/physio/patients', patient.id, 'clinical-record']"
+            [attr.aria-label]="'Ver historial de ' + patient.firstName + ' ' + patient.lastName"
+          >
+            Ver historial
+          </a>
+        }
+        @if (patient.currentTreatment; as treatment) {
+          <a
+            mat-stroked-button
+            class="action"
+            [routerLink]="['/physio/patients', patient.id, 'treatments', treatment.id]"
+            [attr.aria-label]="'Plan y asignación de ' + patient.firstName + ' ' + patient.lastName"
+          >
+            Plan y asignación
+          </a>
+        }
+        @if (patient.clinicalRecordId === null) {
+          <a
+            mat-stroked-button
+            class="action"
+            [routerLink]="['/physio/patients', patient.id, 'clinical-record', 'new']"
+            [attr.aria-label]="'Crear historial de ' + patient.firstName + ' ' + patient.lastName"
+          >
+            Crear historial
+          </a>
+        } @else if (patient.currentTreatment?.status !== 'ACTIVE') {
+          <a
+            mat-stroked-button
+            class="action"
+            [routerLink]="[
+              '/physio/patients',
+              patient.id,
+              'clinical-record',
+              patient.clinicalRecordId,
+              'treatments',
+              'new',
+            ]"
+            [attr.aria-label]="'Nuevo tratamiento de ' + patient.firstName + ' ' + patient.lastName"
+          >
+            Nuevo tratamiento
+          </a>
+        }
+      </div>
+    </ng-template>
+  </app-data-table>
+}

@@ -63,13 +63,18 @@ class RoleAccessIntegrationTests extends AbstractIntegrationTest {
             new Area("/api/admin/settings", "admin", null, ADMINISTRATOR),
             new Area("/api/users/5", "users", 5L, ADMINISTRATOR),
             new Area("/api/patients/portal-candidates", "patients", null, ADMINISTRATOR),
+            new Area("/api/patients/12/clinical-record", "patients", 12L, PHYSIOTHERAPIST),
+            new Area("/api/icd10-diagnoses", "icd10-diagnoses", null, PHYSIOTHERAPIST),
+            new Area("/api/physio/patients", "physio", null, PHYSIOTHERAPIST),
             new Area("/api/patients/12", "patients", 12L, ADMINISTRATOR, PHYSIOTHERAPIST),
             new Area("/api/clinical-records/7", "clinical-records", 7L, PHYSIOTHERAPIST),
-            new Area("/api/treatments/3/status-changes", "treatments", 3L, PHYSIOTHERAPIST),
+            new Area("/api/treatments/3/history", "treatments", 3L, PHYSIOTHERAPIST),
+            new Area("/api/physio/physiotherapists", "physio", null, PHYSIOTHERAPIST),
             new Area("/api/therapy-sessions", "therapy-sessions", null, PHYSIOTHERAPIST),
             new Area("/api/ai-summaries/9", "ai-summaries", 9L, PHYSIOTHERAPIST),
             new Area("/api/reports/treatments", "reports", null, OPERATIONS_DIRECTOR, ADMINISTRATOR),
             new Area("/api/audit-logs", "audit-logs", null, OPERATIONS_DIRECTOR, ADMINISTRATOR),
+            new Area("/api/audit-logs/users", "audit-logs", null, OPERATIONS_DIRECTOR, ADMINISTRATOR),
             new Area("/api/portal/treatment", "portal", null, PATIENT));
 
     @Autowired
@@ -164,6 +169,28 @@ class RoleAccessIntegrationTests extends AbstractIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON).content("{}"));
 
         if (role == ADMINISTRATOR) {
+            result.andExpect(status().isBadRequest());
+            assertThat(accessDeniedEntries(user)).isEmpty();
+        } else {
+            result.andExpect(status().isForbidden());
+            assertThat(accessDeniedEntries(user)).singleElement().satisfies(entry -> assertThat(entry)
+                    .containsEntry("entity_type", "patients")
+                    .containsEntry("entity_id", 12L));
+        }
+    }
+
+    /** The clinical record rule goes before PUT /api/patients/**: only physiotherapists edit the record (HU-09). */
+    @ParameterizedTest(name = "PUT /api/patients/12/clinical-record → {0}")
+    @MethodSource("roles")
+    void onlyPhysiotherapistsEditClinicalRecords(Role role) throws Exception {
+        User user = createUser(role);
+        String token = tokenService.issue(user, Instant.now()).token();
+
+        var result = mockMvc.perform(put("/api/patients/12/clinical-record")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON).content("{}"));
+
+        if (role == PHYSIOTHERAPIST) {
             result.andExpect(status().isBadRequest());
             assertThat(accessDeniedEntries(user)).isEmpty();
         } else {

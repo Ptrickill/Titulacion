@@ -18,4 +18,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByIdAndActiveTrue(Long id);
 
+    List<User> findByEmailEndingWith(String suffix);
+
+    Optional<User> findByIdAndRoleAndActiveTrue(Long id, Role role);
+
+    List<User> findByRoleAndActiveTrueOrderByFullNameAsc(Role role);
+
 }

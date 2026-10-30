@@ -1,0 +1,245 @@
+<app-page-header
+  title="Expediente e Historial Clínico de Fisioterapia"
+  subtitle="Información diagnóstica, evaluación del dolor, hábitos, antecedentes y plan terapéutico"
+  backLink="/physio/patients"
+>
+  <a
+    actions
+    mat-stroked-button
+    class="edit"
+    [routerLink]="['/physio/patients', patientId, 'clinical-record', 'edit']"
+    [disabled]="!record()"
+  >
+    <mat-icon aria-hidden="true">edit</mat-icon>
+    Editar historial
+  </a>
+  <span actions title="Disponible próximamente">
+    <button mat-stroked-button type="button" disabled>
+      <mat-icon aria-hidden="true">event_note</mat-icon>
+      Ver sesiones
+      <span class="cdk-visually-hidden">(disponible próximamente)</span>
+    </button>
+  </span>
+</app-page-header>
+
+@if (loadError(); as error) {
+  <app-empty-state
+    icon="folder_off"
+    title="No se pudo abrir el expediente"
+    [message]="error.message"
+  >
+    @if (error.withoutRecord) {
+      <a mat-flat-button [routerLink]="['/physio/patients', patientId, 'clinical-record', 'new']">
+        Crear historial
+      </a>
+    }
+    <a mat-stroked-button routerLink="/physio/patients">Volver a pacientes</a>
+  </app-empty-state>
+} @else if (record(); as r) {
+  <app-patient-summary-card [patient]="r.patient" [showContact]="true" />
+
+  @if (r.activeTreatment; as t) {
+    <div class="pair">
+      <section class="card" aria-labelledby="diagnosis-title">
+        <header class="card-header">
+          <span class="icon-tile" aria-hidden="true"><mat-icon>stethoscope</mat-icon></span>
+          <h2 class="card-title" id="diagnosis-title">Información diagnóstica</h2>
+          <app-status-badge
+            [label]="severityLabels[t.severity]"
+            [tone]="severityTones[t.severity]"
+          />
+        </header>
+        <dl class="fields">
+          <div class="full">
+            <dt>Motivo de consulta</dt>
+            <dd class="strong">{{ t.chiefComplaint }}</dd>
+          </div>
+          <div class="full">
+            <dt>Enfermedad actual</dt>
+            <dd class="boxed">{{ t.currentIllness }}</dd>
+          </div>
+          <div>
+            <dt>Diagnóstico principal (CIE-10)</dt>
+            <dd class="diagnosis">
+              <span class="code">{{ t.diagnosis.code }}</span> {{ t.diagnosis.description }}
+            </dd>
+          </div>
+          <div>
+            <dt>Médico remitente</dt>
+            <dd>{{ t.referringPhysician }}</dd>
+          </div>
+          <div class="full">
+            <dt>Exámenes complementarios</dt>
+            <dd>{{ t.complementaryTests }}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="card" aria-labelledby="pain-title">
+        <header class="card-header">
+          <span class="icon-tile pain" aria-hidden="true"
+            ><mat-icon>personal_injury</mat-icon></span
+          >
+          <h2 class="card-title" id="pain-title">Evaluación del dolor</h2>
+          <app-status-badge
+            class="eva"
+            [label]="'EVA: ' + t.initialPainScore + '/10'"
+            [tone]="painTone(t.initialPainScore)"
+          />
+        </header>
+        <dl class="fields">
+          <div>
+            <dt>Tipo de dolor</dt>
+            <dd class="strong">{{ t.painType }}</dd>
+          </div>
+          <div>
+            <dt>Frecuencia del dolor</dt>
+            <dd>{{ t.painFrequency }}</dd>
+          </div>
+          <div class="full">
+            <dt>Zona del dolor</dt>
+            <dd class="strong">{{ t.painLocation }}</dd>
+          </div>
+        </dl>
+      </section>
+    </div>
+
+    <section class="card" aria-labelledby="plan-title">
+      <header class="card-header">
+        <span class="icon-tile" aria-hidden="true"><mat-icon>track_changes</mat-icon></span>
+        <h2 class="card-title" id="plan-title">Plan terapéutico y asignación clínica</h2>
+        <span class="chip">{{ t.plannedSessions }} Sesiones Planificadas</span>
+      </header>
+      <div class="plan">
+        <dl class="fields three">
+          <div class="full">
+            <dt>Objetivo de la fisioterapia</dt>
+            <dd class="strong">{{ t.goal }}</dd>
+          </div>
+          <div>
+            <dt>Frecuencia de sesiones</dt>
+            <dd>{{ t.sessionFrequency }}</dd>
+          </div>
+          <div>
+            <dt>Inicio del tratamiento</dt>
+            <dd>{{ t.startDate | date: 'dd/MM/yyyy' }}</dd>
+          </div>
+          <div>
+            <dt>Estado</dt>
+            <dd>
+              <app-status-badge [label]="statusLabels[t.status]" [tone]="statusTones[t.status]" />
+            </dd>
+          </div>
+        </dl>
+        <aside class="responsible" aria-label="Fisioterapeuta responsable">
+          <span class="label">Fisioterapeuta responsable</span>
+          @if (t.currentResponsible; as current) {
+            <div class="person">
+              <span class="avatar" aria-hidden="true">{{ initials(current.fullName) }}</span>
+              <div>
+                <div class="person-name">
+                  {{ current.fullName ?? 'Usuario #' + current.physiotherapistId }}
+                </div>
+                <div class="muted-small">
+                  Desde {{ current.validFrom | date: 'dd/MM/yyyy, HH:mm' }}
+                </div>
+              </div>
+            </div>
+          } @else {
+            <span class="muted">Sin responsable vigente.</span>
+          }
+        </aside>
+      </div>
+      <div class="card-actions">
+        <a mat-stroked-button [routerLink]="['/physio/patients', patientId, 'treatments', t.id]">
+          <mat-icon aria-hidden="true">manage_accounts</mat-icon>
+          Plan y asignación
+        </a>
+      </div>
+    </section>
+  } @else {
+    <section class="card no-active" aria-label="Tratamiento activo">
+      <mat-icon aria-hidden="true">info</mat-icon>
+      <p>El paciente no tiene un tratamiento activo.</p>
+      <a
+        mat-flat-button
+        [routerLink]="[
+          '/physio/patients',
+          patientId,
+          'clinical-record',
+          r.clinicalRecord.id,
+          'treatments',
+          'new',
+        ]"
+      >
+        Nuevo tratamiento
+      </a>
+    </section>
+  }
+
+  <section class="card" aria-labelledby="history-title">
+    <header class="card-header">
+      <span class="icon-tile" aria-hidden="true"><mat-icon>history_edu</mat-icon></span>
+      <h2 class="card-title" id="history-title">Hábitos y antecedentes</h2>
+      @if (r.clinicalRecord.updatedAt; as updatedAt) {
+        <span class="updated">Última edición: {{ updatedAt | date: 'dd/MM/yyyy, HH:mm' }}</span>
+      }
+    </header>
+    <dl class="fields">
+      @for (field of historyFields; track field.name) {
+        <div>
+          <dt>{{ field.label }}</dt>
+          <dd class="text">{{ r.clinicalRecord[field.name] }}</dd>
+        </div>
+      }
+    </dl>
+  </section>
+
+  <section class="card" aria-labelledby="previous-title">
+    <header class="card-header">
+      <span class="icon-tile" aria-hidden="true"><mat-icon>folder_open</mat-icon></span>
+      <h2 class="card-title" id="previous-title">Tratamientos anteriores</h2>
+    </header>
+    @if (r.previousTreatments.length === 0) {
+      <p class="muted">Sin tratamientos anteriores.</p>
+    } @else {
+      <ul class="previous">
+        @for (previous of r.previousTreatments; track previous.id) {
+          <li>
+            <div class="previous-main">
+              <div class="diagnosis">
+                <span class="code">{{ previous.diagnosis.code }}</span>
+                {{ previous.diagnosis.description }}
+              </div>
+              <div class="muted-small">
+                Inicio: {{ previous.startDate | date: 'dd/MM/yyyy' }}
+                @if (previous.updatedAt) {
+                  · Cierre: {{ previous.updatedAt | date: 'dd/MM/yyyy' }}
+                }
+                · {{ previous.plannedSessions }} sesiones planificadas · Severidad:
+                {{ severityLabels[previous.severity] }}
+                @if (previous.responsible; as responsible) {
+                  · Responsable:
+                  {{ responsible.fullName ?? 'Usuario #' + responsible.physiotherapistId }}
+                }
+              </div>
+            </div>
+            <app-status-badge
+              [label]="statusLabels[previous.status]"
+              [tone]="statusTones[previous.status]"
+            />
+            <a
+              mat-stroked-button
+              [routerLink]="['/physio/patients', patientId, 'treatments', previous.id]"
+              [attr.aria-label]="'Plan y asignación del tratamiento ' + previous.diagnosis.code"
+            >
+              Plan y asignación
+            </a>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+} @else {
+  <mat-progress-bar mode="indeterminate" aria-label="Cargando expediente" />
+}

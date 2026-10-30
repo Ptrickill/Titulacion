@@ -5,6 +5,16 @@ spring:
     url: jdbc:postgresql://localhost:5432/unused
     username: test
     password: test
+  jpa:
+    properties:
+      hibernate:
+        # Lets tests count the SQL statements of a request (HU-09: the clinical record view has no N+1)
+        generate_statistics: true
+
+logging:
+  level:
+    # With statistics on, Hibernate logs a summary per session at INFO; keep the test output quiet
+    org.hibernate.engine.internal.StatisticalLoggingSessionEventListener: WARN
 
 app:
   jwt:

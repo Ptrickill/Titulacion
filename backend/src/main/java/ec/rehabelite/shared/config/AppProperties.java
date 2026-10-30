@@ -21,7 +21,8 @@ public record AppProperties(
         @Valid @NotNull Jwt jwt,
         @Valid @NotNull Admin admin,
         @Valid @NotNull Cors cors,
-        @Valid @NotNull Ai ai) {
+        @Valid @NotNull Ai ai,
+        DevSeed devSeed) {
 
     public record Jwt(
             @NotBlank @Size(min = 32, message = "JWT_SECRET must be at least 32 characters long") String secret,
@@ -37,6 +38,17 @@ public record AppProperties(
 
     /** Anthropic API key; blank until the AI summary sprint. */
     public record Ai(String anthropicApiKey) {
+    }
+
+    /** Synthetic development data (dev profile only, otherwise null): password of the seed accounts. */
+    public record DevSeed(String password) {
+
+        /** Never print the password, e.g. in logs or debugger views. */
+        @Override
+        public String toString() {
+            return "DevSeed[password=" + (password == null || password.isBlank() ? "<blank>" : "<set>") + "]";
+        }
+
     }
 
 }

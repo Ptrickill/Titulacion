@@ -128,6 +128,12 @@ public class User {
         markUpdated(updatedBy, now);
     }
 
+    /** Stores a new BCrypt password hash, e.g. the development seed accounts (TEC-06). */
+    public void changePasswordHash(String passwordHash, Long updatedBy, Instant now) {
+        this.passwordHash = passwordHash;
+        markUpdated(updatedBy, now);
+    }
+
     private void markUpdated(Long updatedBy, Instant now) {
         this.updatedBy = updatedBy;
         this.updatedAt = now;

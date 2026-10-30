@@ -1,0 +1,69 @@
+<header class="header">
+  <div class="icon-tile" aria-hidden="true">
+    <mat-icon>published_with_changes</mat-icon>
+  </div>
+  <div>
+    <h2 mat-dialog-title class="title">Cambiar estado del tratamiento</h2>
+    <p class="subtitle">Estado actual: {{ statusLabels[data.currentStatus] }}</p>
+  </div>
+</header>
+
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <mat-dialog-content>
+    <mat-form-field appearance="fill" subscriptSizing="dynamic">
+      <mat-label>Nuevo estado</mat-label>
+      <mat-select formControlName="newStatus">
+        @for (status of data.allowedStatuses; track status) {
+          <mat-option [value]="status">{{ statusLabels[status] }}</mat-option>
+        }
+      </mat-select>
+      @if (form.controls.newStatus.hasError('required')) {
+        <mat-error>Seleccione el nuevo estado.</mat-error>
+      }
+    </mat-form-field>
+
+    @if (form.controls.newStatus.value === 'COMPLETED') {
+      <p class="notice" role="status">
+        <mat-icon aria-hidden="true">info</mat-icon>
+        Finalizado es un estado final: si el paciente vuelve, se abre un tratamiento nuevo.
+      </p>
+    }
+
+    <mat-form-field appearance="fill" subscriptSizing="dynamic">
+      <mat-label>Motivo del cambio</mat-label>
+      <textarea
+        matInput
+        formControlName="reason"
+        cdkTextareaAutosize
+        cdkAutosizeMinRows="3"
+        cdkAutosizeMaxRows="8"
+        [maxlength]="reasonMax"
+      ></textarea>
+      <mat-hint align="end">{{ form.controls.reason.value.length }}/{{ reasonMax }}</mat-hint>
+      @if (form.controls.reason.hasError('required')) {
+        <mat-error>Ingrese el motivo del cambio de estado.</mat-error>
+      } @else if (form.controls.reason.hasError('maxlength')) {
+        <mat-error>Máximo {{ reasonMax }} caracteres.</mat-error>
+      }
+    </mat-form-field>
+
+    @if (errorMessage(); as message) {
+      <div class="error" role="alert">
+        <mat-icon aria-hidden="true">error</mat-icon>
+        <span>{{ message }}</span>
+      </div>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button type="button" mat-dialog-close [disabled]="submitting()">
+      Cancelar
+    </button>
+    <button mat-flat-button type="submit" [disabled]="submitting()">
+      @if (submitting()) {
+        <mat-spinner diameter="18" aria-label="Guardando" />
+      }
+      Guardar cambio
+    </button>
+  </mat-dialog-actions>
+</form>

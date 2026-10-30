@@ -1,6 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { Page } from '../../../core/http/page';
 
 export type Sex = 'MALE' | 'FEMALE';
 
@@ -49,16 +50,6 @@ export interface PatientSummary {
   age: number;
   phone: string;
   email: string;
-}
-
-/** One page of results, as the backend's PageResponse. */
-export interface Page<T> {
-  content: T[];
-  /** Zero-based. */
-  page: number;
-  size: number;
-  totalElements: number;
-  totalPages: number;
 }
 
 /** Property of the 409 problem response with the id of the patient that has the national ID. */

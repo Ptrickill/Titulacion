@@ -1,13 +1,13 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { DatePipe } from '@angular/common';
-import { Component, computed, effect, inject } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { Component, computed, effect, inject, viewChild } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatSidenavContent, MatSidenavModule } from '@angular/material/sidenav';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { map, timer } from 'rxjs';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { filter, map, timer } from 'rxjs';
 import { AuthService } from '../../core/auth/auth-service';
 import { Role, ROLE_LABELS } from '../../core/auth/role';
 import {
@@ -40,6 +40,8 @@ import { NAV_ITEMS, PANEL_LABELS, ROLE_TONES } from './nav-items';
 export class AppShell {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  /** The scrolling area of the pages (not the window), see the constructor. */
+  private readonly content = viewChild(MatSidenavContent);
 
   protected readonly locale = APP_LOCALE;
   protected readonly isHandset = toSignal(
@@ -83,6 +85,19 @@ export class AppShell {
         snackBar.open(NO_SECTION_ACCESS_MESSAGE, 'Cerrar', { duration: 5000 });
       }
     });
+
+    // Pages scroll inside the sidenav content, which the router does not reset: a new page starts at the top
+    this.router.events
+      .pipe(
+        filter((event) => event instanceof NavigationEnd),
+        takeUntilDestroyed(),
+      )
+      .subscribe(() => {
+        const content = this.content()?.getElementRef().nativeElement;
+        if (content) {
+          content.scrollTop = 0;
+        }
+      });
   }
 
   protected logout(): void {

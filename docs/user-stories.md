@@ -40,6 +40,8 @@ Formato: Como <rol>, quiero <acción>, para <propósito>. Criterios en Dado/Cuan
 - HU-09 (3 pts) Como fisioterapeuta, quiero consultar el historial antes de la sesión, para preparar la atención.
   - La consulta responde en menos de 2 segundos.
   - Solo los fisioterapeutas acceden; cada consulta queda en la auditoría.
+  - Desde el expediente, el fisioterapeuta edita los hábitos y antecedentes (sin modificar los tratamientos); cada edición registra usuario y fecha y queda en la auditoría.
+  - API: `GET` y `PUT /api/patients/{patientId}/clinical-record`.
 - HU-18 (5 pts, técnica) Como dirección operativa, quiero que el sistema registre quién crea, modifica o consulta información clínica, para cumplir la LOPDP.
   - Cada operación sobre datos clínicos registra usuario, acción, entidad, fecha y hora.
   - Ningún rol modifica ni elimina registros de auditoría.

@@ -27,12 +27,21 @@ src/
     ├── shared/validation/ form validators shared by features (Ecuadorian national ID, same rules as the backend)
     └── features/
         ├── auth/login/       /login
-        ├── physiotherapist/  /physio, /physio/patients, /physio/clinical-records, /physio/timeline, /physio/ai-assistant
+        ├── physiotherapist/  /physio, /physio/patients (patients/: list with the treatment summary, HU-07),
+        │                     /physio/patients/:id/clinical-record/new and .../treatments/new
+        │                     (clinical-records/: initial assessment form + ICD-10 picker, HU-07),
+        │                     /physio/patients/:id/clinical-record (read-only full record, HU-09) and
+        │                     .../clinical-record/edit (habits and medical history, HU-09),
+        │                     /physio/patients/:id/treatments/:treatmentId (therapy plan card with the
+        │                     responsible and status changes and their history, HU-08),
+        │                     /physio/clinical-records, /physio/timeline, /physio/ai-assistant
         ├── admin/            /admin, /admin/users (users/: list + create dialog, HU-02; activate/deactivate, HU-03),
         │                     /admin/patients and /admin/patients/:id (patients/: search with server-side pagination,
         │                     register/edit form dialog and patient record, HU-05 and HU-06),
-        │                     /admin/reports
-        ├── director/         /director/reports
+        │                     /admin/reports, /admin/audit
+        ├── director/         /director/reports, /director/audit
+        ├── audit/            audit log page shared by /admin/audit and /director/audit (filters by user, action,
+        │                     entity and dates; metadata only, HU-18)
         ├── patient/          /patient
         └── dev/              /ui-kit (development only)
 ```
@@ -54,7 +63,7 @@ Role access (HU-04):
 | `StatusBadge` | `app-status-badge` | Status/role/severity pill (`success`, `warning`, `danger`, `info`, `purple`, `teal`, `neutral`) |
 | `DataTable` | `app-data-table` | Card table with client-side pagination, or server-side with `[totalItems]` and `[(pageIndex)]`; custom cells with `<ng-template appDataTableCell="key" [appDataTableCellOf]="rows" let-row>` (the optional `appDataTableCellOf` types `row`) |
 | `FormSection` | `app-form-section` | Numbered form block with a responsive two-column grid (`class="full"` spans both) |
-| `EmptyState` | `app-empty-state` | Empty list / not-yet-available message with an optional action |
+| `EmptyState` | `app-empty-state` | Empty list / not-yet-available message with optional actions |
 | `ConfirmDialog` | `openConfirmDialog(dialog, data)` | Navy-header confirmation modal; emits `true` only on confirm |
 | `HeroBanner` | `app-hero-banner` | Navy-to-teal welcome banner of the role home pages |
 

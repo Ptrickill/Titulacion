@@ -1,0 +1,268 @@
+@switch (mode) {
+  @case ('record') {
+    <app-page-header
+      title="Nuevo Historial Clínico"
+      subtitle="Valoración inicial: hábitos, antecedentes, diagnóstico, evaluación del dolor y plan terapéutico"
+      [backLink]="backLink"
+    />
+  }
+  @case ('treatment') {
+    <app-page-header
+      title="Nuevo Tratamiento"
+      subtitle="Información diagnóstica, evaluación del dolor y plan terapéutico del nuevo tratamiento"
+      [backLink]="backLink"
+    />
+  }
+  @case ('edit') {
+    <app-page-header
+      title="Editar Historial Clínico"
+      subtitle="Hábitos y antecedentes del paciente; los tratamientos no cambian"
+      [backLink]="backLink"
+    />
+  }
+}
+
+@if (patient(); as p) {
+  <app-patient-summary-card [patient]="p" />
+} @else if (loadError(); as message) {
+  <app-empty-state
+    icon="person_off"
+    [title]="isEdit ? 'No se pudo cargar el historial' : 'No se pudo cargar el paciente'"
+    [message]="message"
+  >
+    <a mat-stroked-button [routerLink]="backLink">
+      {{ isEdit ? 'Volver al expediente' : 'Volver a pacientes' }}
+    </a>
+  </app-empty-state>
+}
+
+@if (existingRecordId(); as recordId) {
+  <div class="notice" role="alert">
+    <mat-icon aria-hidden="true">warning</mat-icon>
+    <span>El paciente ya tiene un historial clínico.</span>
+    <a
+      mat-stroked-button
+      [routerLink]="[
+        '/physio/patients',
+        patientId,
+        'clinical-record',
+        recordId,
+        'treatments',
+        'new',
+      ]"
+    >
+      Abrir un nuevo tratamiento
+    </a>
+  </div>
+}
+
+<form class="form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  @if (mode !== 'treatment') {
+    <app-form-section
+      [step]="1"
+      title="Hábitos y antecedentes"
+      formGroupName="history"
+      class="card"
+    >
+      @for (field of historyFields; track field.name; let last = $last) {
+        <mat-form-field appearance="fill" subscriptSizing="dynamic" [class.full]="last">
+          <mat-label>{{ field.label }}</mat-label>
+          <textarea
+            matInput
+            cdkTextareaAutosize
+            cdkAutosizeMinRows="2"
+            [formControlName]="field.name"
+            [attr.maxlength]="textMax"
+          ></textarea>
+          @if (form.controls.history.get(field.name)?.hasError('required')) {
+            <mat-error>Complete este campo.</mat-error>
+          }
+        </mat-form-field>
+      }
+    </app-form-section>
+  }
+
+  @if (!isEdit) {
+    <ng-container formGroupName="treatment">
+      <app-form-section [step]="isNewRecord ? 2 : 1" title="Información diagnóstica" class="card">
+        <mat-form-field appearance="fill" subscriptSizing="dynamic">
+          <mat-label>Motivo de consulta</mat-label>
+          <textarea
+            matInput
+            cdkTextareaAutosize
+            cdkAutosizeMinRows="2"
+            formControlName="chiefComplaint"
+            [attr.maxlength]="textMax"
+          ></textarea>
+          @if (treatment.controls.chiefComplaint.hasError('required')) {
+            <mat-error>Ingrese el motivo de consulta.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" subscriptSizing="dynamic">
+          <mat-label>Severidad</mat-label>
+          <mat-select formControlName="severity">
+            @for (severity of severities; track severity) {
+              <mat-option [value]="severity">{{ severityLabels[severity] }}</mat-option>
+            }
+          </mat-select>
+          @if (treatment.controls.severity.hasError('required')) {
+            <mat-error>Seleccione la severidad.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" subscriptSizing="dynamic" class="full">
+          <mat-label>Enfermedad actual</mat-label>
+          <textarea
+            matInput
+            cdkTextareaAutosize
+            cdkAutosizeMinRows="2"
+            formControlName="currentIllness"
+            [attr.maxlength]="textMax"
+          ></textarea>
+          @if (treatment.controls.currentIllness.hasError('required')) {
+            <mat-error>Describa la enfermedad actual.</mat-error>
+          }
+        </mat-form-field>
+
+        <app-icd10-picker class="full" formControlName="diagnosis" inputId="treatment-diagnosis" />
+
+        <mat-form-field appearance="fill" subscriptSizing="dynamic">
+          <mat-label>Médico remitente</mat-label>
+          <input matInput formControlName="referringPhysician" maxlength="150" autocomplete="off" />
+          @if (treatment.controls.referringPhysician.hasError('required')) {
+            <mat-error>Ingrese el médico remitente.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" subscriptSizing="dynamic">
+          <mat-label>Exámenes complementarios</mat-label>
+          <textarea
+            matInput
+            cdkTextareaAutosize
+            cdkAutosizeMinRows="1"
+            formControlName="complementaryTests"
+            [attr.maxlength]="textMax"
+          ></textarea>
+          @if (treatment.controls.complementaryTests.hasError('required')) {
+            <mat-error>Indique los exámenes (o "Ninguno").</mat-error>
+          }
+        </mat-form-field>
+      </app-form-section>
+
+      <app-form-section [step]="isNewRecord ? 3 : 2" title="Evaluación del dolor" class="card">
+        <mat-form-field appearance="fill" subscriptSizing="dynamic">
+          <mat-label>Tipo de dolor</mat-label>
+          <input matInput formControlName="painType" maxlength="50" autocomplete="off" />
+          @if (treatment.controls.painType.hasError('required')) {
+            <mat-error>Ingrese el tipo de dolor.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" subscriptSizing="dynamic">
+          <mat-label>Frecuencia del dolor</mat-label>
+          <input matInput formControlName="painFrequency" maxlength="50" autocomplete="off" />
+          @if (treatment.controls.painFrequency.hasError('required')) {
+            <mat-error>Ingrese la frecuencia del dolor.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" subscriptSizing="dynamic">
+          <mat-label>Zona del dolor</mat-label>
+          <input matInput formControlName="painLocation" maxlength="100" autocomplete="off" />
+          @if (treatment.controls.painLocation.hasError('required')) {
+            <mat-error>Ingrese la zona del dolor.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" subscriptSizing="dynamic">
+          <mat-label>EVA inicial (0 a 10)</mat-label>
+          <input
+            matInput
+            type="number"
+            formControlName="initialPainScore"
+            min="0"
+            max="10"
+            step="1"
+          />
+          <mat-hint>0 = sin dolor · 10 = dolor máximo</mat-hint>
+          @if (treatment.controls.initialPainScore.hasError('required')) {
+            <mat-error>Ingrese la EVA inicial.</mat-error>
+          } @else if (treatment.controls.initialPainScore.invalid) {
+            <mat-error>La EVA debe ser un número entero de 0 a 10.</mat-error>
+          }
+        </mat-form-field>
+      </app-form-section>
+
+      <app-form-section [step]="isNewRecord ? 4 : 3" title="Plan terapéutico" class="card">
+        <mat-form-field appearance="fill" subscriptSizing="dynamic" class="full">
+          <mat-label>Objetivo de la fisioterapia</mat-label>
+          <textarea
+            matInput
+            cdkTextareaAutosize
+            cdkAutosizeMinRows="2"
+            formControlName="goal"
+            [attr.maxlength]="textMax"
+          ></textarea>
+          @if (treatment.controls.goal.hasError('required')) {
+            <mat-error>Ingrese el objetivo.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" subscriptSizing="dynamic">
+          <mat-label>Frecuencia de sesiones</mat-label>
+          <input
+            matInput
+            formControlName="sessionFrequency"
+            maxlength="50"
+            placeholder="Ej.: 3 veces por semana"
+            autocomplete="off"
+          />
+          @if (treatment.controls.sessionFrequency.hasError('required')) {
+            <mat-error>Ingrese la frecuencia de sesiones.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" subscriptSizing="dynamic">
+          <mat-label>Sesiones planificadas</mat-label>
+          <input matInput type="number" formControlName="plannedSessions" min="1" step="1" />
+          @if (treatment.controls.plannedSessions.hasError('required')) {
+            <mat-error>Ingrese las sesiones planificadas.</mat-error>
+          } @else if (treatment.controls.plannedSessions.invalid) {
+            <mat-error>Las sesiones planificadas deben ser un número entero mayor a 0.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field
+          appearance="fill"
+          subscriptSizing="dynamic"
+          floatLabel="always"
+          class="full"
+        >
+          <mat-label>Fisioterapeuta responsable</mat-label>
+          <input matInput readonly [value]="responsibleName()" />
+          <mat-hint>Queda como responsable vigente quien registra el tratamiento.</mat-hint>
+        </mat-form-field>
+      </app-form-section>
+    </ng-container>
+  }
+
+  @if (errorMessage(); as message) {
+    <div class="error" role="alert">
+      <mat-icon aria-hidden="true">error</mat-icon>
+      <span>{{ message }}</span>
+    </div>
+  }
+
+  <div class="actions">
+    <a mat-stroked-button [routerLink]="backLink">Cancelar</a>
+    <button mat-flat-button type="submit" [disabled]="submitting() || !patient()">
+      @if (submitting()) {
+        <mat-spinner diameter="18" aria-label="Guardando" />
+      } @else {
+        <mat-icon aria-hidden="true">save</mat-icon>
+      }
+      {{ submitLabels[mode] }}
+    </button>
+  </div>
+</form>

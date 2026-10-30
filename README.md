@@ -28,17 +28,20 @@ rehab-elite/
 │       ├── java/ec/rehabelite/
 │       │   ├── auth/                users (create, activate/deactivate), JWT login, security
 │       │   ├── patients/            patient registration (national ID check), search and personal data updates
-│       │   ├── clinicalrecords/     clinical records and treatments
+│       │   ├── clinicalrecords/     clinical records (full audited view, history edits), treatments, ICD-10 catalog,
+│       │   │                        responsible physiotherapists and status changes with their history
 │       │   ├── sessions/            therapy sessions
 │       │   ├── aisummary/           AI summaries
 │       │   ├── portal/              patient portal
 │       │   ├── reports/             operational reports
-│       │   ├── audit/               audit log
+│       │   ├── audit/               append-only audit log (read-only API for the administrator and the director)
+│       │   │                        and Hibernate Envers revisions of treatments and therapy sessions
 │       │   └── shared/              cross-cutting config and error handling
 │       └── resources/
 │           ├── application.yml      common settings
-│           ├── application-dev.yml  local development (default profile)
-│           └── db/migration/        Flyway migrations (data model)
+│           ├── application-dev.yml  dev profile: synthetic seed data and debug logs (opt-in)
+│           ├── db/migration/        Flyway migrations (data model)
+│           └── db/dev-seed/         synthetic development data, loaded only with the dev profile
 ├── frontend/                        Angular 22 + Material SPA (see frontend/README.md)
 ├── docs/                            functional documentation (Spanish)
 ├── docker-compose.yml               optional PostgreSQL 16 (port 5433) + backend
@@ -82,6 +85,7 @@ Architecture overview (C4 Level 2, containers):
    | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Initial administrator account |
    | `ANTHROPIC_API_KEY` | Claude API key (AI summaries) |
    | `CORS_ALLOWED_ORIGINS` | Comma-separated allowed origins |
+   | `DEV_SEED_PASSWORD` | Password of the synthetic seed accounts (dev profile only, see [Development data](#development-data-dev-profile)) |
 
    `.env` is git-ignored and must never be committed.
 
@@ -92,7 +96,7 @@ Architecture overview (C4 Level 2, containers):
    CREATE EXTENSION IF NOT EXISTS unaccent WITH SCHEMA public;
    ```
 
-3. **Backend.** Flyway creates the schema on startup (profile `dev` by default):
+3. **Backend.** Flyway creates the schema on startup. Without a profile only the common settings apply (no seed data); to get synthetic data, add the `dev` profile (see [Development data](#development-data-dev-profile)):
 
    ```powershell
    cd backend
@@ -119,6 +123,32 @@ Architecture overview (C4 Level 2, containers):
    cd backend;  .\mvnw.cmd clean verify        # Docker must be running
    cd frontend; npx ng test --watch=false
    ```
+
+## Development data (dev profile)
+
+The `dev` profile loads synthetic data so the screens can be tried without typing it in. It is **not active by default**: without a profile, with `test` (automated tests) and with `prod` (Docker image) the data is never loaded.
+
+| What | Detail |
+|---|---|
+| Accounts | 2 physiotherapists, 1 operations director and 3 patient-portal accounts, all with emails ending in `@dev-seed.rehabelite.test` (`fisio.andrade@…`, `fisio.cevallos@…`, `direccion@…`, `paciente.ortiz@…`, `paciente.quishpe@…`, `paciente.zambrano@…`) |
+| Patients | 15 fictitious patients (personal data only) with valid Ecuadorian national IDs; the three portal accounts are linked to three of them |
+| Password | Every seed account uses `DEV_SEED_PASSWORD` from `.env`. At startup it is stored as a BCrypt hash; neither the password nor the hash is in the repository. Change it in `.env` and restart to update it |
+
+The data lives in `backend/src/main/resources/db/dev-seed/R__dev_seed.sql`, a Flyway repeatable migration that `application-dev.yml` adds to the Flyway locations. Every statement is idempotent (`ON CONFLICT DO NOTHING`), so restarting never duplicates rows. The initial administrator still comes from `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
+
+**Activate it** (from `backend/`), with either:
+
+```powershell
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=dev"
+```
+
+```powershell
+$env:SPRING_PROFILES_ACTIVE = "dev"; .\mvnw.cmd spring-boot:run
+```
+
+> **Warning:** the data goes into the database in `DB_URL`. If it points to your main development database (Windows PostgreSQL, port 5432), the 6 accounts and 15 patients stay there. To try it without touching that database, point `DB_URL` to the Docker database (port 5433) or run `.\mvnw.cmd spring-boot:test-run "-Dspring-boot.run.profiles=dev"`, which uses a throwaway Testcontainers PostgreSQL.
+
+Starting again without `dev` works on a database that was once seeded: Flyway ignores the missing repeatable migration (`spring.flyway.ignore-migration-patterns`), and the rows stay until they are deleted by hand.
 
 ## Docker
 

@@ -1,0 +1,64 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.card {
+  padding: 20px 24px;
+  background: var(--re-card);
+  border: 1px solid var(--re-gray-200);
+  border-radius: var(--re-radius-lg);
+  box-shadow: var(--re-shadow-sm);
+}
+
+// With dynamic subscripts a field with an error must not stretch the field next to it
+mat-form-field,
+app-icd10-picker {
+  align-self: start;
+}
+
+.notice,
+.error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--re-radius-sm);
+  font-size: 13px;
+
+  span {
+    flex: 1 1 200px;
+  }
+}
+
+.notice {
+  color: var(--re-warning);
+  background: var(--re-warning-bg);
+  border: 1px solid var(--re-warning-border);
+  font-weight: 600;
+
+  a {
+    color: var(--re-text);
+    background: var(--re-card);
+  }
+}
+
+.error {
+  color: var(--re-danger);
+  background: var(--re-danger-bg);
+  border: 1px solid var(--re-danger-border);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}

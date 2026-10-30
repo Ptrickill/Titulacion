@@ -1,0 +1,150 @@
+@let t = treatment();
+<header class="card-header">
+  <span class="icon-tile" aria-hidden="true"><mat-icon>track_changes</mat-icon></span>
+  <h2 class="card-title" id="treatment-plan-title">Plan terapéutico y asignación clínica</h2>
+  <span class="chip">{{ t.plannedSessions }} Sesiones Planificadas</span>
+</header>
+
+<div class="body">
+  <dl class="plan">
+    <div class="full">
+      <dt>Objetivo de la fisioterapia</dt>
+      <dd class="goal">{{ t.goal }}</dd>
+    </div>
+    <div class="full">
+      <dt>Diagnóstico principal (CIE-10)</dt>
+      <dd>
+        <span class="code">{{ t.diagnosis.code }}</span> {{ t.diagnosis.description }}
+      </dd>
+    </div>
+    <div>
+      <dt>Frecuencia de sesiones</dt>
+      <dd>{{ t.sessionFrequency }}</dd>
+    </div>
+    <div>
+      <dt>Inicio del tratamiento</dt>
+      <dd>{{ t.startDate | date: 'dd/MM/yyyy' }}</dd>
+    </div>
+    <div>
+      <dt>Estado</dt>
+      <dd>
+        <app-status-badge
+          class="status"
+          [label]="statusLabels[status()]"
+          [tone]="statusTones[status()]"
+        />
+      </dd>
+    </div>
+  </dl>
+
+  <aside class="responsible" aria-label="Fisioterapeuta responsable">
+    <span class="label">Fisioterapeuta responsable</span>
+    @if (history()?.currentResponsible; as current) {
+      <div class="person">
+        <span class="avatar" aria-hidden="true">{{ initials(current.fullName) }}</span>
+        <div>
+          <div class="person-name">
+            {{ current.fullName ?? 'Usuario #' + current.physiotherapistId }}
+          </div>
+          <div class="person-meta">Desde {{ current.validFrom | date: 'dd/MM/yyyy, HH:mm' }}</div>
+        </div>
+      </div>
+    } @else if (historyError()) {
+      <span class="muted">No se pudo cargar el responsable.</span>
+    } @else if (history()) {
+      <span class="muted">Sin responsable vigente.</span>
+    } @else {
+      <mat-progress-bar mode="indeterminate" aria-label="Cargando responsable" />
+    }
+  </aside>
+</div>
+
+<div class="actions">
+  @if (status() === 'COMPLETED') {
+    <p class="final-note">
+      <mat-icon aria-hidden="true">lock</mat-icon>
+      Tratamiento finalizado: es un estado final. Si el paciente vuelve, abra un tratamiento nuevo.
+    </p>
+  }
+  <button
+    mat-stroked-button
+    type="button"
+    [disabled]="!canChangeResponsible()"
+    [title]="
+      status() === 'ACTIVE'
+        ? 'Asignar otro fisioterapeuta'
+        : 'Solo se cambia el responsable de un tratamiento activo'
+    "
+    (click)="changeResponsible()"
+  >
+    <mat-icon aria-hidden="true">manage_accounts</mat-icon>
+    Cambiar responsable
+  </button>
+  <button mat-flat-button type="button" [disabled]="!canChangeStatus()" (click)="changeStatus()">
+    <mat-icon aria-hidden="true">published_with_changes</mat-icon>
+    Cambiar estado
+  </button>
+</div>
+
+@if (history(); as h) {
+  <div class="history">
+    <section aria-labelledby="responsibles-title">
+      <h3 id="responsibles-title">Historial de responsables</h3>
+      <ol class="timeline">
+        @for (period of h.responsibles; track period.validFrom + '-' + period.physiotherapistId) {
+          <li>
+            <div class="entry-title">
+              {{ period.fullName ?? 'Usuario #' + period.physiotherapistId }}
+              @if (!period.validTo) {
+                <app-status-badge label="Vigente" tone="teal" />
+              }
+            </div>
+            <div class="entry-meta">
+              {{ period.validFrom | date: 'dd/MM/yyyy, HH:mm' }}
+              @if (period.validTo) {
+                — {{ period.validTo | date: 'dd/MM/yyyy, HH:mm' }}
+              }
+            </div>
+          </li>
+        }
+      </ol>
+    </section>
+
+    <section aria-labelledby="status-changes-title">
+      <h3 id="status-changes-title">Cambios de estado</h3>
+      @if (h.statusChanges.length === 0) {
+        <p class="muted">Sin cambios de estado registrados.</p>
+      } @else {
+        <ol class="timeline">
+          @for (change of h.statusChanges; track change.id) {
+            <li>
+              <div class="entry-title transition">
+                <app-status-badge
+                  [label]="statusLabels[change.previousStatus]"
+                  [tone]="statusTones[change.previousStatus]"
+                />
+                <mat-icon aria-hidden="true">arrow_forward</mat-icon>
+                <span class="cdk-visually-hidden">pasó a</span>
+                <app-status-badge
+                  [label]="statusLabels[change.newStatus]"
+                  [tone]="statusTones[change.newStatus]"
+                />
+              </div>
+              <p class="reason">{{ change.reason }}</p>
+              <div class="entry-meta">
+                {{ change.changedByName ?? 'Usuario #' + change.changedById }} ·
+                {{ change.changedAt | date: 'dd/MM/yyyy, HH:mm' }}
+              </div>
+            </li>
+          }
+        </ol>
+      }
+    </section>
+  </div>
+} @else if (historyError()) {
+  <div class="error" role="alert">
+    <mat-icon aria-hidden="true">error</mat-icon>
+    <span>No se pudo cargar el historial de cambios.</span>
+    <button mat-stroked-button type="button" (click)="reload()">Reintentar</button>
+  </div>
+}

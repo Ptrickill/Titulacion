@@ -55,6 +55,48 @@ describe('app routes', () => {
     expect(snackBarMessages()).toEqual([]);
   });
 
+  it('opens the audit log for the administrator and the operations director (HU-18)', async () => {
+    logInForTest('ADMINISTRATOR');
+    await harness.navigateByUrl('/admin/audit');
+    expect(router.url).toBe('/admin/audit');
+    expect(harness.routeNativeElement?.querySelector('app-audit-log-list')).not.toBeNull();
+
+    logInForTest('OPERATIONS_DIRECTOR');
+    await harness.navigateByUrl('/director/audit');
+    expect(router.url).toBe('/director/audit');
+    expect(harness.routeNativeElement?.querySelector('app-audit-log-list')).not.toBeNull();
+    expect(snackBarMessages()).toEqual([]);
+  });
+
+  it('keeps the other roles out of the audit log', async () => {
+    for (const role of ['PHYSIOTHERAPIST', 'PATIENT'] as const) {
+      logInForTest(role);
+      for (const url of ['/admin/audit', '/director/audit']) {
+        await harness.navigateByUrl(url);
+        expect(router.url).not.toContain('/audit');
+      }
+    }
+    expect(snackBarMessages()).toHaveLength(4);
+  });
+
+  it('sends the administrator to the audit page of its own panel', async () => {
+    logInForTest('ADMINISTRATOR');
+
+    await harness.navigateByUrl('/director/audit');
+
+    expect(router.url).toBe('/admin');
+    expect(snackBarMessages()).toEqual(['No tiene acceso a esa sección.']);
+  });
+
+  it('sends the operations director to the audit page of its own panel', async () => {
+    logInForTest('OPERATIONS_DIRECTOR');
+
+    await harness.navigateByUrl('/admin/audit');
+
+    expect(router.url).toBe('/director/reports');
+    expect(snackBarMessages()).toEqual(['No tiene acceso a esa sección.']);
+  });
+
   it('sends unknown URLs to the role panel', async () => {
     logInForTest('PATIENT');
 
