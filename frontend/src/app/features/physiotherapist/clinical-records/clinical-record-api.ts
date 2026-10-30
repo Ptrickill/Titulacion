@@ -46,6 +46,7 @@ export interface CreateClinicalRecordRequest {
 export interface Treatment extends Omit<TreatmentRequest, 'diagnosisCode'> {
   id: number;
   clinicalRecordId: number;
+  patientId: number;
   diagnosis: Icd10Diagnosis;
   status: TreatmentStatus;
   startDate: string;

@@ -103,7 +103,7 @@ describe('PhysioPatientList', () => {
     expect(none).toContain('Sin historial');
   });
 
-  it('offers to create the record or a new treatment only when it applies', async () => {
+  it('links to the plan of the current treatment and offers a record or treatment when it applies', async () => {
     listRequest().flush(
       page([
         patient(1, 'Juan', 'Pérez', 40, ACTIVE_TREATMENT),
@@ -119,8 +119,9 @@ describe('PhysioPatientList', () => {
         a.getAttribute('href'),
       ]),
     );
-    expect(links[0]).toEqual([]);
+    expect(links[0]).toEqual([['Plan y asignación', '/physio/patients/1/treatments/9']]);
     expect(links[1]).toEqual([
+      ['Plan y asignación', '/physio/patients/2/treatments/9'],
       ['Nuevo tratamiento', '/physio/patients/2/clinical-record/41/treatments/new'],
     ]);
     expect(links[2]).toEqual([['Crear historial', '/physio/patients/3/clinical-record/new']]);

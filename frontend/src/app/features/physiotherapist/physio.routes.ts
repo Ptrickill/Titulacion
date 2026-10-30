@@ -25,6 +25,11 @@ export const PHYSIO_ROUTES: Routes = [
       import('./clinical-records/clinical-record-form').then((m) => m.ClinicalRecordForm),
   },
   {
+    path: 'patients/:patientId/treatments/:treatmentId',
+    title: 'Plan Terapéutico | Rehab Elite',
+    loadComponent: () => import('./clinical-records/treatment-page').then((m) => m.TreatmentPage),
+  },
+  {
     path: 'clinical-records',
     title: 'Historial Clínico | Rehab Elite',
     component: PlaceholderPage,

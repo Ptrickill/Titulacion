@@ -98,32 +98,44 @@
     </ng-template>
 
     <ng-template appDataTableCell="id" [appDataTableCellOf]="page.content" let-patient>
-      @if (patient.clinicalRecordId === null) {
-        <a
-          mat-stroked-button
-          class="action"
-          [routerLink]="['/physio/patients', patient.id, 'clinical-record', 'new']"
-          [attr.aria-label]="'Crear historial de ' + patient.firstName + ' ' + patient.lastName"
-        >
-          Crear historial
-        </a>
-      } @else if (patient.currentTreatment?.status !== 'ACTIVE') {
-        <a
-          mat-stroked-button
-          class="action"
-          [routerLink]="[
-            '/physio/patients',
-            patient.id,
-            'clinical-record',
-            patient.clinicalRecordId,
-            'treatments',
-            'new',
-          ]"
-          [attr.aria-label]="'Nuevo tratamiento de ' + patient.firstName + ' ' + patient.lastName"
-        >
-          Nuevo tratamiento
-        </a>
-      }
+      <div class="actions">
+        @if (patient.currentTreatment; as treatment) {
+          <a
+            mat-stroked-button
+            class="action"
+            [routerLink]="['/physio/patients', patient.id, 'treatments', treatment.id]"
+            [attr.aria-label]="'Plan y asignación de ' + patient.firstName + ' ' + patient.lastName"
+          >
+            Plan y asignación
+          </a>
+        }
+        @if (patient.clinicalRecordId === null) {
+          <a
+            mat-stroked-button
+            class="action"
+            [routerLink]="['/physio/patients', patient.id, 'clinical-record', 'new']"
+            [attr.aria-label]="'Crear historial de ' + patient.firstName + ' ' + patient.lastName"
+          >
+            Crear historial
+          </a>
+        } @else if (patient.currentTreatment?.status !== 'ACTIVE') {
+          <a
+            mat-stroked-button
+            class="action"
+            [routerLink]="[
+              '/physio/patients',
+              patient.id,
+              'clinical-record',
+              patient.clinicalRecordId,
+              'treatments',
+              'new',
+            ]"
+            [attr.aria-label]="'Nuevo tratamiento de ' + patient.firstName + ' ' + patient.lastName"
+          >
+            Nuevo tratamiento
+          </a>
+        }
+      </div>
     </ng-template>
   </app-data-table>
 }
