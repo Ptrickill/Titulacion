@@ -28,7 +28,8 @@ rehab-elite/
 │       ├── java/ec/rehabelite/
 │       │   ├── auth/                users (create, activate/deactivate), JWT login, security
 │       │   ├── patients/            patient registration (national ID check), search and personal data updates
-│       │   ├── clinicalrecords/     clinical records, treatments, ICD-10 catalog, responsible physiotherapists
+│       │   ├── clinicalrecords/     clinical records, treatments, ICD-10 catalog, responsible physiotherapists and
+│       │   │                        status changes with their history
 │       │   ├── sessions/            therapy sessions
 │       │   ├── aisummary/           AI summaries
 │       │   ├── portal/              patient portal

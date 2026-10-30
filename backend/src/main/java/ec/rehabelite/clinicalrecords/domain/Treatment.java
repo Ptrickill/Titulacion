@@ -17,15 +17,19 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
  * A treatment of a clinical record: diagnostic information, initial pain assessment and therapy plan. It starts
- * ACTIVE with the physiotherapist who opens it as the current responsible.
+ * ACTIVE with the physiotherapist who opens it as the current responsible; HU-08 changes its status and responsible,
+ * keeping both histories.
  */
 @Entity
 @Table(name = "treatments")
@@ -37,6 +41,19 @@ public class Treatment {
     public static final int MAX_PAIN_SCORE = 10;
     static final String PAIN_SCORE_OUT_OF_RANGE = "La EVA inicial debe estar entre 0 y 10.";
     static final String PLANNED_SESSIONS_NOT_POSITIVE = "Las sesiones planificadas deben ser mayores a 0.";
+    public static final String STATUS_TRANSITION_NOT_ALLOWED = "Transición de estado no permitida.";
+    public static final String STATUS_CHANGE_REASON_REQUIRED = "El motivo del cambio de estado es obligatorio.";
+    public static final String RESPONSIBLE_CHANGE_NEEDS_ACTIVE_TREATMENT =
+            "Solo se puede cambiar el responsable de un tratamiento activo.";
+
+    /**
+     * Allowed status changes (HU-08): an active treatment is completed or abandoned, and an abandoned one can be
+     * resumed. COMPLETED is final: if the patient comes back, a new treatment is opened.
+     */
+    private static final Map<TreatmentStatus, Set<TreatmentStatus>> ALLOWED_TRANSITIONS = Map.of(
+            TreatmentStatus.ACTIVE, EnumSet.of(TreatmentStatus.COMPLETED, TreatmentStatus.ABANDONED),
+            TreatmentStatus.ABANDONED, EnumSet.of(TreatmentStatus.ACTIVE),
+            TreatmentStatus.COMPLETED, EnumSet.noneOf(TreatmentStatus.class));
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -153,6 +170,64 @@ public class Treatment {
     /** The responsible physiotherapist now (the assignment without an end). */
     public Optional<ResponsibleAssignment> currentResponsible() {
         return responsibleAssignments.stream().filter(ResponsibleAssignment::isCurrent).findFirst();
+    }
+
+    /** The statuses this treatment can move to now, in declaration order. */
+    public List<TreatmentStatus> allowedNextStatuses() {
+        return List.copyOf(ALLOWED_TRANSITIONS.get(status));
+    }
+
+    /**
+     * Moves the treatment to a new status and returns the change to keep as history. Resuming an abandoned treatment
+     * requires that no other treatment of the record is active.
+     *
+     * @throws BusinessRuleException if the transition is not allowed, the reason is blank or another treatment of
+     *         the record is active
+     */
+    public TreatmentStatusChange changeStatus(TreatmentStatus newStatus, String reason, Long changedBy,
+            Instant now) {
+        if (!ALLOWED_TRANSITIONS.get(status).contains(newStatus)) {
+            throw new BusinessRuleException(STATUS_TRANSITION_NOT_ALLOWED);
+        }
+        if (reason == null || reason.isBlank()) {
+            throw new BusinessRuleException(STATUS_CHANGE_REASON_REQUIRED);
+        }
+        if (newStatus == TreatmentStatus.ACTIVE && clinicalRecord.hasActiveTreatment()) {
+            throw new BusinessRuleException(ClinicalRecord.ACTIVE_TREATMENT_EXISTS);
+        }
+        TreatmentStatusChange change = TreatmentStatusChange.of(this, status, newStatus, reason.strip(), changedBy,
+                now);
+        status = newStatus;
+        markUpdated(changedBy, now);
+        return change;
+    }
+
+    /**
+     * Hands the treatment over to another physiotherapist: the current assignment ends now and a new one starts.
+     * Returns empty when the physiotherapist is already the current responsible (nothing changes).
+     * <p>
+     * The new assignment is returned but not added to {@link #responsibleAssignments}: the caller must flush the
+     * ended assignment before persisting it, because the partial unique index allows a single current assignment and
+     * Hibernate runs inserts before updates.
+     *
+     * @throws BusinessRuleException if the treatment is not active
+     */
+    public Optional<ResponsibleAssignment> reassignResponsible(Long physiotherapistId, Long changedBy, Instant now) {
+        if (!isActive()) {
+            throw new BusinessRuleException(RESPONSIBLE_CHANGE_NEEDS_ACTIVE_TREATMENT);
+        }
+        Optional<ResponsibleAssignment> current = currentResponsible();
+        if (current.isPresent() && current.get().getPhysiotherapistId().equals(physiotherapistId)) {
+            return Optional.empty();
+        }
+        current.ifPresent(assignment -> assignment.end(now));
+        markUpdated(changedBy, now);
+        return Optional.of(ResponsibleAssignment.startingNow(this, physiotherapistId, now));
+    }
+
+    private void markUpdated(Long updatedBy, Instant now) {
+        this.updatedBy = updatedBy;
+        this.updatedAt = now;
     }
 
 }

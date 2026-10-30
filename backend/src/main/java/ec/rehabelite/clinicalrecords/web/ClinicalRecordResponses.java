@@ -23,6 +23,7 @@ final class ClinicalRecordResponses {
     record TreatmentResponse(
             Long id,
             Long clinicalRecordId,
+            Long patientId,
             Icd10DiagnosisResponse diagnosis,
             String chiefComplaint,
             String currentIllness,
@@ -77,6 +78,55 @@ final class ClinicalRecordResponses {
             Severity severity,
             int plannedSessions,
             TreatmentStatus status) {
+    }
+
+    @Schema(description = "Periodo de un fisioterapeuta como responsable del tratamiento")
+    record ResponsibleResponse(
+            Long physiotherapistId,
+            @Schema(example = "Lcda. Valeria Andrade") String fullName,
+            Instant validFrom,
+            @Schema(description = "Fin del periodo; null en el responsable vigente") Instant validTo) {
+    }
+
+    @Schema(description = "Cambio de estado del tratamiento con su motivo, usuario y fecha")
+    record StatusChangeResponse(
+            Long id,
+            TreatmentStatus previousStatus,
+            TreatmentStatus newStatus,
+            String reason,
+            @Schema(description = "Id del usuario que hizo el cambio") Long changedById,
+            String changedByName,
+            Instant changedAt) {
+
+        @Override
+        public String toString() {
+            return "StatusChangeResponse[id=" + id + "]";
+        }
+
+    }
+
+    @Schema(description = "Trazabilidad del tratamiento: estado, transiciones permitidas, responsables y cambios de "
+            + "estado (del más reciente al más antiguo)")
+    record TreatmentHistoryResponse(
+            Long treatmentId,
+            TreatmentStatus status,
+            @Schema(description = "Estados a los que puede pasar ahora: ACTIVE → COMPLETED o ABANDONED; "
+                    + "ABANDONED → ACTIVE; COMPLETED es final") List<TreatmentStatus> allowedNextStatuses,
+            @Schema(description = "Responsable vigente; null si no hay") ResponsibleResponse currentResponsible,
+            List<ResponsibleResponse> responsibles,
+            List<StatusChangeResponse> statusChanges) {
+
+        @Override
+        public String toString() {
+            return "TreatmentHistoryResponse[treatmentId=" + treatmentId + "]";
+        }
+
+    }
+
+    @Schema(description = "Fisioterapeuta activo que puede ser responsable de un tratamiento")
+    record PhysiotherapistResponse(
+            Long id,
+            @Schema(example = "Lcda. Valeria Andrade") String fullName) {
     }
 
     @Schema(description = "Paciente con el resumen de su tratamiento, para la lista del fisioterapeuta")

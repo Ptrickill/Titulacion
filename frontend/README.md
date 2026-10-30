@@ -30,6 +30,8 @@ src/
         ├── physiotherapist/  /physio, /physio/patients (patients/: list with the treatment summary, HU-07),
         │                     /physio/patients/:id/clinical-record/new and .../treatments/new
         │                     (clinical-records/: initial assessment form + ICD-10 picker, HU-07),
+        │                     /physio/patients/:id/treatments/:treatmentId (therapy plan card with the
+        │                     responsible and status changes and their history, HU-08),
         │                     /physio/clinical-records, /physio/timeline, /physio/ai-assistant
         ├── admin/            /admin, /admin/users (users/: list + create dialog, HU-02; activate/deactivate, HU-03),
         │                     /admin/patients and /admin/patients/:id (patients/: search with server-side pagination,
