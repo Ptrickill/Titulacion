@@ -24,10 +24,13 @@ src/
     │                      problemDetailMessage() for the Spanish "detail" of API errors
     ├── shared/layout/     AppShell (sidebar per role, header with user/role/date), nav-items, PlaceholderPage
     ├── shared/ui/         reusable standalone components (see below)
+    ├── shared/validation/ form validators shared by features (Ecuadorian national ID, same rules as the backend)
     └── features/
         ├── auth/login/       /login
         ├── physiotherapist/  /physio, /physio/patients, /physio/clinical-records, /physio/timeline, /physio/ai-assistant
-        ├── admin/            /admin, /admin/users (users/: list + create dialog, HU-02; activate/deactivate, HU-03), /admin/patients, /admin/reports
+        ├── admin/            /admin, /admin/users (users/: list + create dialog, HU-02; activate/deactivate, HU-03),
+        │                     /admin/patients and /admin/patients/:id (patients/: registration dialog + read-only record, HU-05),
+        │                     /admin/reports
         ├── director/         /director/reports
         ├── patient/          /patient
         └── dev/              /ui-kit (development only)

@@ -22,5 +22,5 @@ export function fakeUser(
 
 /** Synthetic patient without portal account (national ID with a valid check digit). */
 export function fakeCandidate(id: number, fullName: string): PortalCandidate {
-  return { id, fullName, nationalId: '1710034065', medicalRecordNumber: 'HC-1710034065' };
+  return { id, fullName, nationalId: '1710034065', medicalRecordNumber: '1710034065' };
 }
