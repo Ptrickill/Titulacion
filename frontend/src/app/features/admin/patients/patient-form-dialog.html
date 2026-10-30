@@ -1,9 +1,11 @@
 <header class="header">
   <div class="icon-tile" aria-hidden="true">
-    <mat-icon>person</mat-icon>
+    <mat-icon>{{ editing ? 'edit' : 'person' }}</mat-icon>
   </div>
   <div class="heading">
-    <h2 mat-dialog-title class="title">Registrar Nuevo Paciente</h2>
+    <h2 mat-dialog-title class="title">
+      {{ editing ? 'Editar Datos del Paciente' : 'Registrar Nuevo Paciente' }}
+    </h2>
     <p class="subtitle">Rehab Elite Admisión</p>
   </div>
   <button
@@ -29,7 +31,7 @@
           [value]="medicalRecordNumber()"
           placeholder="Se genera desde la cédula"
         />
-        <mat-hint>Autogenerado desde la cédula</mat-hint>
+        <mat-hint>{{ editing ? 'No se modifica' : 'Autogenerado desde la cédula' }}</mat-hint>
       </mat-form-field>
 
       <mat-form-field appearance="fill" subscriptSizing="dynamic">
@@ -54,6 +56,9 @@
           maxlength="10"
           autocomplete="off"
         />
+        @if (editing) {
+          <mat-hint>La cédula no se modifica.</mat-hint>
+        }
         @if (form.controls.nationalId.hasError('required')) {
           <mat-error>Ingrese la cédula.</mat-error>
         } @else if (nationalIdMessage(); as message) {
@@ -65,7 +70,7 @@
 
       <mat-form-field appearance="fill" subscriptSizing="dynamic">
         <mat-label>Nombres</mat-label>
-        <input matInput formControlName="firstName" autocomplete="off" />
+        <input matInput id="patient-first-name" formControlName="firstName" autocomplete="off" />
         @if (form.controls.firstName.hasError('required')) {
           <mat-error>Ingrese los nombres.</mat-error>
         } @else if (form.controls.firstName.hasError('maxlength')) {
@@ -233,9 +238,9 @@
       @if (submitting()) {
         <mat-spinner diameter="18" aria-label="Guardando" />
       } @else {
-        <mat-icon aria-hidden="true">person_add</mat-icon>
+        <mat-icon aria-hidden="true">{{ editing ? 'save' : 'person_add' }}</mat-icon>
       }
-      Registrar paciente
+      {{ editing ? 'Guardar cambios' : 'Registrar paciente' }}
     </button>
   </mat-dialog-actions>
 </form>

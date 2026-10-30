@@ -28,7 +28,12 @@
       [title]="patient.firstName + ' ' + patient.lastName"
       [subtitle]="'Historia clínica N.º ' + patient.medicalRecordNumber"
       backLink="/admin/patients"
-    />
+    >
+      <button mat-flat-button actions type="button" (click)="edit(patient)">
+        <mat-icon aria-hidden="true">edit</mat-icon>
+        Editar datos
+      </button>
+    </app-page-header>
 
     <section class="record" aria-label="Datos del paciente">
       <app-form-section [step]="1" title="Datos de admisión">
@@ -43,6 +48,14 @@
         <div class="item">
           <span class="label">Registrado el</span>
           <span class="value">{{ patient.createdAt | date: 'dd/MM/yyyy, HH:mm' }}</span>
+        </div>
+        <div class="item">
+          <span class="label">Última actualización</span>
+          @if (patient.updatedAt) {
+            <span class="value">{{ patient.updatedAt | date: 'dd/MM/yyyy, HH:mm' }}</span>
+          } @else {
+            <span class="value empty">Sin cambios desde el registro</span>
+          }
         </div>
       </app-form-section>
 

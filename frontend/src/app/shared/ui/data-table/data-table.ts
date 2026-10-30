@@ -1,5 +1,5 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, computed, contentChildren, effect, input, signal } from '@angular/core';
+import { Component, computed, contentChildren, effect, input, model } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { DataTableCell } from './data-table-cell';
@@ -12,8 +12,13 @@ export interface DataTableColumn<T> {
 }
 
 /**
- * Card-styled table with client-side pagination ("Mostrando 1–10 de 25 …").
+ * Card-styled table with pagination ("Mostrando 1–10 de 25 …").
  * Plain values are rendered as text; columns with an appDataTableCell template use it instead.
+ *
+ * By default it paginates 
+ows in the client. With 	otalItems it paginates in the server: 
+ows is the
+ * current page, 	otalItems the number of matches, and pageIndex (two-way, [(pageIndex)]) the page to load.
  */
 @Component({
   selector: 'app-data-table',
@@ -62,11 +67,11 @@ export interface DataTableColumn<T> {
       </table>
     </div>
 
-    @if (rows().length > 0) {
+    @if (total() > 0) {
       <div class="footer">
         <span class="range">
           Mostrando <strong>{{ rangeStart() }}–{{ rangeEnd() }}</strong> de
-          <strong>{{ rows().length }}</strong> {{ itemLabel() }}
+          <strong>{{ total() }}</strong> {{ itemLabel() }}
         </span>
         <div class="pager">
           <button
@@ -186,29 +191,38 @@ export class DataTable<T extends object> {
   readonly caption = input<string>();
   readonly itemLabel = input('registros');
   readonly emptyMessage = input('No hay registros para mostrar.');
+  /** Total matches in the server; when set, 
+ows is already the current page. */
+  readonly totalItems = input<number>();
+  /** Zero-based page; the table changes it with its buttons and emits pageIndexChange. */
+  readonly pageIndex = model(0);
 
   private readonly cells = contentChildren(DataTableCell);
   protected readonly templates = computed(() =>
     Object.fromEntries(this.cells().map((cell) => [cell.column(), cell.template])),
   );
 
-  protected readonly pageIndex = signal(0);
+  private readonly serverSide = computed(() => this.totalItems() !== undefined);
+  protected readonly total = computed(() => this.totalItems() ?? this.rows().length);
   protected readonly pageCount = computed(() =>
-    Math.max(1, Math.ceil(this.rows().length / this.pageSize())),
+    Math.max(1, Math.ceil(this.total() / this.pageSize())),
   );
   protected readonly pageRows = computed(() => {
+    if (this.serverSide()) {
+      return this.rows();
+    }
     const start = this.pageIndex() * this.pageSize();
     return this.rows().slice(start, start + this.pageSize());
   });
   protected readonly rangeStart = computed(() => this.pageIndex() * this.pageSize() + 1);
   protected readonly rangeEnd = computed(() =>
-    Math.min(this.rows().length, (this.pageIndex() + 1) * this.pageSize()),
+    Math.min(this.total(), (this.pageIndex() + 1) * this.pageSize()),
   );
 
   constructor() {
-    // Keep the current page valid when the data shrinks (e.g. after filtering)
+    // Keep the current page valid when the data shrinks (e.g. after filtering); the server mode owner does it
     effect(() => {
-      if (this.pageIndex() > this.pageCount() - 1) {
+      if (!this.serverSide() && this.pageIndex() > this.pageCount() - 1) {
         this.pageIndex.set(this.pageCount() - 1);
       }
     });
