@@ -1,0 +1,147 @@
+<app-page-header
+  title="Catálogo de componentes"
+  subtitle="Componentes compartidos del sistema de diseño con datos sintéticos (solo en desarrollo)"
+>
+  <button actions mat-stroked-button type="button">
+    <mat-icon>download</mat-icon>
+    Acción secundaria
+  </button>
+  <button actions mat-flat-button type="button">
+    <mat-icon>add</mat-icon>
+    Acción primaria
+  </button>
+</app-page-header>
+
+<h2 class="section-title">Tarjetas de indicadores</h2>
+<div class="stats">
+  <app-stat-card
+    label="Pacientes activos"
+    value="—"
+    icon="group"
+    tone="teal"
+    hint="Indicador de ejemplo"
+  />
+  <app-stat-card
+    label="Sesiones registradas"
+    value="—"
+    icon="monitor_heart"
+    tone="info"
+    hint="Indicador de ejemplo"
+  />
+  <app-stat-card
+    label="Abandonos"
+    value="—"
+    icon="person_remove"
+    tone="danger"
+    hint="Indicador de ejemplo"
+  />
+  <app-stat-card
+    label="Administradores"
+    value="—"
+    icon="shield_person"
+    tone="purple"
+    hint="Indicador de ejemplo"
+  />
+</div>
+
+<h2 class="section-title">Badges de estado</h2>
+<div class="badges re-card">
+  <app-status-badge label="Activo" tone="success" />
+  <app-status-badge label="Inactivo" tone="neutral" />
+  <app-status-badge label="Realizada" tone="success" icon="check_circle" />
+  <app-status-badge label="Reprogramada" tone="warning" />
+  <app-status-badge label="No asistió" tone="danger" />
+  <app-status-badge label="Leve" tone="success" />
+  <app-status-badge label="Moderada" tone="warning" />
+  <app-status-badge label="Grave" tone="danger" />
+  <app-status-badge label="Fisioterapeuta" tone="teal" [uppercase]="true" />
+  <app-status-badge label="Administrador" tone="purple" [uppercase]="true" />
+  <app-status-badge label="Dirección operativa" tone="info" [uppercase]="true" />
+</div>
+
+<h2 class="section-title">Tabla con paginación</h2>
+<app-data-table
+  [columns]="columns"
+  [rows]="users"
+  [pageSize]="5"
+  itemLabel="usuarios"
+  caption="Usuarios de ejemplo"
+>
+  <ng-template appDataTableCell="name" let-row>
+    <div class="user-cell">
+      <strong>{{ row.name }}</strong>
+      <span class="re-mono">{{ row.email }}</span>
+    </div>
+  </ng-template>
+  <ng-template appDataTableCell="role" let-row>
+    <app-status-badge [label]="row.role" [tone]="row.roleTone" />
+  </ng-template>
+  <ng-template appDataTableCell="status" let-row>
+    <app-status-badge
+      [label]="row.status"
+      [tone]="row.status === 'Activo' ? 'success' : 'neutral'"
+    />
+  </ng-template>
+</app-data-table>
+
+<h2 class="section-title">Formulario por secciones</h2>
+<form class="form re-card" (submit)="$event.preventDefault()">
+  <app-form-section [step]="1" title="Datos de admisión">
+    <mat-form-field appearance="fill">
+      <mat-label>N.º de historia clínica</mat-label>
+      <input matInput value="Generado automáticamente" disabled />
+      <mat-hint>Autogenerado</mat-hint>
+    </mat-form-field>
+    <mat-form-field appearance="fill">
+      <mat-label>Fecha de ingreso</mat-label>
+      <input matInput type="date" required />
+    </mat-form-field>
+  </app-form-section>
+  <app-form-section [step]="2" title="Datos personales">
+    <mat-form-field appearance="fill">
+      <mat-label>Nombres</mat-label>
+      <input matInput required />
+    </mat-form-field>
+    <mat-form-field appearance="fill">
+      <mat-label>Apellidos</mat-label>
+      <input matInput required />
+    </mat-form-field>
+    <mat-form-field appearance="fill">
+      <mat-label>Sexo</mat-label>
+      <mat-select>
+        <mat-option value="MALE">Masculino</mat-option>
+        <mat-option value="FEMALE">Femenino</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="fill">
+      <mat-label>Teléfono</mat-label>
+      <input matInput type="tel" />
+    </mat-form-field>
+    <mat-form-field appearance="fill" class="full">
+      <mat-label>Dirección</mat-label>
+      <input matInput />
+    </mat-form-field>
+  </app-form-section>
+</form>
+
+<h2 class="section-title">Diálogo de confirmación</h2>
+<div class="dialogs re-card">
+  <button mat-stroked-button type="button" (click)="openDialog('primary')">
+    Confirmación normal
+  </button>
+  <button mat-stroked-button type="button" (click)="openDialog('danger')">
+    Confirmación destructiva
+  </button>
+  @if (lastDialogResult(); as result) {
+    <span class="result">Resultado: {{ result }}</span>
+  }
+</div>
+
+<h2 class="section-title">Estado vacío</h2>
+<app-empty-state
+  icon="search_off"
+  title="No se encontraron resultados"
+  message="Pruebe con otro criterio de búsqueda o limpie los filtros."
+>
+  <button mat-stroked-button type="button">Limpiar filtros</button>
+</app-empty-state>

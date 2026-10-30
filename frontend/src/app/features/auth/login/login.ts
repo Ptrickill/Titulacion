@@ -1,24 +1,28 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, isDevMode, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router } from '@angular/router';
-import { AuthSession } from '../../../core/auth/auth-session';
-import { Role, ROLE_HOME, ROLE_LABELS, ROLES } from '../../../core/auth/role';
+import { AuthService } from '../../../core/auth/auth-service';
+import { ROLE_HOME } from '../../../core/auth/role';
+
+/** Same wording as the backend: never reveals whether the email, the password or the lock failed. */
+export const INVALID_CREDENTIALS_MESSAGE =
+  'Correo o contraseña incorrectos, o la cuenta está bloqueada temporalmente.';
 
 @Component({
   selector: 'app-login',
   imports: [
     ReactiveFormsModule,
-    MatCardModule,
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
+    MatCheckboxModule,
     MatIconModule,
     MatProgressSpinnerModule,
   ],
@@ -26,27 +30,22 @@ import { Role, ROLE_HOME, ROLE_LABELS, ROLES } from '../../../core/auth/role';
   styleUrl: './login.scss',
 })
 export class Login implements OnInit {
-  private readonly session = inject(AuthSession);
+  private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
   protected readonly form = inject(NonNullableFormBuilder).group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', Validators.required],
+    remember: [false],
   });
 
   protected readonly submitting = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly hidePassword = signal(true);
 
-  // TODO(HU-01): remove the preview access once the backend login exists
-  protected readonly showPreviewAccess = isDevMode();
-  protected readonly roles = ROLES;
-  protected readonly roleLabels = ROLE_LABELS;
-
   ngOnInit(): void {
-    const role = this.session.role();
-    if (role) {
-      void this.router.navigateByUrl(ROLE_HOME[role]);
+    if (this.auth.hasValidSession()) {
+      void this.router.navigateByUrl(ROLE_HOME[this.auth.role()!]);
     }
   }
 
@@ -58,18 +57,14 @@ export class Login implements OnInit {
     this.submitting.set(true);
     this.errorMessage.set(null);
 
-    this.session.login(this.form.getRawValue()).subscribe({
+    const { email, password, remember } = this.form.getRawValue();
+    this.auth.login({ email: email.trim(), password }, remember).subscribe({
       next: ({ role }) => void this.router.navigateByUrl(ROLE_HOME[role]),
       error: (error: unknown) => {
         this.submitting.set(false);
         this.errorMessage.set(loginErrorMessage(error));
       },
     });
-  }
-
-  protected enterAs(role: Role): void {
-    this.session.startPreviewSession(role);
-    void this.router.navigateByUrl(ROLE_HOME[role]);
   }
 }
 
@@ -79,7 +74,7 @@ function loginErrorMessage(error: unknown): string {
       return 'No se pudo conectar con el servidor. Intente nuevamente.';
     }
     if (error.status === 401) {
-      return 'Correo o contraseña incorrectos.';
+      return INVALID_CREDENTIALS_MESSAGE;
     }
     const detail = (error.error as { detail?: unknown } | null)?.detail;
     if (typeof detail === 'string' && detail) {

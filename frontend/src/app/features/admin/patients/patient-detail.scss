@@ -1,0 +1,53 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.record {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  background: var(--re-card);
+  border: 1px solid var(--re-gray-200);
+  border-radius: var(--re-radius-lg);
+  box-shadow: var(--re-shadow-sm);
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 0 12px;
+}
+
+.label {
+  color: var(--re-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.value {
+  color: var(--re-text);
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+
+  &.mono {
+    font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  }
+
+  &.empty {
+    color: var(--re-text-muted);
+    font-weight: 400;
+    font-style: italic;
+  }
+}
+
+.age {
+  color: var(--re-text-teal);
+  font-weight: 700;
+}

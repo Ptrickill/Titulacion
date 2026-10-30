@@ -78,7 +78,7 @@ Paquete base `ec.rehabelite`. Módulos (Spring Modulith):
 | `portal` | Portal del paciente (solo lectura) |
 | `reports` | Reportes para la dirección operativa |
 | `audit` | Registro de auditoría |
-| `shared` | Módulo abierto: `config` (`AppProperties`, locale), `domain` (excepciones base), `web` (`GlobalExceptionHandler`) |
+| `shared` | Módulo abierto: `config` (`AppProperties`, locale, reloj, validación), `domain` (excepciones base, `ClinicCalendar`), `web` (`GlobalExceptionHandler`) |
 
 Cada módulo tiene:
 
@@ -90,17 +90,71 @@ Reglas:
 
 - Un módulo usa otro **solo** por las interfaces públicas del paquete raíz del módulo (p. ej. `ec.rehabelite.patients.PatientLookup`). Nunca importar `web`, `application` ni `domain` de otro módulo.
 - `ModularityTests` debe pasar siempre.
+- APIs públicas disponibles:
+  - `ec.rehabelite.auth.CurrentUserProvider`: usuario autenticado (`CurrentUser`: id, email, fullName, `Role`).
+  - `ec.rehabelite.audit.AuditLogService`: `record(AuditAction, entityType, entityId)` toma el usuario del token y la IP de la petición.
+  - `audit` no depende de `auth`, para evitar un ciclo: `auth` registra el `LOGIN` con `recordFor(userId, ...)`.
+  - `ec.rehabelite.auth.PortalAccountCreated(userId, patientId)` (HU-02):
+    - Evento que `auth` publica al crear una cuenta `PATIENT`.
+    - `patients` lo escucha de forma síncrona (`@EventListener`, misma transacción), llena `portal_user_id` y audita `UPDATE Patient`. Si el vínculo falla, la cuenta tampoco se crea.
+    - `patients` puede depender de `auth`, pero `auth` nunca de `patients`.
+- Seguridad: JWT HS256 emitido por `POST /api/auth/login` (claims `sub` = id, `email`, `fullName`, `role`; el rol da la autoridad `ROLE_<rol>`). Públicos solo login, `/actuator/health` y la documentación OpenAPI. El reloj se inyecta como bean `Clock` (`shared.config`).
+- Estado de cuentas (HU-03):
+  - `PATCH /api/users/{id}/status` con `{ "active": boolean }` (`UserManagementService.changeStatus`).
+  - Nunca se borra una cuenta: se desactiva. Reactivarla reinicia intentos fallidos y bloqueo.
+  - Un administrador no puede desactivar su propia cuenta (422).
+  - Cada cambio real audita `STATUS_CHANGE User`; pedir el estado actual no cambia ni audita nada.
+  - El login rechaza la cuenta inactiva con el mensaje genérico de HU-01.
+  - `ActiveAccountTokenValidator` (validador del `JwtDecoder`, después de firma, expiración y emisor) da 401 a los tokens ya emitidos de una cuenta inactiva o inexistente. Las pruebas deben emitir tokens solo para usuarios guardados.
+- Registro de pacientes (HU-05):
+  - `POST /api/patients` (`PatientRegistrationService.register`). El número de historia clínica es la cédula y lo asigna el servidor.
+  - La edad no se guarda: `Patient.ageOn(fecha)`, y la respuesta trae `age` calculada a la fecha de hoy en Quito.
+  - Etnia y religión son opcionales; si llegan en blanco se guardan como `null`.
+  - Sin fecha de ingreso, se usa la de hoy.
+  - Una cédula repetida responde 409 con la propiedad `existingPatientId`.
+  - Cada registro audita `CREATE Patient`.
+  - `GET /api/patients/{id}` devuelve solo datos personales y no se audita: la auditoría `READ` es para datos clínicos.
+  - Validador de cédula: `patients.domain.NationalId` (10 dígitos, provincia 01–24 o 30, tercer dígito menor que 6, módulo 10), con la anotación `@ValidNationalId` en los requests.
+- Búsqueda y actualización de pacientes (HU-06), en `PatientManagementService`:
+  - `GET /api/patients?q=&page=&size=`:
+    - Si `q` son solo dígitos, busca las cédulas que empiezan así.
+    - Si no, cada palabra (hasta 5) debe aparecer en `normalize_text(last_name || ' ' || first_name)`. Es la expresión exacta del índice trigram `ix_patients_full_name_trgm`; no cambiarla sin cambiar el índice.
+    - Orden por apellidos y nombres normalizados. `size` de 1 a 50 (10 por defecto).
+    - Responde `PageResponse` (`shared.web`) con un resumen sin datos clínicos. La SQL vive en `PatientSearchImpl`, un fragmento de `PatientRepository`.
+  - `PUT /api/patients/{id}` reemplaza la fecha de ingreso y los datos personales; la cédula y el número de historia nunca cambian.
+    - `Patient.update` llena `updated_by` y `updated_at`, y se audita `UPDATE Patient`.
+    - Enviar los mismos datos no cambia ni audita nada.
+- Respuestas paginadas: devolver `PageResponse.of(page, mapper)` (`content`, `page`, `size`, `totalElements`, `totalPages`), nunca el `Page` de Spring Data.
+- Acceso por rol (HU-04): la tabla vive en `auth.config.RoleAccessRules`. Una regla puede limitarse a un método HTTP y gana la primera que coincide. Al añadir un área de API nueva, registrarla ahí y en `RoleAccessIntegrationTests`.
+
+  | Área | Roles |
+  |---|---|
+  | `/api/admin/**`, `/api/users/**` | `ADMINISTRATOR` |
+  | `/api/patients/portal-candidates`, `POST /api/patients` y `PUT /api/patients/**` (van antes de `/api/patients/**`) | `ADMINISTRATOR` |
+  | `/api/patients/**` | `ADMINISTRATOR`, `PHYSIOTHERAPIST` |
+  | `/api/clinical-records/**`, `/api/treatments/**`, `/api/therapy-sessions/**`, `/api/ai-summaries/**` | `PHYSIOTHERAPIST` |
+  | `/api/reports/**`, `/api/audit-logs/**` | `OPERATIONS_DIRECTOR`, `ADMINISTRATOR` |
+  | `/api/portal/**` | `PATIENT` |
+  | Resto de `/api/**` | Cualquier usuario autenticado |
+
+- Respuestas de seguridad:
+  - `ProblemDetailAuthenticationEntryPoint`: 401 sin auditoría (también para el token de una cuenta inactiva).
+  - `AuditingAccessDeniedHandler`: 403 y `ACCESS_DENIED` en `audit_logs`. La entidad se toma de la ruta (`/api/patients/12` → `patients`, 12); nunca se guarda la query string.
+  - `GlobalExceptionHandler` relanza `AccessDeniedException` y `AuthenticationException`, para que un futuro `@PreAuthorize` también quede auditado.
 
 ### Buenas prácticas backend
 
 - Inyección por constructor; nunca `@Autowired` en campos.
 - Lombok **solo**: `@Getter`, `@Setter`, `@NoArgsConstructor` en entidades y `@RequiredArgsConstructor` en servicios. Nada de `@Data`, `@Builder`, `@Slf4j`, etc.
 - DTO siempre como `record`; las entidades **nunca** se exponen en la API (mapear con MapStruct).
-- Errores: lanzar `ResourceNotFoundException` (404) o `BusinessRuleException` (422) de `ec.rehabelite.shared.domain` con mensaje en español; `GlobalExceptionHandler` los convierte en `ProblemDetail` en español. El locale está fijo en `es-EC`, así que los mensajes de Bean Validation también salen en español.
+- Errores: lanzar `ResourceNotFoundException` (404), `BusinessRuleException` (422) o `ConflictException` (409) de `ec.rehabelite.shared.domain`, con mensaje en español; `GlobalExceptionHandler` los convierte en `ProblemDetail` en español.
+  - `ConflictException` añade sus propiedades a la respuesta: solo ids o códigos, nunca datos personales.
+  - El locale está fijo en `es-EC`, así que los mensajes de Bean Validation también salen en español.
+- Fechas de calendario ("hoy", edades, fecha de ingreso): usar `ClinicCalendar.today(clock)` de `shared.domain`, con la zona `America/Guayaquil`. Los instantes se guardan en UTC. Las anotaciones `@Past` y `@PastOrPresent` usan el mismo reloj (`ValidationConfig`).
 - Logs con SLF4J (`LoggerFactory.getLogger`), en inglés, **sin datos personales ni clínicos** (nada de cédulas, nombres, correos, diagnósticos ni valores de columnas; usar ids).
 - Configuración propia bajo `app.*` en el record validado `ec.rehabelite.shared.config.AppProperties`.
 - Perfiles: `application.yml` (común; `server.port` lee `PORT`), `application-dev.yml` (por defecto; logs SQL apagados), `application-test.yml` (Testcontainers, en `src/test/resources`), `prod` (lo activa la imagen Docker; solo configuración común).
-- Pruebas de integración: extender `ec.rehabelite.AbstractIntegrationTest` (contexto completo, perfil `test`, un único `postgres:16` de Testcontainers compartido). No asumir base vacía: cada prueba crea sus propios datos con valores únicos.
+- Pruebas de integración: extender `ec.rehabelite.AbstractIntegrationTest` (contexto completo, perfil `test`, un único `postgres:16` de Testcontainers compartido). No asumir base vacía: cada prueba crea sus propios datos con valores únicos. Para pacientes de prueba que no son el objeto de la prueba, usar `ec.rehabelite.TestPatients`: los inserta por SQL, sin auditoría, con cédulas sintéticas de dígito verificador válido y el número de historia igual a la cédula.
 
 ### Endpoints REST
 
@@ -156,20 +210,36 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
 ## Frontend (Angular 22 + Material)
 
 - Requiere Node.js `^22.22.3`. `npm start` sirve en `http://localhost:4200` y redirige `/api` a `http://localhost:8080` (`proxy.conf.json`).
-- Carpetas: `src/app/core` (sesión `AuthSession`, `authGuard`/`roleGuard`, `authInterceptor`, roles), `src/app/shared` (`layout/Shell` con barra lateral, `ui/` reutilizables), `src/app/features/auth`, `features/admin`, `features/physiotherapist`, `features/director`, `features/patient`.
-- Rutas: `/login`, `/admin`, `/physio`, `/director`, `/patient`; cada panel protegido por `authGuard` + `roleGuard(rol)` y cargado de forma diferida.
+- Carpetas: `src/app/core` (`AuthService` con login y sesión en signals, `authGuard`/`roleGuard`, `authInterceptor`, roles, locale `es-EC`), `src/app/shared/layout` (`AppShell`, `nav-items.ts`, `PlaceholderPage`), `src/app/shared/ui` (componentes reutilizables), `src/app/features/auth`, `features/admin`, `features/physiotherapist`, `features/director`, `features/patient`, `features/dev` (solo desarrollo).
+- Rutas: `/login` y, dentro de `AppShell`, un `*.routes.ts` por rol: `/physio` (`patients`, `clinical-records`, `timeline`, `ai-assistant`), `/admin` (`users`, `patients`, `reports`), `/director` (`reports`), `/patient`. Cada rol protegido por `authGuard` + `roleGuard(rol)` y cargado de forma diferida. Las secciones sin historia implementada usan `PlaceholderPage` (título y subtítulo en `data`); la historia reemplaza ese `component` por su página real.
+- Componentes de `shared/ui` (standalone, con pruebas): `page-header`, `stat-card` (variante `compact` para filas de cuatro tarjetas), `status-badge`, `data-table` (paginación en cliente, o en servidor con `[totalItems]` y `[(pageIndex)]`; `appDataTableCell` para celdas personalizadas, y `[appDataTableCellOf]="filas"` tipa `let-row`), `form-section`, `empty-state`, `confirm-dialog` (`openConfirmDialog()` devuelve `Observable<boolean>`) y `hero-banner`. Usarlos antes de crear componentes nuevos. Catálogo visual en `/ui-kit` (solo `isDevMode()`).
+- Diseño: seguir `docs/prototype/`. Capturas de comparación por tarea en `docs/screenshots/<tarea>/`.
 - Nombres según la guía de estilo de Angular CLI 22, en inglés: archivo `patient-list.ts`, clase `PatientList`, selector `app-patient-list`; guards/interceptores `*-guard.ts` / `*-interceptor.ts`. Textos de la interfaz en español.
-- Tema: tokens `--re-navy` (#0F172A, barra lateral y cabeceras), `--re-teal` (#14B8A6, acción primaria con texto navy), `--re-field` (#F3F4F6, campos), `--re-card` (tarjetas blancas, radio 16px) en `src/styles.scss`. Usar esos tokens, no colores sueltos.
+- Tema: tokens CSS `--re-*` definidos en `src/styles/_tokens.scss` (colores, grises, estados, radios, sombras, espaciados, tipografía Plus Jakarta Sans): `--re-navy` (#0F172A, barra lateral y cabeceras), `--re-teal` (#14B8A6, acción primaria e ítem activo **con texto navy**, contraste 7:1), `--re-text-teal` (#0F766E, texto teal sobre blanco), `--re-field` (#F3F4F6, campos), `--re-card` (tarjetas blancas, `--re-radius-lg` 16px). Usar siempre tokens, nunca colores sueltos; no poner texto blanco sobre `#14B8A6` (contraste 2.5:1).
 - Nuevas entradas de menú por rol en `shared/layout/nav-items.ts`.
-- El bloque "Acceso de desarrollo" del login (solo `isDevMode()`) es temporal: **eliminarlo en HU-01**.
+- Acceso por rol (HU-04):
+  - `roleGuard(rol)` protege cada grupo de rutas. Si el rol no coincide, redirige al panel del rol del usuario y `AppShell` muestra el aviso "No tiene acceso a esa sección." (`SectionAccessNotice`).
+  - Un 403 de la API lleva a `/access-denied` (`AccessDeniedPage`) sin cerrar la sesión.
+  - Las rutas desconocidas van al panel del rol.
+- Sesión: `AuthService` guarda token, expiración y usuario (`sessionStorage`, o `localStorage` con "Recordarme"); el usuario actual se lee con `user()` / `role()`. En pruebas unitarias iniciar sesión con `logInForTest(rol, nombre?, id?)` de `core/auth/auth-testing.ts`.
+- Errores de la API: mostrar el `detail` en español con `problemDetailMessage(error, textoAlternativo)` de `core/http/problem-detail.ts`.
+- Validaciones compartidas en `src/app/shared/validation`. `national-id.ts` aplica las mismas reglas de cédula que el backend: `nationalIdValidator` da `{ nationalId: regla }` y `NATIONAL_ID_MESSAGES` tiene el mensaje de cada regla.
+- Pacientes del administrador (HU-05, HU-06):
+  - `/admin/patients` (`PatientRegistry`) busca con espera de 300 ms y muestra una tabla paginada en el servidor con identificación y contacto. Las columnas de sesiones y estado del prototipo son datos clínicos y no se muestran.
+  - `PatientFormDialog` (`openPatientFormDialog(dialog, paciente?)`) registra un paciente o, si recibe uno, edita sus datos con la cédula en solo lectura y `PUT`.
+  - `/admin/patients/:id` (`PatientDetail`) muestra la ficha con la última actualización y el botón "Editar datos". Se abre tras registrar y desde el aviso de cédula existente.
+  - Fechas con `<input type="date">` (valor `yyyy-MM-dd`); la edad del formulario se calcula con `ageOn()` de `patient-age.ts`.
 - Indentación de 2 espacios (ver `.editorconfig`).
 
 ## Convenciones de repositorio
 
 - Commits en inglés con Conventional Commits y número de issue: `feat(patients): register patient #8`.
-- Ramas: `feature/HU-XX-short-description` creadas desde `develop`.
+- Ramas: `feature/HU-XX-short-description` (historias), `feature/TEC-XX-...` (tareas técnicas) y `chore/...` (mantenimiento), creadas siempre desde `develop`.
+- Flujo de ramas: los PR de `feature/*` y `chore/*` van **siempre hacia `develop`**, nunca hacia `main`. `develop` se fusiona en `main` **solo al cierre de cada sprint**, mediante un PR `develop → main`. Antes de crear un PR, comprobar que la rama base sea `develop` (GitHub propone `main` por defecto).
 - `.editorconfig`: UTF-8, LF, 4 espacios en Java/XML, 2 en TypeScript, HTML, SCSS, YAML y JSON.
-- `README.md` en inglés; documentación funcional en español en `docs/`.
+- `README.md` en inglés; documentación funcional en español en `docs/` (`docs/user-stories.md`, evidencias por sprint en `docs/evidence/sprint-N/`).
+- Cada historia es un issue con la plantilla **Historia de usuario** (Como/quiero/para + Dado/Cuando/Entonces); cada PR usa `.github/pull_request_template.md` e incluye `Closes #N`.
+- CI (`.github/workflows/ci.yml`) corre en push y PR hacia `main` y `develop`: backend `./mvnw -B verify`, frontend `npm ci` + `ng test` + `ng build`. No fusionar con CI en rojo. `backend/mvnw` debe conservar el modo ejecutable en Git (`git update-index --chmod=+x backend/mvnw`).
 
 ## Definición de terminado
 
@@ -178,7 +248,7 @@ Una historia está terminada cuando:
 - [ ] Cumple todos sus criterios de aceptación.
 - [ ] Tiene pruebas unitarias y de integración con Testcontainers.
 - [ ] Sus endpoints aparecen documentados en OpenAPI.
-- [ ] `.\mvnw.cmd verify` (en `backend/`) y `ng test` (en `frontend/`) están en verde.
+- [ ] `.\mvnw.cmd verify` (en `backend/`) y `ng test` (en `frontend/`) están en verde, también en la CI de GitHub Actions.
 - [ ] Se entrega un resumen de cambios.
 
 ## Forma de trabajo

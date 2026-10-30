@@ -1,0 +1,126 @@
+<app-page-header
+  title="Gestión de Usuarios y Roles"
+  subtitle="Control de accesos, roles autorizados y seguridad de la plataforma"
+>
+  <button mat-flat-button actions type="button" (click)="openCreateDialog()">
+    <mat-icon aria-hidden="true">person_add</mat-icon>
+    Crear usuario
+  </button>
+</app-page-header>
+
+<section class="stats" aria-label="Indicadores de usuarios">
+  <app-stat-card
+    compact
+    label="Usuarios activos"
+    [value]="stats().active"
+    icon="how_to_reg"
+    tone="teal"
+  />
+  <app-stat-card
+    compact
+    label="Fisioterapeutas"
+    [value]="stats().physiotherapists"
+    icon="groups"
+    tone="teal"
+  />
+  <app-stat-card
+    compact
+    label="Pacientes c/ portal"
+    [value]="stats().portalPatients"
+    icon="group"
+    tone="info"
+  />
+  <app-stat-card
+    compact
+    label="Administradores"
+    [value]="stats().administrators"
+    icon="shield"
+    tone="purple"
+  />
+</section>
+
+<section class="filters" aria-label="Búsqueda y filtros">
+  <mat-form-field appearance="fill" subscriptSizing="dynamic" class="search">
+    <mat-icon matPrefix aria-hidden="true">search</mat-icon>
+    <input
+      matInput
+      type="search"
+      placeholder="Buscar por nombre o correo electrónico..."
+      aria-label="Buscar por nombre o correo electrónico"
+      [value]="query()"
+      (input)="onSearch($event)"
+    />
+  </mat-form-field>
+
+  <mat-button-toggle-group
+    class="role-filter"
+    aria-label="Filtrar por rol"
+    hideSingleSelectionIndicator
+    [value]="roleFilter()"
+    (change)="roleFilter.set($event.value)"
+  >
+    <mat-button-toggle value="ALL">Todos</mat-button-toggle>
+    @for (role of roleFilters; track role) {
+      <mat-button-toggle [value]="role">{{ roleLabels[role] }}</mat-button-toggle>
+    }
+  </mat-button-toggle-group>
+</section>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Cargando usuarios" />
+}
+
+@if (loadError()) {
+  <app-empty-state
+    icon="cloud_off"
+    title="No se pudieron cargar los usuarios"
+    message="Revise su conexión e intente nuevamente."
+  >
+    <button mat-stroked-button type="button" (click)="load()">Reintentar</button>
+  </app-empty-state>
+} @else if (!loading()) {
+  <app-data-table
+    [columns]="columns"
+    [rows]="filteredUsers()"
+    caption="Usuarios del sistema"
+    itemLabel="usuarios"
+    emptyMessage="No hay usuarios que coincidan con la búsqueda."
+  >
+    <ng-template appDataTableCell="fullName" [appDataTableCellOf]="filteredUsers()" let-user>
+      <div class="user-name">{{ user.fullName }}</div>
+      <div class="user-email">{{ user.email }}</div>
+    </ng-template>
+    <ng-template appDataTableCell="role" [appDataTableCellOf]="filteredUsers()" let-user>
+      <app-status-badge [label]="roleLabels[user.role]" [tone]="roleTones[user.role]" />
+    </ng-template>
+    <ng-template appDataTableCell="lastLoginAt" [appDataTableCellOf]="filteredUsers()" let-user>
+      <span class="last-access">{{ formatLastAccess(user.lastLoginAt) }}</span>
+    </ng-template>
+    <ng-template appDataTableCell="active" [appDataTableCellOf]="filteredUsers()" let-user>
+      @if (user.active) {
+        <app-status-badge label="Activo" tone="success" />
+      } @else {
+        <app-status-badge label="Inactivo" tone="neutral" />
+      }
+    </ng-template>
+    <ng-template appDataTableCell="id" [appDataTableCellOf]="filteredUsers()" let-user>
+      @let ownAccount = isOwnAccount(user);
+      @let action = user.active ? 'Desactivar cuenta' : 'Activar cuenta';
+      <button
+        mat-icon-button
+        type="button"
+        class="status-action"
+        [class.deactivate]="user.active"
+        disabledInteractive
+        [disabled]="ownAccount || pendingIds().has(user.id)"
+        [matTooltip]="ownAccount ? 'No puede desactivar su propia cuenta' : action"
+        [attr.aria-label]="
+          ownAccount ? 'No puede desactivar su propia cuenta' : action + ' de ' + user.fullName
+        "
+        (click)="toggleStatus(user)"
+      >
+        <mat-icon aria-hidden="true">{{ user.active ? 'lock' : 'lock_open' }}</mat-icon>
+      </button>
+    </ng-template>
+  </app-data-table>
+}

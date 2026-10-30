@@ -9,6 +9,7 @@ Index of the project documentation. Diagram labels and prototype screens are in 
 | [`diagrams/`](diagrams/) | Architecture and design diagrams (PNG) used in the thesis: C4 levels 1–3, domain classes, sessions module classes and entity-relationship model |
 | [`diagrams/source/`](diagrams/source/) | Editable sources of the diagrams: PlantUML files (`*.puml`), shared styles (`c4-style.iuml`, `uml-style.iuml`) and the custom renderer used for figure 14 |
 | [`prototype/`](prototype/) | High-fidelity prototype: 14 screens grouped by role |
+| [`screenshots/`](screenshots/) | Screenshots of the implemented frontend, one folder per task, to compare with the prototype (e.g. [`tec-05-ui-foundation/`](screenshots/tec-05-ui-foundation/)) |
 | [`evidence/`](evidence/) | Sprint evidence (boards, burndown, pull requests, CI runs, tests, screens, minutes), one folder per sprint |
 | [`user-stories.md`](user-stories.md) | User stories with acceptance criteria (Given / When / Then) |
 

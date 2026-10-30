@@ -1,5 +1,7 @@
 # Rehab Elite
 
+[![CI](https://github.com/Ptrickill/Titulacion/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/Ptrickill/Titulacion/actions/workflows/ci.yml)
+
 Clinical management and therapy follow-up web system for a physiotherapy clinic in Quito, Ecuador. Capstone project.
 
 It covers patient registration and clinical records, treatments with ICD-10 diagnoses, therapy sessions with pain-score tracking, AI-assisted treatment summaries (always reviewed by a physiotherapist), a read-only patient portal and reports for the operations director. Every action on clinical data is recorded in an append-only audit log.
@@ -24,8 +26,8 @@ rehab-elite/
 │   ├── Dockerfile                   deployment image (Render, compose profile "full")
 │   └── src/main/
 │       ├── java/ec/rehabelite/
-│       │   ├── auth/                users, JWT login, security
-│       │   ├── patients/            patient personal data
+│       │   ├── auth/                users (create, activate/deactivate), JWT login, security
+│       │   ├── patients/            patient registration (national ID check), search and personal data updates
 │       │   ├── clinicalrecords/     clinical records and treatments
 │       │   ├── sessions/            therapy sessions
 │       │   ├── aisummary/           AI summaries
@@ -98,7 +100,8 @@ Architecture overview (C4 Level 2, containers):
    ```
 
    - Health: <http://localhost:8080/actuator/health>
-   - OpenAPI UI: <http://localhost:8080/swagger-ui.html> (requires a token until HU-01 opens it)
+   - OpenAPI UI: <http://localhost:8080/swagger-ui.html> (public; use **Authorize** with the token from `POST /api/auth/login`)
+   - On first start, if no administrator exists, the account from `ADMIN_EMAIL` / `ADMIN_PASSWORD` is created
 
 4. **Frontend.** In a second terminal:
 
@@ -178,3 +181,20 @@ Tests are not run during the image build; run `.\mvnw.cmd verify` before pushing
 ## Workflow
 
 Branches `feature/HU-XX-short-description` from `develop`; commits in English following Conventional Commits with the issue number, e.g. `feat(patients): register patient #8`. See [CLAUDE.md](CLAUDE.md) for the full rules.
+
+## Continuous integration
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push and pull request to `main` and `develop`:
+
+| Job | Steps |
+|---|---|
+| Backend | Temurin 21 with Maven cache → `./mvnw -B verify` (Testcontainers uses the Docker engine of `ubuntu-latest`) → uploads `backend/target/surefire-reports` as the `surefire-reports` artifact |
+| Frontend | Node 22 with npm cache → `npm ci` → `npx ng test --watch=false` → `npx ng build` |
+
+No secrets are needed: the backend tests use the synthetic values in `application-test.yml`. A pull request should only be merged when both jobs are green.
+
+## Project documentation
+
+- [`docs/user-stories.md`](docs/user-stories.md) — user stories and acceptance criteria (Spanish)
+- [`docs/evidence/`](docs/evidence/) — sprint evidence (boards, burndown, CI runs, screenshots, minutes)
+- GitHub templates: [user story issue](.github/ISSUE_TEMPLATE/user-story.md) and [pull request](.github/pull_request_template.md)

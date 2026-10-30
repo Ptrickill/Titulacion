@@ -1,6 +1,7 @@
 package ec.rehabelite.shared.web;
 
 import ec.rehabelite.shared.domain.BusinessRuleException;
+import ec.rehabelite.shared.domain.ConflictException;
 import ec.rehabelite.shared.domain.ResourceNotFoundException;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +16,7 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -70,6 +72,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return problem(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage());
     }
 
+    @ExceptionHandler(ConflictException.class)
+    ProblemDetail handleConflict(ConflictException ex) {
+        ProblemDetail problem = problem(HttpStatus.CONFLICT, ex.getMessage());
+        ex.getProperties().forEach(problem::setProperty);
+        return problem;
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     ProblemDetail handleDataIntegrityViolation(DataIntegrityViolationException ex) {
         // The driver message contains the offending values (personal data), so only the constraint name is logged
@@ -77,11 +86,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return problem(HttpStatus.CONFLICT, "La operación viola una restricción de integridad de los datos.");
     }
 
-    // Method-security denials reach this handler instead of the security filter chain.
-    // TODO(HU-01): record ACCESS_DENIED in the audit log here as well.
-    @ExceptionHandler(AccessDeniedException.class)
-    ProblemDetail handleAccessDenied(AccessDeniedException ex) {
-        return problem(HttpStatus.FORBIDDEN, messageFor(HttpStatus.FORBIDDEN).detail());
+    /**
+     * Security exceptions raised inside controllers (e.g. by method security) are rethrown so they reach the
+     * security filter chain, which answers 401/403 and audits ACCESS_DENIED. Without this, the catch-all
+     * handler below would turn them into a 500.
+     */
+    @ExceptionHandler({AuthenticationException.class, AccessDeniedException.class})
+    void rethrowSecurityException(RuntimeException ex) {
+        throw ex;
     }
 
     @ExceptionHandler(Exception.class)

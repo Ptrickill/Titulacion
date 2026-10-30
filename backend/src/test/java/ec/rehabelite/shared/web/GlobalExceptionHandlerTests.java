@@ -1,16 +1,20 @@
 package ec.rehabelite.shared.web;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import ec.rehabelite.shared.domain.BusinessRuleException;
+import ec.rehabelite.shared.domain.ConflictException;
 import ec.rehabelite.shared.domain.ResourceNotFoundException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -40,6 +44,15 @@ class GlobalExceptionHandlerTests {
     }
 
     @Test
+    void conflictReturns409WithItsProperties() throws Exception {
+        mockMvc.perform(get("/conflict"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.title").value("Conflicto"))
+                .andExpect(jsonPath("$.detail").value("Ya existe un paciente registrado con esta cédula."))
+                .andExpect(jsonPath("$.existingPatientId").value(12));
+    }
+
+    @Test
     void validationErrorListsFields() throws Exception {
         mockMvc.perform(post("/validated").contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"\"}"))
                 .andExpect(status().isBadRequest())
@@ -62,6 +75,14 @@ class GlobalExceptionHandlerTests {
                 .andExpect(jsonPath("$.errorId").isNotEmpty());
     }
 
+    @Test
+    void accessDeniedIsLeftToTheSecurityFilterChain() {
+        // Propagates out of MVC (instead of becoming a 500) so the AccessDeniedHandler answers 403 and audits it
+        assertThatThrownBy(() -> mockMvc.perform(get("/access-denied")))
+                .rootCause()
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
     record SampleRequest(@NotBlank String name) {
     }
 
@@ -78,6 +99,12 @@ class GlobalExceptionHandlerTests {
             throw new BusinessRuleException("El tratamiento ya fue finalizado.");
         }
 
+        @GetMapping("/conflict")
+        void conflict() {
+            throw new ConflictException("Ya existe un paciente registrado con esta cédula.",
+                    Map.of("existingPatientId", 12L));
+        }
+
         @PostMapping("/validated")
         void validated(@Valid @RequestBody SampleRequest request) {
         }
@@ -85,6 +112,11 @@ class GlobalExceptionHandlerTests {
         @GetMapping("/unexpected")
         void unexpected() {
             throw new IllegalStateException("internal detail that must not leak");
+        }
+
+        @GetMapping("/access-denied")
+        void accessDenied() {
+            throw new AccessDeniedException("method security denial");
         }
 
     }

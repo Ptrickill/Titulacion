@@ -1,0 +1,96 @@
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  background: var(--re-navy);
+}
+
+.icon-tile {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  color: var(--re-navy);
+  background: var(--re-teal);
+  border-radius: var(--re-radius-sm);
+}
+
+.title {
+  margin: 0;
+  padding: 0;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 700;
+
+  &::before {
+    display: none;
+  }
+}
+
+.subtitle {
+  margin: 2px 0 0;
+  color: var(--re-gray-300);
+  font-size: 12px;
+}
+
+mat-dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 20px !important;
+}
+
+app-form-section {
+  box-shadow: none;
+}
+
+.candidate-name {
+  display: block;
+  font-weight: 600;
+}
+
+.candidate-id {
+  display: block;
+  color: var(--re-text-muted);
+  font-size: 12px;
+}
+
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -8px 0 0;
+  padding: 10px 12px;
+  color: var(--re-info);
+  background: var(--re-info-bg);
+  border: 1px solid var(--re-info-border);
+  border-radius: var(--re-radius-sm);
+  font-size: 13px;
+
+  mat-icon {
+    flex-shrink: 0;
+  }
+}
+
+.error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  color: var(--re-danger);
+  background: var(--re-danger-bg);
+  border: 1px solid var(--re-danger-border);
+  border-radius: var(--re-radius-sm);
+  font-size: 13px;
+
+  mat-icon {
+    flex-shrink: 0;
+  }
+}
+
+// With dynamic subscripts a field with an error must not stretch the field next to it
+mat-form-field {
+  align-self: start;
+}

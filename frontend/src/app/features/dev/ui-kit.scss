@@ -1,0 +1,42 @@
+.section-title {
+  margin: 32px 0 12px;
+  color: var(--re-gray-500);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.badges,
+.dialogs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 20px;
+}
+
+.user-cell {
+  display: flex;
+  flex-direction: column;
+
+  span {
+    color: var(--re-text-muted);
+    font-size: 11px;
+  }
+}
+
+.form {
+  padding: 24px;
+}
+
+.result {
+  color: var(--re-text-muted);
+  font-size: 13px;
+}
