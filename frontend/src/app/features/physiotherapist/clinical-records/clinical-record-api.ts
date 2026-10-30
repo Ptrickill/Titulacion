@@ -2,6 +2,8 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Page } from '../../../core/http/page';
+import { Sex } from '../../admin/patients/patient-api';
+import type { ResponsiblePeriod } from './treatment-api';
 
 export type Severity = 'MILD' | 'MODERATE' | 'SEVERE';
 export type TreatmentStatus = 'ACTIVE' | 'COMPLETED' | 'ABANDONED';
@@ -83,6 +85,70 @@ export interface PhysioPatient {
   currentTreatment: CurrentTreatment | null;
 }
 
+/** Body of PUT /api/patients/{patientId}/clinical-record (HU-09): the treatments are not touched. */
+export type ClinicalHistoryRequest = Omit<CreateClinicalRecordRequest, 'treatment'>;
+
+/** Habits and medical history of a clinical record. */
+export interface ClinicalHistory extends ClinicalHistoryRequest {
+  id: number;
+  patientId: number;
+  createdAt: string;
+  /** Last edit of the habits and medical history, or null if they were never edited. */
+  updatedAt: string | null;
+}
+
+/** Personal and contact data of the patient in the clinical record view. */
+export interface PatientProfile {
+  id: number;
+  nationalId: string;
+  medicalRecordNumber: string;
+  firstName: string;
+  lastName: string;
+  birthDate: string;
+  /** Completed years, calculated by the server. */
+  age: number;
+  sex: Sex;
+  phone: string;
+  email: string;
+  address: string;
+  occupation: string;
+  educationLevel: string;
+  healthInsurance: string;
+  admissionDate: string;
+}
+
+/** The active treatment of the record view, with its current responsible. */
+export interface ActiveTreatment extends Omit<TreatmentRequest, 'diagnosisCode'> {
+  id: number;
+  diagnosis: Icd10Diagnosis;
+  status: TreatmentStatus;
+  startDate: string;
+  currentResponsible: ResponsiblePeriod | null;
+}
+
+/** A completed or abandoned treatment of the record view. */
+export interface PreviousTreatment {
+  id: number;
+  diagnosis: Icd10Diagnosis;
+  severity: Severity;
+  status: TreatmentStatus;
+  startDate: string;
+  plannedSessions: number;
+  /** Last change of the treatment (e.g. when it was closed), or null. */
+  updatedAt: string | null;
+  /** Last responsible physiotherapist, or null. */
+  responsible: ResponsiblePeriod | null;
+}
+
+/** GET /api/patients/{patientId}/clinical-record (HU-09): the full record, read before a session. */
+export interface PatientClinicalRecord {
+  patient: PatientProfile;
+  clinicalRecord: ClinicalHistory;
+  activeTreatment: ActiveTreatment | null;
+  /** Most recent first. */
+  previousTreatments: PreviousTreatment[];
+}
+
 /** Property of the 409 problem response with the id of the record the patient already has. */
 export const EXISTING_CLINICAL_RECORD_ID = 'existingClinicalRecordId';
 
@@ -107,6 +173,15 @@ export class ClinicalRecordApi {
     request: CreateClinicalRecordRequest,
   ): Observable<ClinicalRecord> {
     return this.http.post<ClinicalRecord>(`/api/patients/${patientId}/clinical-record`, request);
+  }
+
+  /** The full record of the patient; every read is audited by the server. */
+  findRecord(patientId: number): Observable<PatientClinicalRecord> {
+    return this.http.get<PatientClinicalRecord>(`/api/patients/${patientId}/clinical-record`);
+  }
+
+  updateHistory(patientId: number, request: ClinicalHistoryRequest): Observable<ClinicalHistory> {
+    return this.http.put<ClinicalHistory>(`/api/patients/${patientId}/clinical-record`, request);
   }
 
   openTreatment(clinicalRecordId: number, request: TreatmentRequest): Observable<Treatment> {

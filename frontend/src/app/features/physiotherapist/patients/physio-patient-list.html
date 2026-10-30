@@ -99,6 +99,16 @@
 
     <ng-template appDataTableCell="id" [appDataTableCellOf]="page.content" let-patient>
       <div class="actions">
+        @if (patient.clinicalRecordId !== null) {
+          <a
+            mat-flat-button
+            class="action"
+            [routerLink]="['/physio/patients', patient.id, 'clinical-record']"
+            [attr.aria-label]="'Ver historial de ' + patient.firstName + ' ' + patient.lastName"
+          >
+            Ver historial
+          </a>
+        }
         @if (patient.currentTreatment; as treatment) {
           <a
             mat-stroked-button

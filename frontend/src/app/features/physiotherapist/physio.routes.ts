@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { PlaceholderPage, PlaceholderPageData } from '../../shared/layout/placeholder-page';
+import type { ClinicalRecordFormData } from './clinical-records/clinical-record-form';
 
 export const PHYSIO_ROUTES: Routes = [
   {
@@ -13,8 +14,21 @@ export const PHYSIO_ROUTES: Routes = [
     loadComponent: () => import('./patients/physio-patient-list').then((m) => m.PhysioPatientList),
   },
   {
+    path: 'patients/:patientId/clinical-record',
+    title: 'Historial Clínico | Rehab Elite',
+    loadComponent: () =>
+      import('./clinical-records/clinical-record-view').then((m) => m.ClinicalRecordView),
+  },
+  {
     path: 'patients/:patientId/clinical-record/new',
     title: 'Nuevo Historial Clínico | Rehab Elite',
+    loadComponent: () =>
+      import('./clinical-records/clinical-record-form').then((m) => m.ClinicalRecordForm),
+  },
+  {
+    path: 'patients/:patientId/clinical-record/edit',
+    title: 'Editar Historial Clínico | Rehab Elite',
+    data: { mode: 'edit' } satisfies ClinicalRecordFormData,
     loadComponent: () =>
       import('./clinical-records/clinical-record-form').then((m) => m.ClinicalRecordForm),
   },

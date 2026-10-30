@@ -10,14 +10,14 @@ import { Observable } from 'rxjs';
 import { StatusBadge } from '../../../shared/ui/status-badge';
 import { openChangeResponsibleDialog } from './change-responsible-dialog';
 import { openChangeStatusDialog } from './change-status-dialog';
-import { TREATMENT_STATUS_LABELS, TREATMENT_STATUS_TONES } from './clinical-labels';
+import { initialsOf, TREATMENT_STATUS_LABELS, TREATMENT_STATUS_TONES } from './clinical-labels';
 import { Treatment } from './clinical-record-api';
 import { TreatmentApi, TreatmentHistory } from './treatment-api';
 
 /**
  * "Plan terapéutico y asignación clínica" (HU-08, prototype 04): therapy plan, status and current responsible of a
- * treatment, the actions "Cambiar responsable" and "Cambiar estado", and the history of both. Reusable in the full
- * clinical record view (HU-09).
+ * treatment, the actions "Cambiar responsable" and "Cambiar estado", and the history of both. The full clinical
+ * record view (HU-09) shows a read-only version and links here.
  */
 @Component({
   selector: 'app-treatment-plan-card',
@@ -54,14 +54,7 @@ export class TreatmentPlanCard {
     () => (this.history()?.allowedNextStatuses.length ?? 0) > 0,
   );
 
-  protected initials(fullName: string | null): string {
-    // Titles such as "Lcda." or "Dr." are skipped
-    const words = (fullName ?? '').split(/\s+/).filter((word) => word && !word.endsWith('.'));
-    return words
-      .slice(0, 2)
-      .map((word) => word.charAt(0).toUpperCase())
-      .join('');
-  }
+  protected readonly initials = initialsOf;
 
   protected reload(): void {
     this.historyResource.reload();

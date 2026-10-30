@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import {
+  ClinicalHistoryRequest,
   ClinicalRecordApi,
   CreateClinicalRecordRequest,
   TreatmentRequest,
@@ -43,6 +44,22 @@ describe('ClinicalRecordApi', () => {
 
     const request = backend.expectOne('/api/patients/15/clinical-record');
     expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual(body);
+  });
+
+  it('reads the full clinical record of a patient', () => {
+    api.findRecord(15).subscribe();
+
+    const request = backend.expectOne('/api/patients/15/clinical-record');
+    expect(request.request.method).toBe('GET');
+  });
+
+  it('edits the habits and medical history of the record', () => {
+    const body = { habits: 'Fuma', allergies: 'Penicilina' } as ClinicalHistoryRequest;
+    api.updateHistory(15, body).subscribe();
+
+    const request = backend.expectOne('/api/patients/15/clinical-record');
+    expect(request.request.method).toBe('PUT');
     expect(request.request.body).toEqual(body);
   });
 
