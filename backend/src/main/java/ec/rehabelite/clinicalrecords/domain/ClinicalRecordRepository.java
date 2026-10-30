@@ -12,6 +12,17 @@ public interface ClinicalRecordRepository extends JpaRepository<ClinicalRecord, 
     Optional<ClinicalRecord> findByPatientId(Long patientId);
 
     /**
+     * The patient's record with all its treatments and their diagnoses in a single query (HU-09), so reading the
+     * treatments never triggers one query per treatment.
+     */
+    @Query("""
+            SELECT DISTINCT r FROM ClinicalRecord r
+            LEFT JOIN FETCH r.treatments t
+            LEFT JOIN FETCH t.diagnosis
+            WHERE r.patientId = :patientId""")
+    Optional<ClinicalRecord> findWithTreatmentsByPatientId(@Param("patientId") Long patientId);
+
+    /**
      * One row per patient that has a clinical record, with its current treatment: the active one, otherwise the
      * most recent (by start date, then id). One query for a whole page of patients.
      */

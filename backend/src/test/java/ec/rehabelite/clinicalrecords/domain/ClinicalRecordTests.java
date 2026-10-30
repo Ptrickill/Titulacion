@@ -84,6 +84,38 @@ class ClinicalRecordTests {
                 .hasMessage(Treatment.PLANNED_SESSIONS_NOT_POSITIVE);
     }
 
+    @Test
+    void updateReplacesTheHistoryAndRecordsWhoAndWhenWithoutTouchingTheTreatments() {
+        ClinicalRecord record = ClinicalRecord.create(15L, history(), PHYSIO_ID, NOW);
+        Treatment treatment = record.openTreatment(diagnosis(), treatment(5, 10), PHYSIO_ID, TODAY, NOW);
+        Instant later = NOW.plusSeconds(3600);
+        ClinicalHistoryData edited = new ClinicalHistoryData("Fuma 2 cigarrillos al día ", "Natación", "Penicilina",
+                "Paracetamol", "Diabetes tipo 2", "Ninguno", "Padre hipertenso");
+
+        boolean changed = record.update(edited, 8L, later);
+
+        assertThat(changed).isTrue();
+        assertThat(record.historyData()).isEqualTo(edited);
+        assertThat(record.getHabits()).isEqualTo("Fuma 2 cigarrillos al día");
+        assertThat(record.getUpdatedBy()).isEqualTo(8L);
+        assertThat(record.getUpdatedAt()).isEqualTo(later);
+        assertThat(record.getCreatedBy()).isEqualTo(PHYSIO_ID);
+        assertThat(record.getTreatments()).containsExactly(treatment);
+        assertThat(treatment.getUpdatedAt()).isNull();
+    }
+
+    @Test
+    void theSameHistoryChangesNothing() {
+        ClinicalRecord record = ClinicalRecord.create(15L, history(), PHYSIO_ID, NOW);
+
+        // The values are stripped, so surrounding spaces are not a change either
+        boolean changed = record.update(history(), 8L, NOW.plusSeconds(60));
+
+        assertThat(changed).isFalse();
+        assertThat(record.getUpdatedBy()).isNull();
+        assertThat(record.getUpdatedAt()).isNull();
+    }
+
     static ClinicalHistoryData history() {
         return new ClinicalHistoryData(" No fuma ", "Camina", "Ninguna", "Ninguna", "Ninguno", "Ninguno",
                 "Ninguno");

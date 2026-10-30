@@ -57,6 +57,12 @@ import { MatIconModule } from '@angular/material/icon';
       font-size: 13px;
       line-height: 1.5;
     }
+    .action {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+    }
     .action:not(:empty) {
       margin-top: 16px;
     }

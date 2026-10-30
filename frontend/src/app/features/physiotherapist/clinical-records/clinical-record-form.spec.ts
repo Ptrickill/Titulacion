@@ -8,6 +8,7 @@ import { logInForTest } from '../../../core/auth/auth-testing';
 import { fakePatient } from '../../admin/patients/patient-testing';
 import { ClinicalRecordForm } from './clinical-record-form';
 import { Icd10Diagnosis } from './clinical-record-api';
+import { fakeClinicalRecord } from './clinical-record-testing';
 
 const LUMBAGO: Icd10Diagnosis = { code: 'M54.5', description: 'Lumbago no especificado' };
 
@@ -27,6 +28,21 @@ describe('ClinicalRecordForm', () => {
     element = harness.routeNativeElement as HTMLElement;
     backend.expectOne('/api/patients/15').flush(fakePatient(15, { occupation: 'Ingeniero civil' }));
     await settle();
+  }
+
+  /** The edit mode loads the patient and the history from the clinical record view. */
+  async function openEdit(): Promise<void> {
+    harness = await RouterTestingHarness.create();
+    component = await harness.navigateByUrl(
+      '/physio/patients/15/clinical-record/edit',
+      ClinicalRecordForm,
+    );
+    element = harness.routeNativeElement as HTMLElement;
+    const load = backend.expectOne('/api/patients/15/clinical-record');
+    expect(load.request.method).toBe('GET');
+    load.flush(fakeClinicalRecord(15));
+    harness.detectChanges();
+    await harness.fixture.whenStable();
   }
 
   async function settle(): Promise<void> {
@@ -66,6 +82,11 @@ describe('ClinicalRecordForm', () => {
       providers: [
         provideRouter([
           { path: 'physio/patients/:patientId/clinical-record/new', component: ClinicalRecordForm },
+          {
+            path: 'physio/patients/:patientId/clinical-record/edit',
+            component: ClinicalRecordForm,
+            data: { mode: 'edit' },
+          },
           {
             path: 'physio/patients/:patientId/clinical-record/:recordId/treatments/new',
             component: ClinicalRecordForm,
@@ -127,7 +148,7 @@ describe('ClinicalRecordForm', () => {
     backend.expectNone('/api/patients/15/clinical-record');
   });
 
-  it('creates the record with its first treatment and goes back to the list', async () => {
+  it('creates the record with its first treatment and opens the record view', async () => {
     await open('/physio/patients/15/clinical-record/new');
     form().controls.history.setValue({
       habits: ' No fuma ',
@@ -139,7 +160,7 @@ describe('ClinicalRecordForm', () => {
       familyHistory: 'Ninguno',
     });
     fillTreatment();
-    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
     const snackBar = vi.spyOn(TestBed.inject(MatSnackBar), 'open');
     await submit();
 
@@ -161,7 +182,7 @@ describe('ClinicalRecordForm', () => {
     expect(snackBar).toHaveBeenCalledWith('Historial clínico creado correctamente.', 'Cerrar', {
       duration: 5000,
     });
-    expect(navigate).toHaveBeenCalledWith(['/physio/patients']);
+    expect(navigate).toHaveBeenCalledWith('/physio/patients/15/clinical-record');
   });
 
   it('links to a new treatment when the patient already has a record', async () => {
@@ -214,5 +235,106 @@ describe('ClinicalRecordForm', () => {
     expect(element.querySelector('.error')?.textContent).toContain(
       'El paciente ya tiene un tratamiento activo.',
     );
+  });
+
+  it('edits only the habits and history, preloaded from the record', async () => {
+    await openEdit();
+
+    expect(element.querySelector('h1')?.textContent).toContain('Editar Historial Clínico');
+    const sections = Array.from(element.querySelectorAll('app-form-section .title')).map((t) =>
+      t.textContent?.trim(),
+    );
+    expect(sections).toEqual(['1. Hábitos y antecedentes']);
+    expect(element.querySelector('.patient-card')?.textContent).toContain(
+      'Juan Carlos Pérez Gómez',
+    );
+    expect(form().controls.history.getRawValue()).toEqual({
+      habits: 'No fuma; café diario',
+      physicalActivity: 'Camina 30 minutos',
+      allergies: 'Ninguna conocida',
+      currentMedication: 'Ibuprofeno 400 mg',
+      personalHistory: 'Hipertensión controlada',
+      surgicalHistory: 'Apendicectomía (2010)',
+      familyHistory: 'Madre con artrosis',
+    });
+    const cancel = Array.from(element.querySelectorAll('a')).find(
+      (a) => a.textContent?.trim() === 'Cancelar',
+    );
+    expect(cancel?.getAttribute('href')).toBe('/physio/patients/15/clinical-record');
+    expect(element.querySelector('button[type="submit"]')?.textContent).toContain(
+      'Guardar cambios',
+    );
+  });
+
+  it('saves the edited history with PUT and goes back to the record view', async () => {
+    await openEdit();
+    form().controls.history.patchValue({
+      habits: ' Fuma 2 cigarrillos al día ',
+      allergies: 'Penicilina',
+    });
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+    const snackBar = vi.spyOn(TestBed.inject(MatSnackBar), 'open');
+    await submit();
+
+    const request = backend.expectOne('/api/patients/15/clinical-record');
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body).toEqual({
+      habits: 'Fuma 2 cigarrillos al día',
+      physicalActivity: 'Camina 30 minutos',
+      allergies: 'Penicilina',
+      currentMedication: 'Ibuprofeno 400 mg',
+      personalHistory: 'Hipertensión controlada',
+      surgicalHistory: 'Apendicectomía (2010)',
+      familyHistory: 'Madre con artrosis',
+    });
+    request.flush({ id: 40 });
+    expect(snackBar).toHaveBeenCalledWith(
+      'Historial clínico actualizado correctamente.',
+      'Cerrar',
+      {
+        duration: 5000,
+      },
+    );
+    expect(navigate).toHaveBeenCalledWith('/physio/patients/15/clinical-record');
+  });
+
+  it('does not save an emptied field and shows the server errors', async () => {
+    await openEdit();
+    form().controls.history.patchValue({ familyHistory: '' });
+    await submit();
+    expect(errors()).toContain('Complete este campo.');
+    backend.expectNone((r) => r.method === 'PUT');
+
+    form().controls.history.patchValue({ familyHistory: 'Padre hipertenso' });
+    await submit();
+    backend
+      .expectOne('/api/patients/15/clinical-record')
+      .flush(
+        { detail: 'El paciente no tiene historial clínico.' },
+        { status: 404, statusText: 'Not Found' },
+      );
+    harness.detectChanges();
+    await harness.fixture.whenStable();
+    expect(element.querySelector('.error')?.textContent).toContain(
+      'El paciente no tiene historial clínico.',
+    );
+  });
+
+  it('tells when the record to edit cannot be loaded', async () => {
+    harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/physio/patients/15/clinical-record/edit', ClinicalRecordForm);
+    element = harness.routeNativeElement as HTMLElement;
+    backend
+      .expectOne('/api/patients/15/clinical-record')
+      .flush(
+        { detail: 'El paciente no tiene historial clínico.' },
+        { status: 404, statusText: 'Not Found' },
+      );
+    harness.detectChanges();
+    await harness.fixture.whenStable();
+
+    expect(element.textContent).toContain('No se pudo cargar el historial');
+    expect(element.textContent).toContain('El paciente no tiene historial clínico.');
+    expect(element.querySelector('button[type="submit"]')?.hasAttribute('disabled')).toBe(true);
   });
 });

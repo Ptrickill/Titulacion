@@ -29,7 +29,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Initial assessment (HU-07): creates the patient's clinical record with its first treatment, and opens new
  * treatments on an existing record. The authenticated physiotherapist becomes the current responsible of each
- * treatment. Patients are looked up only through {@link PatientDirectory}.
+ * treatment. HU-09 edits the habits and medical history. Patients are looked up only through
+ * {@link PatientDirectory}.
  */
 @Service
 @RequiredArgsConstructor
@@ -39,6 +40,7 @@ public class ClinicalRecordService {
     static final String TREATMENT_ENTITY = "Treatment";
     static final String PATIENT_NOT_FOUND = "El paciente no existe.";
     static final String CLINICAL_RECORD_NOT_FOUND = "El historial clínico no existe.";
+    static final String PATIENT_WITHOUT_CLINICAL_RECORD = "El paciente no tiene historial clínico.";
     static final String CLINICAL_RECORD_EXISTS = "El paciente ya tiene un historial clínico.";
     static final String DIAGNOSIS_NOT_FOUND = "El diagnóstico CIE-10 no existe en el catálogo.";
     /** Problem property with the id of the record the patient already has. */
@@ -110,6 +112,32 @@ public class ClinicalRecordService {
         log.info("Treatment opened treatmentId={} clinicalRecordId={} createdBy={}", opened.getId(),
                 record.getId(), physiotherapistId);
         return opened;
+    }
+
+    /**
+     * Replaces the habits and medical history of the patient's record (HU-09); the treatments are not touched. A real
+     * change sets updatedBy/updatedAt and is audited as UPDATE; the same data changes and audits nothing.
+     *
+     * @throws ResourceNotFoundException if the patient does not exist or has no clinical record
+     */
+    @Transactional
+    public ClinicalRecord updateHistory(Long patientId, ClinicalHistoryData history) {
+        ClinicalRecord record = clinicalRecordRepository.findByPatientId(patientId)
+                .orElseThrow(() -> recordNotFound(patientId));
+        Long physiotherapistId = currentPhysiotherapistId();
+
+        if (record.update(history, physiotherapistId, clock.instant())) {
+            auditLogService.record(AuditAction.UPDATE, CLINICAL_RECORD_ENTITY, record.getId());
+            log.info("Clinical record updated clinicalRecordId={} updatedBy={}", record.getId(), physiotherapistId);
+        }
+        return record;
+    }
+
+    /** 404 that tells an unknown patient apart from a patient without a record. */
+    private ResourceNotFoundException recordNotFound(Long patientId) {
+        return new ResourceNotFoundException(patientDirectory.find(patientId).isEmpty()
+                ? PATIENT_NOT_FOUND
+                : PATIENT_WITHOUT_CLINICAL_RECORD);
     }
 
     private Icd10Diagnosis diagnosis(String code) {

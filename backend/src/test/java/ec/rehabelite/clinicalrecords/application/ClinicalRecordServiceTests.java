@@ -152,6 +152,45 @@ class ClinicalRecordServiceTests {
         verifyNoInteractions(auditLogService);
     }
 
+    @Test
+    void updatesTheHistoryAndAuditsTheChange() {
+        ClinicalRecord record = assignIds(ClinicalRecord.create(PATIENT_ID, history(), 3L, NOW.minusSeconds(86_400)));
+        when(recordRepository.findByPatientId(PATIENT_ID)).thenReturn(Optional.of(record));
+        ClinicalHistoryData edited = new ClinicalHistoryData("Fuma", "Natación", "Penicilina", "Paracetamol",
+                "Diabetes tipo 2", "Ninguno", "Padre hipertenso");
+
+        ClinicalRecord updated = service.updateHistory(PATIENT_ID, edited);
+
+        assertThat(updated.historyData()).isEqualTo(edited);
+        assertThat(updated.getUpdatedBy()).isEqualTo(PHYSIO_ID);
+        assertThat(updated.getUpdatedAt()).isEqualTo(NOW);
+        verify(auditLogService).record(AuditAction.UPDATE, ClinicalRecordService.CLINICAL_RECORD_ENTITY, record.getId());
+    }
+
+    @Test
+    void theSameHistoryIsNotAudited() {
+        ClinicalRecord record = assignIds(ClinicalRecord.create(PATIENT_ID, history(), 3L, NOW));
+        when(recordRepository.findByPatientId(PATIENT_ID)).thenReturn(Optional.of(record));
+
+        service.updateHistory(PATIENT_ID, history());
+
+        assertThat(record.getUpdatedAt()).isNull();
+        verifyNoInteractions(auditLogService);
+    }
+
+    @Test
+    void updatingWithoutARecordIsNotFoundAndTellsAnUnknownPatientApart() {
+        assertThatThrownBy(() -> service.updateHistory(PATIENT_ID, history()))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage(ClinicalRecordService.PATIENT_WITHOUT_CLINICAL_RECORD);
+
+        when(patientDirectory.find(99L)).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> service.updateHistory(99L, history()))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage(ClinicalRecordService.PATIENT_NOT_FOUND);
+        verifyNoInteractions(auditLogService);
+    }
+
     private ClinicalRecord assignIds(ClinicalRecord record) {
         if (record.getId() == null) {
             ReflectionTestUtils.setField(record, "id", ids.incrementAndGet());
