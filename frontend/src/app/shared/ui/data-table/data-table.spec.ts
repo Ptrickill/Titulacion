@@ -93,3 +93,48 @@ describe('DataTable', () => {
     expect(element.querySelector('.footer')).toBeNull();
   });
 });
+
+@Component({
+  imports: [DataTable],
+  template: `
+    <app-data-table
+      [columns]="columns"
+      [rows]="rows()"
+      [pageSize]="2"
+      [totalItems]="5"
+      [(pageIndex)]="page"
+      itemLabel="pacientes"
+    />
+  `,
+})
+class ServerHost {
+  readonly columns: DataTableColumn<Row>[] = [{ key: 'name', header: 'Paciente' }];
+  /** The server already sent only the current page. */
+  readonly rows = signal<Row[]>([
+    { name: 'Paciente A', status: 'Activo' },
+    { name: 'Paciente B', status: 'Activo' },
+  ]);
+  readonly page = signal(0);
+}
+
+describe('DataTable with server-side pagination', () => {
+  it('shows the rows as they come, counts the total and asks for other pages', async () => {
+    const fixture = TestBed.createComponent(ServerHost);
+    const element = fixture.nativeElement as HTMLElement;
+    await fixture.whenStable();
+
+    const rows = () =>
+      Array.from(element.querySelectorAll('tbody td')).map((td) => td.textContent?.trim());
+    expect(rows()).toEqual(['Paciente A', 'Paciente B']);
+    expect(element.querySelector('.range')?.textContent?.replace(/\s+/g, ' ').trim()).toBe(
+      'Mostrando 1–2 de 5 pacientes',
+    );
+
+    element.querySelector<HTMLButtonElement>('button[aria-label="Página siguiente"]')!.click();
+    await fixture.whenStable();
+    expect(fixture.componentInstance.page()).toBe(1);
+    // Until the owner loads the new page, the table shows what it was given (never slices it)
+    expect(rows()).toEqual(['Paciente A', 'Paciente B']);
+    expect(element.querySelector('.page')?.textContent?.trim()).toBe('2 / 3');
+  });
+});

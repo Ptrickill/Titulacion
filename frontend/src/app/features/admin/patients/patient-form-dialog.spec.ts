@@ -1,14 +1,14 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { provideRouter } from '@angular/router';
 import { ageOn, todayIsoDate } from './patient-age';
-import { RegisterPatientDialog } from './register-patient-dialog';
+import { PatientFormDialog } from './patient-form-dialog';
 import { fakePatient } from './patient-testing';
 
-describe('RegisterPatientDialog', () => {
-  let fixture: ComponentFixture<RegisterPatientDialog>;
+describe('PatientFormDialog', () => {
+  let fixture: ComponentFixture<PatientFormDialog>;
   let element: HTMLElement;
   let backend: HttpTestingController;
   const dialogRef = { close: vi.fn() };
@@ -55,7 +55,7 @@ describe('RegisterPatientDialog', () => {
       ],
     });
     backend = TestBed.inject(HttpTestingController);
-    fixture = TestBed.createComponent(RegisterPatientDialog);
+    fixture = TestBed.createComponent(PatientFormDialog);
     element = fixture.nativeElement as HTMLElement;
     await fixture.whenStable();
   });
@@ -199,6 +199,82 @@ describe('RegisterPatientDialog', () => {
     expect(element.querySelector('.error')?.textContent).toContain(
       'La fecha de nacimiento no puede ser posterior a la fecha de ingreso.',
     );
+    expect(dialogRef.close).not.toHaveBeenCalled();
+  });
+});
+
+describe('PatientFormDialog in edit mode', () => {
+  let fixture: ComponentFixture<PatientFormDialog>;
+  let element: HTMLElement;
+  let backend: HttpTestingController;
+  const dialogRef = { close: vi.fn() };
+  const patient = fakePatient(25, { religion: null, ethnicSelfIdentification: 'Mestizo' });
+
+  const form = () => fixture.componentInstance['form'];
+
+  beforeEach(async () => {
+    dialogRef.close.mockReset();
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: MatDialogRef, useValue: dialogRef },
+        { provide: MAT_DIALOG_DATA, useValue: { patient } },
+      ],
+    });
+    backend = TestBed.inject(HttpTestingController);
+    fixture = TestBed.createComponent(PatientFormDialog);
+    element = fixture.nativeElement as HTMLElement;
+    await fixture.whenStable();
+  });
+
+  afterEach(() => backend.verify());
+
+  it('is filled with the patient and keeps the national ID read-only', () => {
+    expect(element.querySelector('h2')?.textContent).toContain('Editar Datos del Paciente');
+    expect(form().controls.firstName.value).toBe('Juan Carlos');
+    expect(form().controls.admissionDate.value).toBe('2026-10-29');
+    expect(form().controls.ethnicSelfIdentification.value).toBe('Mestizo');
+    expect(form().controls.religion.value).toBe('');
+    expect(form().controls.nationalId.disabled).toBe(true);
+    expect(element.querySelector<HTMLInputElement>('#patient-national-id')?.disabled).toBe(true);
+    expect(element.textContent).toContain('La cédula no se modifica.');
+    expect(element.textContent).toContain('Guardar cambios');
+    expect(fixture.componentInstance['age']()).toBe(`${ageOn('1996-03-15', todayIsoDate())} años`);
+  });
+
+  it('saves the changes with PUT, without the national ID, and closes with the patient', async () => {
+    form().patchValue({ phone: '0991112233', address: 'Cumbayá, Quito' });
+    element.querySelector<HTMLFormElement>('form')!.dispatchEvent(new Event('submit'));
+    await fixture.whenStable();
+
+    const request = backend.expectOne('/api/patients/25');
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body).not.toHaveProperty('nationalId');
+    expect(request.request.body).toEqual(
+      expect.objectContaining({
+        admissionDate: '2026-10-29',
+        phone: '0991112233',
+        address: 'Cumbayá, Quito',
+        ethnicSelfIdentification: 'Mestizo',
+        religion: null,
+      }),
+    );
+    const saved = fakePatient(25, { phone: '0991112233' });
+    request.flush(saved);
+    expect(dialogRef.close).toHaveBeenCalledWith(saved);
+  });
+
+  it('shows the Spanish detail when the changes cannot be saved', async () => {
+    element.querySelector<HTMLFormElement>('form')!.dispatchEvent(new Event('submit'));
+    await fixture.whenStable();
+    backend
+      .expectOne('/api/patients/25')
+      .flush({ detail: 'El paciente no existe.' }, { status: 404, statusText: 'Not Found' });
+    await fixture.whenStable();
+
+    expect(element.querySelector('.error')?.textContent).toContain('El paciente no existe.');
     expect(dialogRef.close).not.toHaveBeenCalled();
   });
 });

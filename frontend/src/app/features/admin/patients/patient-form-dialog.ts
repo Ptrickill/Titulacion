@@ -10,7 +10,12 @@ import {
   Validators,
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import {
+  MAT_DIALOG_DATA,
+  MatDialog,
+  MatDialogModule,
+  MatDialogRef,
+} from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -26,7 +31,7 @@ import {
   nationalIdValidator,
 } from '../../../shared/validation/national-id';
 import { ageOn, formatAge, todayIsoDate } from './patient-age';
-import { EXISTING_PATIENT_ID, Patient, PatientApi, Sex } from './patient-api';
+import { EXISTING_PATIENT_ID, Patient, PatientApi, Sex, UpdatePatientRequest } from './patient-api';
 import {
   EDUCATION_LEVELS,
   ETHNIC_IDENTIFICATIONS,
@@ -59,13 +64,23 @@ function validBirthDate(today: string): ValidatorFn {
   };
 }
 
+/** Without a patient the dialog registers a new one; with a patient it edits its data. */
+export interface PatientFormDialogData {
+  patient?: Patient;
+}
+
 /**
- * "Registrar Nuevo Paciente" (HU-05, prototype 11): admission and personal data only, never clinical data.
- * The medical record number mirrors the national ID and the age is calculated from the birth date, both
- * read-only. A national ID that is already registered shows a notice with a link to the existing patient.
+ * Patient admission and personal data form (prototype 11), never clinical data.
+ *
+ * - "Registrar Nuevo Paciente" (HU-05): the medical record number mirrors the national ID and a national ID that is
+ *   already registered shows a notice with a link to the existing patient.
+ * - "Editar Datos del Paciente" (HU-06): same form filled with the patient; the national ID and the medical record
+ *   number are read-only, since they never change.
+ *
+ * In both modes the age is calculated from the birth date and shown read-only.
  */
 @Component({
-  selector: 'app-register-patient-dialog',
+  selector: 'app-patient-form-dialog',
   imports: [
     ReactiveFormsModule,
     RouterLink,
@@ -78,12 +93,17 @@ function validBirthDate(today: string): ValidatorFn {
     MatProgressSpinnerModule,
     FormSection,
   ],
-  templateUrl: './register-patient-dialog.html',
-  styleUrl: './register-patient-dialog.scss',
+  templateUrl: './patient-form-dialog.html',
+  styleUrl: './patient-form-dialog.scss',
 })
-export class RegisterPatientDialog {
+export class PatientFormDialog {
   private readonly api = inject(PatientApi);
-  private readonly dialogRef = inject<MatDialogRef<RegisterPatientDialog, Patient>>(MatDialogRef);
+  private readonly dialogRef = inject<MatDialogRef<PatientFormDialog, Patient>>(MatDialogRef);
+  /** The patient being edited, or undefined when registering. */
+  protected readonly patient = inject<PatientFormDialogData | null>(MAT_DIALOG_DATA, {
+    optional: true,
+  })?.patient;
+  protected readonly editing = this.patient !== undefined;
 
   protected readonly today = todayIsoDate();
   protected readonly sexes = SEXES;
@@ -117,11 +137,11 @@ export class RegisterPatientDialog {
   /** The medical record number is the national ID; the server assigns it. */
   protected readonly medicalRecordNumber = toSignal(
     this.form.controls.nationalId.valueChanges.pipe(map((value) => value.trim())),
-    { initialValue: '' },
+    { initialValue: this.patient?.medicalRecordNumber ?? '' },
   );
 
   private readonly birthDate = toSignal(this.form.controls.birthDate.valueChanges, {
-    initialValue: '',
+    initialValue: this.patient?.birthDate ?? '',
   });
   protected readonly age = computed(() => formatAge(ageOn(this.birthDate(), this.today)));
 
@@ -135,6 +155,17 @@ export class RegisterPatientDialog {
     nationalId.valueChanges
       .pipe(takeUntilDestroyed(destroyRef))
       .subscribe(() => this.existingPatientId.set(null));
+
+    if (this.patient) {
+      const { ethnicSelfIdentification, religion, ...data } = this.patient;
+      this.form.patchValue({
+        ...data,
+        ethnicSelfIdentification: ethnicSelfIdentification ?? '',
+        religion: religion ?? '',
+      });
+      // The national ID never changes once registered
+      nationalId.disable();
+    }
   }
 
   /** Message for the national ID rule the value breaks, if any. */
@@ -153,30 +184,31 @@ export class RegisterPatientDialog {
     this.errorMessage.set(null);
 
     const value = this.form.getRawValue();
-    this.api
-      .register({
-        nationalId: value.nationalId.trim(),
-        admissionDate: value.admissionDate,
-        firstName: value.firstName.trim(),
-        lastName: value.lastName.trim(),
-        birthDate: value.birthDate,
-        sex: value.sex as Sex,
-        phone: value.phone.trim(),
-        email: value.email.trim(),
-        address: value.address.trim(),
-        occupation: value.occupation.trim(),
-        educationLevel: value.educationLevel,
-        healthInsurance: value.healthInsurance,
-        ethnicSelfIdentification: value.ethnicSelfIdentification || null,
-        religion: value.religion.trim() || null,
-      })
-      .subscribe({
-        next: (patient) => this.dialogRef.close(patient),
-        error: (error: unknown) => {
-          this.submitting.set(false);
-          this.showServerError(error);
-        },
-      });
+    const data: UpdatePatientRequest = {
+      admissionDate: value.admissionDate,
+      firstName: value.firstName.trim(),
+      lastName: value.lastName.trim(),
+      birthDate: value.birthDate,
+      sex: value.sex as Sex,
+      phone: value.phone.trim(),
+      email: value.email.trim(),
+      address: value.address.trim(),
+      occupation: value.occupation.trim(),
+      educationLevel: value.educationLevel,
+      healthInsurance: value.healthInsurance,
+      ethnicSelfIdentification: value.ethnicSelfIdentification || null,
+      religion: value.religion.trim() || null,
+    };
+    const request = this.patient
+      ? this.api.update(this.patient.id, data)
+      : this.api.register({ nationalId: value.nationalId.trim(), ...data });
+    request.subscribe({
+      next: (patient) => this.dialogRef.close(patient),
+      error: (error: unknown) => {
+        this.submitting.set(false);
+        this.showServerError(error);
+      },
+    });
   }
 
   private showServerError(error: unknown): void {
@@ -191,18 +223,30 @@ export class RegisterPatientDialog {
       return;
     }
     this.errorMessage.set(
-      problemDetailMessage(error, 'No se pudo registrar el paciente. Intente nuevamente.'),
+      problemDetailMessage(
+        error,
+        this.editing
+          ? 'No se pudieron guardar los cambios. Intente nuevamente.'
+          : 'No se pudo registrar el paciente. Intente nuevamente.',
+      ),
     );
   }
 }
 
-/** Opens the dialog; emits the registered patient, or undefined if it was cancelled. */
-export function openRegisterPatientDialog(dialog: MatDialog): Observable<Patient | undefined> {
+/**
+ * Opens the form: registers a new patient, or edits `patient` when given. Emits the saved patient, or undefined
+ * if the dialog was cancelled.
+ */
+export function openPatientFormDialog(
+  dialog: MatDialog,
+  patient?: Patient,
+): Observable<Patient | undefined> {
   return dialog
-    .open<RegisterPatientDialog, void, Patient>(RegisterPatientDialog, {
+    .open<PatientFormDialog, PatientFormDialogData, Patient>(PatientFormDialog, {
+      data: { patient },
       width: '680px',
       maxWidth: 'calc(100vw - 32px)',
-      autoFocus: '#patient-national-id',
+      autoFocus: patient ? '#patient-first-name' : '#patient-national-id',
       disableClose: true,
     })
     .afterClosed();

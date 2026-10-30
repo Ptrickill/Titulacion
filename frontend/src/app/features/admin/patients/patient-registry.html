@@ -1,0 +1,84 @@
+<app-page-header
+  title="Registro y Control de Pacientes"
+  subtitle="Admisión de pacientes, datos personales y actualización de expedientes"
+>
+  <button mat-flat-button actions type="button" (click)="openRegisterDialog()">
+    <mat-icon aria-hidden="true">add</mat-icon>
+    Registrar Nuevo Paciente
+  </button>
+</app-page-header>
+
+<section class="filters" aria-label="Búsqueda de pacientes">
+  <mat-form-field appearance="fill" subscriptSizing="dynamic" class="search">
+    <mat-icon matPrefix aria-hidden="true">search</mat-icon>
+    <input
+      matInput
+      type="search"
+      placeholder="Buscar por nombres o cédula..."
+      aria-label="Buscar por nombres o cédula"
+      autocomplete="off"
+      (input)="onSearch($event)"
+    />
+  </mat-form-field>
+</section>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Cargando pacientes" />
+}
+
+@if (loadError()) {
+  <app-empty-state
+    icon="cloud_off"
+    title="No se pudieron cargar los pacientes"
+    message="Revise su conexión e intente nuevamente."
+  >
+    <button mat-stroked-button type="button" (click)="reload()">Reintentar</button>
+  </app-empty-state>
+} @else if (results(); as page) {
+  <app-data-table
+    [columns]="columns"
+    [rows]="page.content"
+    [totalItems]="page.totalElements"
+    [pageSize]="pageSize"
+    [pageIndex]="search().page"
+    (pageIndexChange)="goToPage($event)"
+    caption="Pacientes registrados"
+    itemLabel="pacientes"
+    [emptyMessage]="
+      search().query
+        ? 'Ningún paciente coincide con la búsqueda.'
+        : 'Aún no hay pacientes registrados.'
+    "
+  >
+    <ng-template appDataTableCell="lastName" [appDataTableCellOf]="page.content" let-patient>
+      <div class="patient">
+        <span class="avatar" aria-hidden="true">{{ initials(patient) }}</span>
+        <div>
+          <div class="name">{{ patient.firstName }} {{ patient.lastName }}</div>
+          <div class="meta">Cédula: {{ patient.nationalId }} • {{ formatAge(patient.age) }}</div>
+        </div>
+      </div>
+    </ng-template>
+    <ng-template appDataTableCell="phone" [appDataTableCellOf]="page.content" let-patient>
+      <div class="phone">{{ patient.phone }}</div>
+      <div class="email">{{ patient.email }}</div>
+    </ng-template>
+    <ng-template appDataTableCell="id" [appDataTableCellOf]="page.content" let-patient>
+      <button
+        mat-stroked-button
+        type="button"
+        class="edit"
+        [disabled]="openingId() === patient.id"
+        [attr.aria-label]="'Editar datos de ' + patient.firstName + ' ' + patient.lastName"
+        (click)="edit(patient)"
+      >
+        @if (openingId() === patient.id) {
+          <mat-spinner diameter="16" aria-hidden="true" />
+        } @else {
+          <mat-icon aria-hidden="true">edit</mat-icon>
+        }
+        Editar datos
+      </button>
+    </ng-template>
+  </app-data-table>
+}

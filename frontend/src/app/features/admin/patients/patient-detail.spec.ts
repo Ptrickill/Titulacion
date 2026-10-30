@@ -1,7 +1,10 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideRouter } from '@angular/router';
+import { of } from 'rxjs';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { PatientDetail } from './patient-detail';
 import { fakePatient } from './patient-testing';
@@ -44,6 +47,34 @@ describe('PatientDetail', () => {
     expect(text).toContain('Mestizo');
     // Religion was not given
     expect(text).toContain('No especificada');
+  });
+
+  it('edits the data and shows the saved record with its last update', async () => {
+    const element = await open('25');
+    backend.expectOne('/api/patients/25').flush(fakePatient(25));
+    harness.detectChanges();
+    await harness.fixture.whenStable();
+    expect(element.textContent).toContain('Sin cambios desde el registro');
+
+    vi.spyOn(TestBed.inject(MatDialog), 'open').mockReturnValue({
+      afterClosed: () =>
+        of(fakePatient(25, { phone: '0991112233', updatedAt: '2026-10-30T16:45:00Z' })),
+    } as never);
+    const snackBar = vi.spyOn(TestBed.inject(MatSnackBar), 'open');
+    Array.from(element.querySelectorAll('button'))
+      .find((button) => button.textContent?.includes('Editar datos'))!
+      .click();
+    harness.detectChanges();
+    await harness.fixture.whenStable();
+
+    expect(element.textContent).toContain('0991112233');
+    expect(element.textContent).toContain('Última actualización');
+    expect(element.textContent).not.toContain('Sin cambios desde el registro');
+    expect(snackBar).toHaveBeenCalledWith(
+      'Datos del paciente actualizados correctamente.',
+      'Cerrar',
+      { duration: 5000 },
+    );
   });
 
   it('tells when the patient does not exist', async () => {

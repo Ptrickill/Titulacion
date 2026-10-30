@@ -27,7 +27,7 @@ rehab-elite/
 │   └── src/main/
 │       ├── java/ec/rehabelite/
 │       │   ├── auth/                users (create, activate/deactivate), JWT login, security
-│       │   ├── patients/            patient registration (national ID check, record number) and personal data
+│       │   ├── patients/            patient registration (national ID check), search and personal data updates
 │       │   ├── clinicalrecords/     clinical records and treatments
 │       │   ├── sessions/            therapy sessions
 │       │   ├── aisummary/           AI summaries

@@ -19,4 +19,7 @@ interface PatientWebMapper {
     @Mapping(target = "age", expression = "java(patient.ageOn(today))")
     PatientResponse toResponse(Patient patient, @Context LocalDate today);
 
+    @Mapping(target = "age", expression = "java(patient.ageOn(today))")
+    PatientSummaryResponse toSummary(Patient patient, @Context LocalDate today);
+
 }

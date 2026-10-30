@@ -34,8 +34,9 @@ final class RoleAccessRules {
             // Patients that can receive a portal account: only for account creation (HU-02).
             // More specific than /api/patients/**, so it must stay before it (first match wins)
             new Rule("/api/patients/portal-candidates", Role.ADMINISTRATOR),
-            // Only the administrator registers patients (HU-05); also before /api/patients/**
+            // Only the administrator registers (HU-05) and updates (HU-06) patients; also before /api/patients/**
             new Rule(HttpMethod.POST, "/api/patients", Role.ADMINISTRATOR),
+            new Rule(HttpMethod.PUT, "/api/patients/**", Role.ADMINISTRATOR),
             // Personal data: registered by the administrator, looked up by physiotherapists (HU-05, HU-06)
             new Rule("/api/patients/**", Role.ADMINISTRATOR, Role.PHYSIOTHERAPIST),
             // Clinical data: physiotherapists only; the administrator never sees it (HU-06, HU-09)

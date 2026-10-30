@@ -7,6 +7,7 @@ import static ec.rehabelite.auth.Role.PHYSIOTHERAPIST;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -149,6 +150,27 @@ class RoleAccessIntegrationTests extends AbstractIntegrationTest {
             result.andExpect(status().isForbidden());
             assertThat(accessDeniedEntries(user)).singleElement()
                     .satisfies(entry -> assertThat(entry).containsEntry("entity_type", "patients"));
+        }
+    }
+
+    /** Physiotherapists look patients up, but only the administrator updates their data (HU-06). */
+    @ParameterizedTest(name = "PUT /api/patients/12 → {0}")
+    @MethodSource("roles")
+    void onlyTheAdministratorUpdatesPatients(Role role) throws Exception {
+        User user = createUser(role);
+        String token = tokenService.issue(user, Instant.now()).token();
+
+        var result = mockMvc.perform(put("/api/patients/12").header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON).content("{}"));
+
+        if (role == ADMINISTRATOR) {
+            result.andExpect(status().isBadRequest());
+            assertThat(accessDeniedEntries(user)).isEmpty();
+        } else {
+            result.andExpect(status().isForbidden());
+            assertThat(accessDeniedEntries(user)).singleElement().satisfies(entry -> assertThat(entry)
+                    .containsEntry("entity_type", "patients")
+                    .containsEntry("entity_id", 12L));
         }
     }
 
