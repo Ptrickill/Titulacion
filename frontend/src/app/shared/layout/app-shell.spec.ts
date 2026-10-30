@@ -46,6 +46,18 @@ describe('AppShell', () => {
     );
   });
 
+  it('starts every new page at the top of the content area', async () => {
+    await renderAs('PHYSIOTHERAPIST');
+    const content = element.querySelector<HTMLElement>('mat-sidenav-content')!;
+    // jsdom has no layout (scrollTop is always 0), so a plain property records what the shell sets
+    Object.defineProperty(content, 'scrollTop', { value: 400, writable: true });
+
+    await TestBed.inject(Router).navigateByUrl('/');
+    await fixture.whenStable();
+
+    expect(content.scrollTop).toBe(0);
+  });
+
   it('shows the administrator, director and patient menus', async () => {
     await renderAs('ADMINISTRATOR');
     expect(menuLabels()).toEqual([

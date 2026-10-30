@@ -9,7 +9,8 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideRouter, Router } from '@angular/router';
 import { of } from 'rxjs';
-import { Page, PatientSummary } from './patient-api';
+import { Page } from '../../../core/http/page';
+import { PatientSummary } from './patient-api';
 import { PatientRegistry } from './patient-registry';
 import { fakePatient } from './patient-testing';
 

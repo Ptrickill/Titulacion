@@ -26,7 +26,8 @@ import { DataTableCell } from '../../../shared/ui/data-table/data-table-cell';
 import { EmptyState } from '../../../shared/ui/empty-state';
 import { PageHeader } from '../../../shared/ui/page-header';
 import { formatAge } from './patient-age';
-import { Page, PatientApi, PatientSummary } from './patient-api';
+import { Page } from '../../../core/http/page';
+import { PatientApi, PatientSummary } from './patient-api';
 import { openPatientFormDialog } from './patient-form-dialog';
 
 const PAGE_SIZE = 10;
