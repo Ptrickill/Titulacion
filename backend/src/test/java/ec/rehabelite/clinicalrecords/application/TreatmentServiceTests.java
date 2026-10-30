@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -169,7 +170,22 @@ class TreatmentServiceTests {
                 .isInstanceOf(ResourceNotFoundException.class);
         assertThatThrownBy(() -> service.history(404L))
                 .isInstanceOf(ResourceNotFoundException.class);
+        when(treatmentRepository.findWithDetailsById(404L)).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> service.find(404L))
+                .isInstanceOf(ResourceNotFoundException.class);
         verifyNoInteractions(auditLogService);
+    }
+
+    @Test
+    void readingTheTreatmentOrItsHistoryIsAuditedAsRead() {
+        when(treatmentRepository.findWithDetailsById(TREATMENT_ID)).thenReturn(Optional.of(treatment));
+        when(treatmentRepository.findById(TREATMENT_ID)).thenReturn(Optional.of(treatment));
+
+        assertThat(service.find(TREATMENT_ID)).isSameAs(treatment);
+        assertThat(service.history(TREATMENT_ID).treatment()).isSameAs(treatment);
+
+        verify(auditLogService, times(2)).record(AuditAction.READ, ClinicalRecordService.TREATMENT_ENTITY,
+                TREATMENT_ID);
     }
 
     private static Icd10Diagnosis diagnosis() {

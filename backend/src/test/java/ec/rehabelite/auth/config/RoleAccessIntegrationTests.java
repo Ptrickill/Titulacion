@@ -74,6 +74,7 @@ class RoleAccessIntegrationTests extends AbstractIntegrationTest {
             new Area("/api/ai-summaries/9", "ai-summaries", 9L, PHYSIOTHERAPIST),
             new Area("/api/reports/treatments", "reports", null, OPERATIONS_DIRECTOR, ADMINISTRATOR),
             new Area("/api/audit-logs", "audit-logs", null, OPERATIONS_DIRECTOR, ADMINISTRATOR),
+            new Area("/api/audit-logs/users", "audit-logs", null, OPERATIONS_DIRECTOR, ADMINISTRATOR),
             new Area("/api/portal/treatment", "portal", null, PATIENT));
 
     @Autowired

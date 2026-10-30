@@ -1,5 +1,7 @@
 package ec.rehabelite.audit;
 
+import java.util.Collection;
+
 /**
  * Public API of the audit module: appends an entry to the append-only audit log.
  * <p>
@@ -15,6 +17,12 @@ public interface AuditLogService {
      * @param entityId   id of the affected entity, or {@code null} when it does not apply
      */
     void record(AuditAction action, String entityType, Long entityId);
+
+    /**
+     * Records the same action on several entities, one entry each (e.g. the clinical records shown in a list).
+     * Nothing is recorded for an empty collection.
+     */
+    void recordAll(AuditAction action, String entityType, Collection<Long> entityIds);
 
     /**
      * Records an action on behalf of a given user, for requests that are not authenticated yet
