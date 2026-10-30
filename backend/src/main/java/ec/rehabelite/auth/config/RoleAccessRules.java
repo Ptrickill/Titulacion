@@ -34,6 +34,8 @@ final class RoleAccessRules {
             // Patients that can receive a portal account: only for account creation (HU-02).
             // More specific than /api/patients/**, so it must stay before it (first match wins)
             new Rule("/api/patients/portal-candidates", Role.ADMINISTRATOR),
+            // A patient's clinical record is clinical data (HU-07): physiotherapists only, before /api/patients/**
+            new Rule("/api/patients/*/clinical-record", Role.PHYSIOTHERAPIST),
             // Only the administrator registers (HU-05) and updates (HU-06) patients; also before /api/patients/**
             new Rule(HttpMethod.POST, "/api/patients", Role.ADMINISTRATOR),
             new Rule(HttpMethod.PUT, "/api/patients/**", Role.ADMINISTRATOR),
@@ -41,6 +43,9 @@ final class RoleAccessRules {
             new Rule("/api/patients/**", Role.ADMINISTRATOR, Role.PHYSIOTHERAPIST),
             // Clinical data: physiotherapists only; the administrator never sees it (HU-06, HU-09)
             new Rule("/api/clinical-records/**", Role.PHYSIOTHERAPIST),
+            new Rule("/api/icd10-diagnoses/**", Role.PHYSIOTHERAPIST),
+            // Patient list with the clinical summary of each one (HU-07)
+            new Rule("/api/physio/**", Role.PHYSIOTHERAPIST),
             new Rule("/api/treatments/**", Role.PHYSIOTHERAPIST),
             new Rule("/api/therapy-sessions/**", Role.PHYSIOTHERAPIST),
             new Rule("/api/ai-summaries/**", Role.PHYSIOTHERAPIST),

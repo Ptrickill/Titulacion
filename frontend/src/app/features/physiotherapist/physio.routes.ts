@@ -10,12 +10,19 @@ export const PHYSIO_ROUTES: Routes = [
   {
     path: 'patients',
     title: 'Gestión de Pacientes | Rehab Elite',
-    component: PlaceholderPage,
-    data: {
-      heading: 'Gestión de Pacientes',
-      subtitle: 'Registro, expedientes clínicos y control terapéutico',
-      icon: 'group',
-    } satisfies PlaceholderPageData,
+    loadComponent: () => import('./patients/physio-patient-list').then((m) => m.PhysioPatientList),
+  },
+  {
+    path: 'patients/:patientId/clinical-record/new',
+    title: 'Nuevo Historial Clínico | Rehab Elite',
+    loadComponent: () =>
+      import('./clinical-records/clinical-record-form').then((m) => m.ClinicalRecordForm),
+  },
+  {
+    path: 'patients/:patientId/clinical-record/:recordId/treatments/new',
+    title: 'Nuevo Tratamiento | Rehab Elite',
+    loadComponent: () =>
+      import('./clinical-records/clinical-record-form').then((m) => m.ClinicalRecordForm),
   },
   {
     path: 'clinical-records',

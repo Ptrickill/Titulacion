@@ -98,6 +98,10 @@ Reglas:
     - Evento que `auth` publica al crear una cuenta `PATIENT`.
     - `patients` lo escucha de forma síncrona (`@EventListener`, misma transacción), llena `portal_user_id` y audita `UPDATE Patient`. Si el vínculo falla, la cuenta tampoco se crea.
     - `patients` puede depender de `auth`, pero `auth` nunca de `patients`.
+  - `ec.rehabelite.patients.PatientDirectory` (HU-07):
+    - `find(id)` y `search(q, pageable)` devuelven `PatientCard` (id, cédula, número de historia, nombres, apellidos, fecha de nacimiento y `ageOn(fecha)`).
+    - Es la única forma en que otros módulos (`clinicalrecords`, `sessions`, ...) consultan pacientes.
+    - `patients` nunca depende de `clinicalrecords`.
 - Seguridad: JWT HS256 emitido por `POST /api/auth/login` (claims `sub` = id, `email`, `fullName`, `role`; el rol da la autoridad `ROLE_<rol>`). Públicos solo login, `/actuator/health` y la documentación OpenAPI. El reloj se inyecta como bean `Clock` (`shared.config`).
 - Estado de cuentas (HU-03):
   - `PATCH /api/users/{id}/status` con `{ "active": boolean }` (`UserManagementService.changeStatus`).
@@ -124,6 +128,19 @@ Reglas:
   - `PUT /api/patients/{id}` reemplaza la fecha de ingreso y los datos personales; la cédula y el número de historia nunca cambian.
     - `Patient.update` llena `updated_by` y `updated_at`, y se audita `UPDATE Patient`.
     - Enviar los mismos datos no cambia ni audita nada.
+- Historial clínico (HU-07), módulo `clinicalrecords`, solo `PHYSIOTHERAPIST`:
+  - `POST /api/patients/{patientId}/clinical-record` (`ClinicalRecordService.create`) crea el historial (hábitos y antecedentes) con el primer tratamiento `ACTIVE`.
+    - El fisioterapeuta del token queda como responsable vigente (`responsible_assignments` con `valid_to` nulo).
+    - Paciente inexistente: 404. Historial existente: 409 con `existingClinicalRecordId`.
+    - Diagnóstico fuera del catálogo: 422. EVA fuera de 0–10 o sesiones ≤ 0: 400 (y la entidad lo vuelve a comprobar).
+  - `POST /api/clinical-records/{id}/treatments` abre otro tratamiento. Un historial tiene **a lo sumo un tratamiento activo**; si ya hay uno, responde 422.
+  - Se auditan `CREATE ClinicalRecord` y `CREATE Treatment`.
+  - Un tratamiento nuevo sobre un historial ya gestionado se guarda con `TreatmentRepository.save`: hacer `save` del historial haría `merge`, y `merge` no propaga los hijos nuevos con `CascadeType.PERSIST`.
+  - `GET /api/icd10-diagnoses?q=` busca por código (prefijo) o descripción sin tildes; devuelve hasta 20 resultados.
+  - `GET /api/physio/patients?q=&page=&size=`:
+    - Pacientes de `PatientDirectory` con el resumen del tratamiento vigente (el activo o, si no hay, el más reciente).
+    - El resumen sale de **una** consulta por página (`ClinicalRecordRepository.findCurrentTreatments`).
+    - La paginación y la búsqueda son las de pacientes: no se filtra por datos clínicos.
 - Respuestas paginadas: devolver `PageResponse.of(page, mapper)` (`content`, `page`, `size`, `totalElements`, `totalPages`), nunca el `Page` de Spring Data.
 - Acceso por rol (HU-04): la tabla vive en `auth.config.RoleAccessRules`. Una regla puede limitarse a un método HTTP y gana la primera que coincide. Al añadir un área de API nueva, registrarla ahí y en `RoleAccessIntegrationTests`.
 
@@ -131,8 +148,9 @@ Reglas:
   |---|---|
   | `/api/admin/**`, `/api/users/**` | `ADMINISTRATOR` |
   | `/api/patients/portal-candidates`, `POST /api/patients` y `PUT /api/patients/**` (van antes de `/api/patients/**`) | `ADMINISTRATOR` |
+  | `/api/patients/*/clinical-record` (va antes de `/api/patients/**`) | `PHYSIOTHERAPIST` |
   | `/api/patients/**` | `ADMINISTRATOR`, `PHYSIOTHERAPIST` |
-  | `/api/clinical-records/**`, `/api/treatments/**`, `/api/therapy-sessions/**`, `/api/ai-summaries/**` | `PHYSIOTHERAPIST` |
+  | `/api/clinical-records/**`, `/api/treatments/**`, `/api/therapy-sessions/**`, `/api/ai-summaries/**`, `/api/icd10-diagnoses/**`, `/api/physio/**` | `PHYSIOTHERAPIST` |
   | `/api/reports/**`, `/api/audit-logs/**` | `OPERATIONS_DIRECTOR`, `ADMINISTRATOR` |
   | `/api/portal/**` | `PATIENT` |
   | Resto de `/api/**` | Cualquier usuario autenticado |
@@ -171,7 +189,11 @@ Reglas:
 
 En inglés, plural, kebab-case, bajo `/api`:
 
-`/api/auth`, `/api/users`, `/api/patients`, `/api/clinical-records`, `/api/treatments`, `/api/therapy-sessions`, `/api/ai-summaries`, `/api/reports`, `/api/audit-logs`, `/api/portal`.
+`/api/auth`, `/api/users`, `/api/patients`, `/api/clinical-records`, `/api/treatments`, `/api/therapy-sessions`, `/api/ai-summaries`, `/api/reports`, `/api/audit-logs`, `/api/portal`, `/api/icd10-diagnoses`.
+
+Excepciones acordadas en HU-07 (fuera del patrón de recurso plural):
+- `POST /api/patients/{patientId}/clinical-record`: singular, porque es el único historial del paciente.
+- `GET /api/physio/patients`: vista de pacientes con datos clínicos, separada de `/api/patients`, que no los incluye.
 
 Ejemplos: `GET /api/patients?query=...`, `POST /api/treatments/{id}/status-changes`, `POST /api/ai-summaries/{id}/approve`.
 
@@ -233,7 +255,14 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
   - Un 403 de la API lleva a `/access-denied` (`AccessDeniedPage`) sin cerrar la sesión.
   - Las rutas desconocidas van al panel del rol.
 - Sesión: `AuthService` guarda token, expiración y usuario (`sessionStorage`, o `localStorage` con "Recordarme"); el usuario actual se lee con `user()` / `role()`. En pruebas unitarias iniciar sesión con `logInForTest(rol, nombre?, id?)` de `core/auth/auth-testing.ts`.
-- Errores de la API: mostrar el `detail` en español con `problemDetailMessage(error, textoAlternativo)` de `core/http/problem-detail.ts`.
+- Errores de la API: mostrar el `detail` en español con `problemDetailMessage(error, textoAlternativo)` de `core/http/problem-detail.ts`. Las páginas de resultados usan el tipo `Page<T>` de `core/http/page.ts`.
+- `AppShell` vuelve al inicio el área de contenido (`mat-sidenav-content`, que es la que se desplaza) en cada navegación.
+- Historial clínico del fisioterapeuta (HU-07):
+  - `/physio/patients` (`PhysioPatientList`): tabla paginada en el servidor con el resumen del tratamiento y las acciones "Crear historial" o "Nuevo tratamiento".
+  - `ClinicalRecordForm` sirve dos rutas:
+    - `/physio/patients/:patientId/clinical-record/new`: cuatro secciones.
+    - `/physio/patients/:patientId/clinical-record/:recordId/treatments/new`: sin "Hábitos y antecedentes".
+  - `Icd10Picker` es un control de formulario (`ControlValueAccessor`) con autocompletado. Su valor es el `Icd10Diagnosis` elegido de la lista, o `null`.
 - Validaciones compartidas en `src/app/shared/validation`. `national-id.ts` aplica las mismas reglas de cédula que el backend: `nationalIdValidator` da `{ nationalId: regla }` y `NATIONAL_ID_MESSAGES` tiene el mensaje de cada regla.
 - Pacientes del administrador (HU-05, HU-06):
   - `/admin/patients` (`PatientRegistry`) busca con espera de 300 ms y muestra una tabla paginada en el servidor con identificación y contacto. Las columnas de sesiones y estado del prototipo son datos clínicos y no se muestran.

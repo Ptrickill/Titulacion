@@ -27,7 +27,10 @@ src/
     ├── shared/validation/ form validators shared by features (Ecuadorian national ID, same rules as the backend)
     └── features/
         ├── auth/login/       /login
-        ├── physiotherapist/  /physio, /physio/patients, /physio/clinical-records, /physio/timeline, /physio/ai-assistant
+        ├── physiotherapist/  /physio, /physio/patients (patients/: list with the treatment summary, HU-07),
+        │                     /physio/patients/:id/clinical-record/new and .../treatments/new
+        │                     (clinical-records/: initial assessment form + ICD-10 picker, HU-07),
+        │                     /physio/clinical-records, /physio/timeline, /physio/ai-assistant
         ├── admin/            /admin, /admin/users (users/: list + create dialog, HU-02; activate/deactivate, HU-03),
         │                     /admin/patients and /admin/patients/:id (patients/: search with server-side pagination,
         │                     register/edit form dialog and patient record, HU-05 and HU-06),
