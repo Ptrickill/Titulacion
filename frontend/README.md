@@ -20,13 +20,14 @@ src/
 ├── styles.scss            Material theme + component overrides
 ├── styles/_tokens.scss    design tokens (--re-* CSS custom properties)
 └── app/
-    ├── core/              AuthService (login + session), guards, HTTP interceptor, roles, es-EC locale
+    ├── core/              AuthService (login + session), guards, HTTP interceptor, roles, es-EC locale,
+    │                      problemDetailMessage() for the Spanish "detail" of API errors
     ├── shared/layout/     AppShell (sidebar per role, header with user/role/date), nav-items, PlaceholderPage
     ├── shared/ui/         reusable standalone components (see below)
     └── features/
         ├── auth/login/       /login
         ├── physiotherapist/  /physio, /physio/patients, /physio/clinical-records, /physio/timeline, /physio/ai-assistant
-        ├── admin/            /admin, /admin/users (users/: list + create dialog, HU-02), /admin/patients, /admin/reports
+        ├── admin/            /admin, /admin/users (users/: list + create dialog, HU-02; activate/deactivate, HU-03), /admin/patients, /admin/reports
         ├── director/         /director/reports
         ├── patient/          /patient
         └── dev/              /ui-kit (development only)
@@ -78,4 +79,4 @@ Status colors (`--re-success`, `--re-warning`, `--re-danger`, `--re-info`, `--re
 - **Requests:** `authInterceptor` adds `Authorization: Bearer <token>` to `/api` calls; a 401 from any endpoint other than the login ends the session and redirects to `/login`.
 - **Redirects:** after login, and when opening `/` or `/login` with a valid session, the user goes to the panel of their role (`ROLE_HOME`).
 
-To log in locally, start the backend: the first start creates the administrator from `ADMIN_EMAIL` / `ADMIN_PASSWORD` in `.env`. In unit tests, use `logInForTest(role)` from `core/auth/auth-testing.ts`.
+To log in locally, start the backend: the first start creates the administrator from `ADMIN_EMAIL` / `ADMIN_PASSWORD` in `.env`. In unit tests, use `logInForTest(role, fullName?, id?)` from `core/auth/auth-testing.ts`.

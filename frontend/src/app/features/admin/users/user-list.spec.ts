@@ -5,6 +5,8 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
+import type { MockInstance } from 'vitest';
+import { logInForTest } from '../../../core/auth/auth-testing';
 import { UserList } from './user-list';
 import { fakeUser } from './user-testing';
 
@@ -112,6 +114,133 @@ describe('UserList', () => {
       duration: 5000,
     });
     expect(rowNames()).toContain('Lucía Mora');
+  });
+
+  describe('activate / deactivate (HU-03)', () => {
+    let confirmed: boolean;
+    let dialogOpen: MockInstance<MatDialog['open']>;
+    let notice: MockInstance<MatSnackBar['open']>;
+
+    const rowOf = (name: string) =>
+      Array.from(element.querySelectorAll('tbody tr')).find((row) =>
+        row.textContent?.includes(name),
+      ) as HTMLTableRowElement;
+    const actionOf = (name: string) =>
+      rowOf(name).querySelector<HTMLButtonElement>('button.status-action')!;
+
+    beforeEach(() => {
+      confirmed = true;
+      dialogOpen = vi
+        .spyOn(TestBed.inject(MatDialog), 'open')
+        .mockImplementation(
+          () => ({ afterClosed: () => of(confirmed) }) as ReturnType<MatDialog['open']>,
+        );
+      notice = vi.spyOn(TestBed.inject(MatSnackBar), 'open');
+      // The logged-in administrator is user 3 ("Administrador Rehab")
+      logInForTest('ADMINISTRATOR', 'Administrador Rehab', 3);
+    });
+
+    it('offers to deactivate active accounts and to activate inactive ones', async () => {
+      await render();
+
+      expect(element.querySelector('thead')?.textContent).toContain('Acciones');
+      expect(actionOf('Ricardo Salinas').getAttribute('aria-label')).toBe(
+        'Desactivar cuenta de Ricardo Salinas',
+      );
+      expect(actionOf('Ricardo Salinas').textContent).toContain('lock');
+      expect(actionOf('Director General').getAttribute('aria-label')).toBe(
+        'Activar cuenta de Director General',
+      );
+      expect(actionOf('Director General').textContent).toContain('lock_open');
+    });
+
+    it('does not let administrators deactivate their own account', async () => {
+      await render();
+      const own = actionOf('Administrador Rehab');
+
+      expect(own.getAttribute('aria-disabled')).toBe('true');
+      expect(own.getAttribute('aria-label')).toBe('No puede desactivar su propia cuenta');
+      own.click();
+      expect(dialogOpen).not.toHaveBeenCalled();
+    });
+
+    it('deactivates after confirming and updates the row and the indicator', async () => {
+      await render();
+
+      actionOf('Ricardo Salinas').click();
+      expect(dialogOpen.mock.calls[0][1]?.data).toMatchObject({
+        title: 'Desactivar cuenta',
+        message:
+          '¿Desactivar la cuenta de Ricardo Salinas? No podrá iniciar sesión hasta que la reactive.',
+        tone: 'danger',
+      });
+      const request = backend.expectOne('/api/users/1/status');
+      expect(request.request.method).toBe('PATCH');
+      expect(request.request.body).toEqual({ active: false });
+      await fixture.whenStable();
+      expect(actionOf('Ricardo Salinas').getAttribute('aria-disabled')).toBe('true');
+
+      request.flush({ ...users[0], active: false });
+      await fixture.whenStable();
+
+      expect(rowOf('Ricardo Salinas').textContent).toContain('Inactivo');
+      expect(actionOf('Ricardo Salinas').getAttribute('aria-disabled')).toBeNull();
+      expect(statValues()[0]).toContain('3');
+      expect(notice).toHaveBeenCalledWith('Cuenta desactivada correctamente.', 'Cerrar', {
+        duration: 5000,
+      });
+    });
+
+    it('activates an inactive account with a primary confirmation', async () => {
+      await render();
+
+      actionOf('Director General').click();
+      expect(dialogOpen.mock.calls[0][1]?.data).toMatchObject({
+        title: 'Activar cuenta',
+        tone: 'primary',
+      });
+      const request = backend.expectOne('/api/users/4/status');
+      expect(request.request.body).toEqual({ active: true });
+      request.flush({ ...users[3], active: true });
+      await fixture.whenStable();
+
+      expect(rowOf('Director General').textContent).toContain('Activo');
+      expect(statValues()[0]).toContain('5');
+      expect(notice).toHaveBeenCalledWith('Cuenta activada correctamente.', 'Cerrar', {
+        duration: 5000,
+      });
+    });
+
+    it('changes nothing when the confirmation is cancelled', async () => {
+      confirmed = false;
+      await render();
+
+      actionOf('Ricardo Salinas').click();
+      await fixture.whenStable();
+
+      backend.expectNone('/api/users/1/status');
+      expect(rowOf('Ricardo Salinas').textContent).toContain('Activo');
+      expect(notice).not.toHaveBeenCalled();
+    });
+
+    it('shows the server message when the change fails', async () => {
+      await render();
+
+      actionOf('José Montaño').click();
+      backend
+        .expectOne('/api/users/2/status')
+        .flush(
+          { title: 'Regla de negocio', detail: 'No puede desactivar su propia cuenta.' },
+          { status: 422, statusText: 'Unprocessable Content' },
+        );
+      await fixture.whenStable();
+
+      expect(notice).toHaveBeenCalledWith('No puede desactivar su propia cuenta.', 'Cerrar', {
+        duration: 6000,
+      });
+      expect(rowOf('José Montaño').textContent).toContain('Activo');
+      expect(actionOf('José Montaño').getAttribute('aria-disabled')).toBeNull();
+    });
   });
 
   it('offers a retry when the list cannot be loaded', async () => {

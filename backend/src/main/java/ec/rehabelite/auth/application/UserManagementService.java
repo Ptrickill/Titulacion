@@ -8,6 +8,7 @@ import ec.rehabelite.auth.Role;
 import ec.rehabelite.auth.domain.User;
 import ec.rehabelite.auth.domain.UserRepository;
 import ec.rehabelite.shared.domain.BusinessRuleException;
+import ec.rehabelite.shared.domain.ResourceNotFoundException;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.util.List;
@@ -20,7 +21,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Account administration (HU-02): list accounts and create them with a role.
+ * Account administration: list accounts, create them with a role (HU-02) and activate or deactivate them
+ * (HU-03).
  */
 @Service
 @RequiredArgsConstructor
@@ -31,6 +33,8 @@ public class UserManagementService {
     static final String PATIENT_REQUIRED = "La cuenta de paciente debe vincularse a un paciente registrado.";
     static final String PATIENT_NOT_ALLOWED = "Solo las cuentas con rol Paciente se vinculan a un paciente.";
     static final String PASSWORD_TOO_LONG = "La contraseña no puede superar los 72 bytes.";
+    static final String USER_NOT_FOUND = "El usuario no existe.";
+    static final String SELF_DEACTIVATION = "No puede desactivar su propia cuenta.";
 
     /** BCrypt ignores (Spring Security rejects) anything beyond 72 bytes. */
     private static final int MAX_PASSWORD_BYTES = 72;
@@ -79,6 +83,36 @@ public class UserManagementService {
         }
         auditLogService.record(AuditAction.CREATE, AUDITED_ENTITY, user.getId());
         log.info("User account created userId={} role={} createdBy={}", user.getId(), user.getRole(), createdBy);
+        return user;
+    }
+
+    /**
+     * Activates or deactivates an account (HU-03). A deactivated account cannot log in and its issued tokens stop
+     * working (see {@link ActiveAccountTokenValidator}). Asking for the status the account already has changes
+     * nothing and is not audited.
+     *
+     * @throws ResourceNotFoundException if the account does not exist
+     * @throws BusinessRuleException if administrators try to deactivate their own account
+     */
+    @Transactional
+    public User changeStatus(Long userId, boolean active) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
+        Long changedBy = currentUserProvider.currentUserId().orElse(null);
+        if (!active && user.getId().equals(changedBy)) {
+            throw new BusinessRuleException(SELF_DEACTIVATION);
+        }
+        if (user.isActive() == active) {
+            return user;
+        }
+
+        if (active) {
+            user.activate(changedBy, clock.instant());
+        } else {
+            user.deactivate(changedBy, clock.instant());
+        }
+        auditLogService.record(AuditAction.STATUS_CHANGE, AUDITED_ENTITY, user.getId());
+        log.info("User account status changed userId={} active={} changedBy={}", user.getId(), active, changedBy);
         return user;
     }
 

@@ -26,7 +26,7 @@ rehab-elite/
 │   ├── Dockerfile                   deployment image (Render, compose profile "full")
 │   └── src/main/
 │       ├── java/ec/rehabelite/
-│       │   ├── auth/                users, JWT login, security
+│       │   ├── auth/                users (create, activate/deactivate), JWT login, security
 │       │   ├── patients/            patient personal data
 │       │   ├── clinicalrecords/     clinical records and treatments
 │       │   ├── sessions/            therapy sessions

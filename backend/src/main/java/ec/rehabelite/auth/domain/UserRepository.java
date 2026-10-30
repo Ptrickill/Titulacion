@@ -16,4 +16,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findAllByOrderByFullNameAsc();
 
+    boolean existsByIdAndActiveTrue(Long id);
+
 }

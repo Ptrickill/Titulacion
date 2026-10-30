@@ -2,6 +2,7 @@ package ec.rehabelite.auth.config;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
+import ec.rehabelite.auth.application.ActiveAccountTokenValidator;
 import ec.rehabelite.auth.application.JwtClaims;
 import ec.rehabelite.shared.config.AppProperties;
 import java.nio.charset.StandardCharsets;
@@ -16,7 +17,10 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
@@ -33,7 +37,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
  * Stateless security: every request needs a valid HS256 JWT (issued by POST /api/auth/login) except login,
  * health and the OpenAPI documentation. The token's "role" claim becomes the ROLE_&lt;role&gt; authority and
  * {@link RoleAccessRules} decides which roles may use each API area. Failures answer a Spanish problem
- * response: 401 without a valid token, 403 (audited as ACCESS_DENIED) for a role outside the area.
+ * response: 401 without a valid token (or with the token of an inactive account), 403 (audited as
+ * ACCESS_DENIED) for a role outside the area.
  */
 @Configuration(proxyBeanMethods = false)
 class SecurityConfig {
@@ -79,12 +84,17 @@ class SecurityConfig {
         return converter;
     }
 
+    /** Signature, expiry and issuer first; only then the account lookup (HU-03: inactive accounts get 401). */
     @Bean
-    JwtDecoder jwtDecoder(AppProperties properties) {
+    JwtDecoder jwtDecoder(AppProperties properties, ActiveAccountTokenValidator activeAccountValidator) {
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(secretKey(properties))
                 .macAlgorithm(MacAlgorithm.HS256)
                 .build();
-        decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(JwtClaims.ISSUER));
+        OAuth2TokenValidator<Jwt> standard = JwtValidators.createDefaultWithIssuer(JwtClaims.ISSUER);
+        decoder.setJwtValidator(token -> {
+            OAuth2TokenValidatorResult result = standard.validate(token);
+            return result.hasErrors() ? result : activeAccountValidator.validate(token);
+        });
         return decoder;
     }
 

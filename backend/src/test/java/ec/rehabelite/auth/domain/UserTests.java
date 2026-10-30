@@ -62,4 +62,33 @@ class UserTests {
         assertThat(user.getLastLoginAt()).isEqualTo(later);
     }
 
+    @Test
+    void deactivationKeepsTheAccountAndRecordsWhoChangedIt() {
+        Instant later = NOW.plusSeconds(60);
+
+        user.deactivate(7L, later);
+
+        assertThat(user.isActive()).isFalse();
+        assertThat(user.getEmail()).isEqualTo("ana.torres@rehabelite.test");
+        assertThat(user.getUpdatedBy()).isEqualTo(7L);
+        assertThat(user.getUpdatedAt()).isEqualTo(later);
+    }
+
+    @Test
+    void reactivationStartsWithoutFailedAttemptsOrLock() {
+        for (int attempt = 0; attempt < User.MAX_FAILED_ATTEMPTS; attempt++) {
+            user.registerFailedAttempt(NOW);
+        }
+        user.deactivate(7L, NOW);
+        Instant later = NOW.plusSeconds(60);
+
+        user.activate(8L, later);
+
+        assertThat(user.isActive()).isTrue();
+        assertThat(user.getFailedAttempts()).isZero();
+        assertThat(user.isLocked(later)).isFalse();
+        assertThat(user.getUpdatedBy()).isEqualTo(8L);
+        assertThat(user.getUpdatedAt()).isEqualTo(later);
+    }
+
 }

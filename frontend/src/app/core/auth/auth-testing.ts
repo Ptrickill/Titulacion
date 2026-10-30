@@ -4,8 +4,12 @@ import { AuthUser, AuthService, LOGIN_URL, LoginResponse } from './auth-service'
 import { Role } from './role';
 
 /** Synthetic login response for unit tests (token valid for 30 minutes). */
-export function fakeLoginResponse(role: Role, fullName = 'Usuario de prueba'): LoginResponse {
-  const user: AuthUser = { id: 1, email: 'usuario@rehabelite.test', fullName, role };
+export function fakeLoginResponse(
+  role: Role,
+  fullName = 'Usuario de prueba',
+  id = 1,
+): LoginResponse {
+  const user: AuthUser = { id, email: 'usuario@rehabelite.test', fullName, role };
   return {
     token: 'jwt-token',
     tokenType: 'Bearer',
@@ -18,11 +22,11 @@ export function fakeLoginResponse(role: Role, fullName = 'Usuario de prueba'): L
  * Logs in through the real AuthService, answering the HTTP call with a synthetic response.
  * Requires provideHttpClient() and provideHttpClientTesting() in the test module.
  */
-export function logInForTest(role: Role, fullName?: string): void {
+export function logInForTest(role: Role, fullName?: string, id?: number): void {
   TestBed.inject(AuthService)
     .login({ email: 'usuario@rehabelite.test', password: 'secret' })
     .subscribe();
   TestBed.inject(HttpTestingController)
     .expectOne(LOGIN_URL)
-    .flush(fakeLoginResponse(role, fullName));
+    .flush(fakeLoginResponse(role, fullName, id));
 }

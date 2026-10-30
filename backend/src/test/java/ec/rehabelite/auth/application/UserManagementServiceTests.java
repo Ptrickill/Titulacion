@@ -17,6 +17,7 @@ import ec.rehabelite.auth.Role;
 import ec.rehabelite.auth.domain.User;
 import ec.rehabelite.auth.domain.UserRepository;
 import ec.rehabelite.shared.domain.BusinessRuleException;
+import ec.rehabelite.shared.domain.ResourceNotFoundException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -118,6 +119,76 @@ class UserManagementServiceTests {
                 new CreateUserCommand("ana@rehabelite.test", "Ana", Role.ADMINISTRATOR, longPassword, null)))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage(UserManagementService.PASSWORD_TOO_LONG);
+    }
+
+    @Test
+    void deactivatesAnAccountAndAuditsTheStatusChange() {
+        User user = existingUser(NEW_USER_ID, Role.PHYSIOTHERAPIST);
+
+        User result = service.changeStatus(NEW_USER_ID, false);
+
+        assertThat(result.isActive()).isFalse();
+        assertThat(result.getUpdatedBy()).isEqualTo(ADMIN_ID);
+        assertThat(result.getUpdatedAt()).isEqualTo(NOW);
+        assertThat(result).isSameAs(user);
+        verify(auditLogService).record(AuditAction.STATUS_CHANGE, UserManagementService.AUDITED_ENTITY, NEW_USER_ID);
+    }
+
+    @Test
+    void reactivatesAnAccountWithoutFailedAttemptsOrLock() {
+        User user = existingUser(NEW_USER_ID, Role.PATIENT);
+        for (int attempt = 0; attempt < User.MAX_FAILED_ATTEMPTS; attempt++) {
+            user.registerFailedAttempt(NOW);
+        }
+        user.deactivate(ADMIN_ID, NOW);
+
+        User result = service.changeStatus(NEW_USER_ID, true);
+
+        assertThat(result.isActive()).isTrue();
+        assertThat(result.getFailedAttempts()).isZero();
+        assertThat(result.isLocked(NOW)).isFalse();
+        verify(auditLogService).record(AuditAction.STATUS_CHANGE, UserManagementService.AUDITED_ENTITY, NEW_USER_ID);
+    }
+
+    @Test
+    void administratorsCannotDeactivateTheirOwnAccount() {
+        User self = existingUser(ADMIN_ID, Role.ADMINISTRATOR);
+
+        assertThatThrownBy(() -> service.changeStatus(ADMIN_ID, false))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage(UserManagementService.SELF_DEACTIVATION);
+        assertThat(self.isActive()).isTrue();
+        verifyNoInteractions(auditLogService);
+    }
+
+    @Test
+    void askingForTheCurrentStatusChangesNothing() {
+        User user = existingUser(NEW_USER_ID, Role.OPERATIONS_DIRECTOR);
+
+        User result = service.changeStatus(NEW_USER_ID, true);
+
+        assertThat(result.isActive()).isTrue();
+        assertThat(result.getUpdatedAt()).isNull();
+        assertThat(result).isSameAs(user);
+        verifyNoInteractions(auditLogService);
+    }
+
+    @Test
+    void unknownAccountIsNotFound() {
+        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.changeStatus(99L, false))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage(UserManagementService.USER_NOT_FOUND);
+        verifyNoInteractions(auditLogService);
+    }
+
+    private User existingUser(Long id, Role role) {
+        User user = User.create("usuario" + id + "@rehabelite.test", "hash", "Usuario " + id, role, null,
+                NOW.minusSeconds(3600));
+        ReflectionTestUtils.setField(user, "id", id);
+        when(userRepository.findById(id)).thenReturn(Optional.of(user));
+        return user;
     }
 
 }

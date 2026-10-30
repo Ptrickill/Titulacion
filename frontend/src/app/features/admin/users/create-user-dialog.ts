@@ -30,6 +30,7 @@ import {
   switchMap,
 } from 'rxjs';
 import { Role, ROLES } from '../../../core/auth/role';
+import { problemDetailMessage } from '../../../core/http/problem-detail';
 import { FormSection } from '../../../shared/ui/form-section';
 import { PortalCandidate, UserAccount, UserApi } from './user-api';
 import { USER_ROLE_LABELS } from './user-roles';
@@ -205,14 +206,7 @@ export class CreateUserDialog {
   }
 
   private showServerError(error: unknown): void {
-    const detail =
-      error instanceof HttpErrorResponse
-        ? (error.error as { detail?: unknown } | null)?.detail
-        : undefined;
-    const message =
-      typeof detail === 'string' && detail
-        ? detail
-        : 'No se pudo crear el usuario. Intente nuevamente.';
+    const message = problemDetailMessage(error, 'No se pudo crear el usuario. Intente nuevamente.');
     if (error instanceof HttpErrorResponse && error.status === 422 && message.includes('correo')) {
       this.form.controls.email.setErrors({ server: message });
       this.form.controls.email.markAsTouched();

@@ -46,6 +46,11 @@ export class UserApi {
     return this.http.post<UserAccount>('/api/users', request);
   }
 
+  /** PATCH /api/users/{id}/status (HU-03); answers the updated account. */
+  changeStatus(id: number, active: boolean): Observable<UserAccount> {
+    return this.http.patch<UserAccount>(`/api/users/${id}/status`, { active });
+  }
+
   findPortalCandidates(query: string): Observable<PortalCandidate[]> {
     return this.http.get<PortalCandidate[]>('/api/patients/portal-candidates', {
       params: new HttpParams().set('query', query),
