@@ -61,7 +61,7 @@ Los comentarios `# TODO` de `.env` / `.env.example` son instrucciones para el de
 - **Backend:** Java 21, Spring Boot 4, Spring Security con JWT HS256 (OAuth2 Resource Server), Spring Data JPA, Flyway, Hibernate Envers (HU-18), Spring Modulith, Bean Validation, MapStruct, springdoc-openapi.
 - **Frontend:** Angular 22 con Angular Material.
 - **Base de datos:** PostgreSQL 16.
-- **IA:** API de Claude (Sprint 7, módulo `aisummary`).
+- **IA:** API de Claude (Sprint 6, módulo `aisummary`).
 - **Pruebas:** JUnit 5, Mockito, Testcontainers (backend); Vitest y Playwright (frontend).
 
 ## Arquitectura backend: monolito modular
@@ -355,7 +355,7 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
     - "Hábitos y antecedentes" (con la última edición);
     - "Tratamientos anteriores".
   - Sin tratamiento activo, ofrece "Nuevo tratamiento". Sin historial (404), ofrece "Crear historial".
-  - "Editar historial" abre `/physio/patients/:patientId/clinical-record/edit`. "Ver sesiones" está deshabilitado hasta el sprint 5 (HU-10/HU-11).
+  - "Editar historial" abre `/physio/patients/:patientId/clinical-record/edit`. "Ver sesiones" está deshabilitado hasta el sprint 4 (HU-10/HU-11).
   - `ClinicalRecordForm` tiene tres modos:
     - `record` y `treatment`, los de HU-07;
     - `edit`, que se activa con `data: { mode: 'edit' }` en la ruta y muestra solo "Hábitos y antecedentes", precargado desde el expediente, con `PUT`.
@@ -398,6 +398,7 @@ Una historia está terminada cuando:
 
 - Presentar un **plan antes de implementar** cada historia de usuario.
 - **Una historia por rama.**
+- Cada historia tiene su issue en GitHub, con la etiqueta de su sección PB y el milestone de su sprint. Las pendientes son HU-10 (#34), HU-11 (#35) y HU-12 a HU-17 (#36 a #41); las ya implementadas están cerradas con su PR. El PR de la historia lleva `Closes #N` en la descripción.
 
 ## Docker
 
