@@ -71,6 +71,6 @@ Capturas de la verificación de cada historia (datos sintéticos):
 
 ## Observaciones
 
-- Las historias no tienen issue en GitHub, por eso los PR no usan `Closes #N`: la historia se identifica por su código (HU-XX o TEC-XX) en la rama, en los commits y en la descripción del PR.
+- Desde el 05/11/2026 cada historia tiene su issue (#25 a #42), cerrado con el PR que la implementa.
 - Revisión de los PR: ⏳ completar quién revisó y aprobó cada PR; este dato no está en el repositorio.
 - Decisión de alcance en HU-06: el prototipo 10 muestra las columnas "Sesiones" y "Estado" y el filtro Activo/Inactivo. No se implementaron porque dependen del tratamiento, que es dato clínico, y HU-06 exige que el administrador no lo vea.
