@@ -71,6 +71,9 @@ class RoleAccessIntegrationTests extends AbstractIntegrationTest {
             new Area("/api/treatments/3/history", "treatments", 3L, PHYSIOTHERAPIST),
             new Area("/api/physio/physiotherapists", "physio", null, PHYSIOTHERAPIST),
             new Area("/api/therapy-sessions", "therapy-sessions", null, PHYSIOTHERAPIST),
+            new Area("/api/treatments/3/therapy-sessions", "treatments", 3L, PHYSIOTHERAPIST),
+            new Area("/api/therapy-sessions/5", "therapy-sessions", 5L, PHYSIOTHERAPIST),
+            new Area("/api/therapy-sessions/5/versions", "therapy-sessions", 5L, PHYSIOTHERAPIST),
             new Area("/api/ai-summaries/9", "ai-summaries", 9L, PHYSIOTHERAPIST),
             new Area("/api/reports/treatments", "reports", null, OPERATIONS_DIRECTOR, ADMINISTRATOR),
             new Area("/api/audit-logs", "audit-logs", null, OPERATIONS_DIRECTOR, ADMINISTRATOR),
@@ -198,6 +201,33 @@ class RoleAccessIntegrationTests extends AbstractIntegrationTest {
             assertThat(accessDeniedEntries(user)).singleElement().satisfies(entry -> assertThat(entry)
                     .containsEntry("entity_type", "patients")
                     .containsEntry("entity_id", 12L));
+        }
+    }
+
+    /** Only physiotherapists register (POST) and correct (PUT) therapy sessions (HU-10). */
+    @ParameterizedTest(name = "POST y PUT de sesiones → {0}")
+    @MethodSource("roles")
+    void onlyPhysiotherapistsRegisterAndCorrectSessions(Role role) throws Exception {
+        User user = createUser(role);
+        String token = tokenService.issue(user, Instant.now()).token();
+
+        var register = mockMvc.perform(post("/api/treatments/3/therapy-sessions")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON).content("{}"));
+        var correct = mockMvc.perform(put("/api/therapy-sessions/5")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON).content("{}"));
+
+        if (role == PHYSIOTHERAPIST) {
+            register.andExpect(status().isBadRequest());
+            correct.andExpect(status().isBadRequest());
+            assertThat(accessDeniedEntries(user)).isEmpty();
+        } else {
+            register.andExpect(status().isForbidden());
+            correct.andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.detail").value("No tiene permisos para realizar esta acción."));
+            assertThat(accessDeniedEntries(user)).extracting(entry -> entry.get("entity_type"))
+                    .containsExactlyInAnyOrder("treatments", "therapy-sessions");
         }
     }
 

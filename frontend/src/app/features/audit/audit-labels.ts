@@ -36,6 +36,7 @@ const ENTITY_LABELS: Record<string, string> = {
   Patient: 'Paciente',
   ClinicalRecord: 'Historial clínico',
   Treatment: 'Tratamiento',
+  TherapySession: 'Sesión terapéutica',
   User: 'Usuario',
 };
 

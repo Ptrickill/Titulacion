@@ -107,6 +107,11 @@ Reglas:
   - `ec.rehabelite.auth.StaffDirectory` (HU-08):
     - `findActivePhysiotherapist(id)`, `activePhysiotherapists()` y `fullNames(ids)` devuelven `StaffMember` (id y nombre) o los nombres, también de cuentas desactivadas.
     - Es la única forma en que otros módulos consultan cuentas del personal; `auth` nunca depende de ellos.
+  - `ec.rehabelite.clinicalrecords.TreatmentQueryPort` (HU-10):
+    - `find(id)` devuelve `TreatmentSummary` (id, paciente, `active` y fecha de inicio), sin datos clínicos.
+    - `lockForSessionRegistration(id)` devuelve lo mismo, pero bloquea la fila del tratamiento (`PESSIMISTIC_WRITE`) hasta que termina la transacción de quien llama. Exige una transacción abierta (`MANDATORY`).
+    - Es la única forma en que otros módulos (`sessions`, ...) consultan tratamientos; `clinicalrecords` nunca depende de `sessions`.
+  - `ec.rehabelite.audit.EntityVersionHistory` (HU-10): `versionsOf(clase, id)` devuelve las versiones de Envers de una entidad `@Audited`, de la más antigua a la más reciente. Cada `EntityVersion` trae la entidad, la revisión, el tipo (`CREATE`, `UPDATE`, `DELETE`), la fecha y el autor (o `null`). Así ningún módulo usa `AuditRevision` ni Envers directamente.
 - Seguridad: JWT HS256 emitido por `POST /api/auth/login` (claims `sub` = id, `email`, `fullName`, `role`; el rol da la autoridad `ROLE_<rol>`). Públicos solo login, `/actuator/health` y la documentación OpenAPI. El reloj se inyecta como bean `Clock` (`shared.config`).
 - Estado de cuentas (HU-03):
   - `PATCH /api/users/{id}/status` con `{ "active": boolean }` (`UserManagementService.changeStatus`).
@@ -181,6 +186,21 @@ Reglas:
     - Errores 404: los mismos dos mensajes que el `GET`.
     - `ClinicalRecord.update` llena `updated_by` y `updated_at`, y se audita `UPDATE ClinicalRecord`. Enviar los mismos datos no cambia ni audita nada.
     - Responde los hábitos y antecedentes con `updatedAt`.
+- Sesiones terapéuticas (HU-10), módulo `sessions` (`TherapySessionService`), solo `PHYSIOTHERAPIST`:
+  - `POST /api/treatments/{treatmentId}/therapy-sessions` registra la sesión: fecha, hora, tipo (hasta 50), actividades, observaciones clínicas, indicaciones para el paciente (opcional; en blanco se guarda `null`), EVA 0–10, evolución y estado.
+    - El servidor asigna el correlativo: el mayor del tratamiento + 1, leído con el tratamiento bloqueado (`TreatmentQueryPort.lockForSessionRegistration`). Así dos registros simultáneos nunca repiten número (`TherapySessionConcurrencyIntegrationTests`); `uq_therapy_sessions_treatment_sequence` es el respaldo.
+    - El responsable es siempre el usuario del token. El request no tiene `responsibleId` ni `sequenceNumber`; si el cliente los envía, se ignoran.
+    - Errores: campo vacío, EVA fuera de 0–10 o fecha posterior a hoy (`@PastOrPresent`): 400. Tratamiento inexistente: 404. Tratamiento que no está `ACTIVE`, o fecha anterior a su inicio: 422.
+  - `GET /api/treatments/{treatmentId}/therapy-sessions?page=&size=`: `PageResponse` ordenada por correlativo (`size` 1–100, 20 por defecto), con el nombre del responsable de `StaffDirectory.fullNames`. 404 si el tratamiento no existe.
+  - `GET /api/therapy-sessions/{id}`: la sesión con su responsable.
+  - `PUT /api/therapy-sessions/{id}` corrige los campos editables, con las mismas validaciones (400 y 422 por la fecha). El correlativo y el responsable nunca cambian (`updatable = false`).
+    - **Regla: solo el fisioterapeuta que registró la sesión (`responsible_id`) puede corregirla.** Si otro fisioterapeuta envía el `PUT`, la respuesta es 403 con el detalle "Solo el fisioterapeuta que registró la sesión puede corregirla." y queda `ACCESS_DENIED` en `audit_logs` (entidad `therapy-sessions` con el id de la ruta). Primero se comprueba que la sesión exista (404).
+    - Se puede corregir aunque el tratamiento ya no esté activo.
+    - Enviar los mismos datos no cambia ni audita nada.
+    - Envers guarda la versión anterior en `therapy_sessions_aud`.
+  - `GET /api/therapy-sessions/{id}/versions`: versiones de la más reciente a la más antigua, con tipo (`CREATE` registro, `UPDATE` corrección), fecha, autor (`changedBy`, id y nombre) y el contenido de la sesión en esa versión. Cualquier fisioterapeuta las ve.
+  - No existe `DELETE`: una sesión nunca se elimina (405, con `Allow: GET, PUT`).
+  - `TherapySession` guarda `treatmentId` y `responsibleId` como ids, sin relación JPA, porque son de otros módulos.
 - Auditoría de información clínica (HU-18, LOPDP):
   - **Regla:** toda operación sobre datos clínicos registra en `audit_logs` el usuario, la acción, la entidad, su id, la fecha (`occurred_at`) y la IP. Los datos personales del paciente no se auditan al leerlos (sí al crearlos o modificarlos). Las peticiones rechazadas (400, 404, 422) no se auditan; los 403 sí (`ACCESS_DENIED`). Un servicio que lee y audita es `@Transactional` sin `readOnly`, porque la auditoría inserta en la misma transacción.
 
@@ -199,6 +219,10 @@ Reglas:
     | `PATCH /api/treatments/{id}/status` | `STATUS_CHANGE Treatment` |
     | `GET /api/physio/patients` | `READ ClinicalRecord` por cada historial de la página (`PhysioPatientService`, `recordAll`) |
     | `GET /api/icd10-diagnoses`, `GET /api/physio/physiotherapists` | ninguna (catálogo y personal) |
+    | `POST /api/treatments/{id}/therapy-sessions` | `CREATE TherapySession` |
+    | `GET /api/treatments/{id}/therapy-sessions` | `READ Treatment` |
+    | `GET /api/therapy-sessions/{id}`, `GET /api/therapy-sessions/{id}/versions` | `READ TherapySession` |
+    | `PUT /api/therapy-sessions/{id}` | `UPDATE TherapySession` (solo si cambia algo); si no es el autor, `ACCESS_DENIED therapy-sessions` |
 
     Al añadir un endpoint clínico, agregarlo a esta tabla y a `ClinicalAuditIntegrationTests`.
   - **IP del cliente:** `server.forward-headers-strategy: framework`. La IP se toma de `X-Forwarded-For` (`ForwardedHeaderFilter`) **solo porque en producción la aplicación está detrás del proxy de Render**, que pone esa cabecera. El filtro confía en la cabecera de cualquier cliente, así que el backend nunca debe quedar expuesto sin el proxy. Sin la cabecera (desarrollo, pruebas) se usa la dirección de la conexión.
@@ -215,7 +239,7 @@ Reglas:
     - `Treatment` es `@Audited`. `clinicalRecord` y `diagnosis` guardan solo el id (`RelationTargetAuditMode.NOT_AUDITED`), y `responsibleAssignments` es `@NotAudited` porque ya es un historial.
     - Configuración en `application.yml` (`org.hibernate.envers.*`): sufijo `_aud`, `rev`, `revtype` y `store_data_at_delete`.
     - **Regla:** todo cambio futuro de columnas en `treatments` o `therapy_sessions` incluye el mismo cambio en su tabla `_aud` **en la misma migración**. Hibernate valida ambas (`ddl-auto: validate`), y `FlywayMigrationTests` compara sus columnas.
-    - **HU-10** debe mapear `TherapySession` con `@Audited` y validar que `therapy_sessions_aud` coincide con las columnas de `therapy_sessions`. Si cambia algo, lo hace una migración nueva, nunca editando V3.
+    - `TherapySession` (HU-10) es `@Audited` sobre `therapy_sessions_aud` tal como la creó V3. `FlywayMigrationTests` comprueba que cada tabla `_aud` tiene las mismas columnas, tipos y largos que su tabla. Si cambia algo, lo hace una migración nueva, nunca editando V3.
 - Respuestas paginadas: devolver `PageResponse.of(page, mapper)` (`content`, `page`, `size`, `totalElements`, `totalPages`), nunca el `Page` de Spring Data.
 - Acceso por rol (HU-04): la tabla vive en `auth.config.RoleAccessRules`. Una regla puede limitarse a un método HTTP y gana la primera que coincide. Al añadir un área de API nueva, registrarla ahí y en `RoleAccessIntegrationTests`.
 
@@ -242,6 +266,7 @@ Reglas:
 - DTO siempre como `record`; las entidades **nunca** se exponen en la API (mapear con MapStruct).
 - Errores: lanzar `ResourceNotFoundException` (404), `BusinessRuleException` (422) o `ConflictException` (409) de `ec.rehabelite.shared.domain`, con mensaje en español; `GlobalExceptionHandler` los convierte en `ProblemDetail` en español.
   - `ConflictException` añade sus propiedades a la respuesta: solo ids o códigos, nunca datos personales.
+  - `ForbiddenOperationException` (`shared.domain`, extiende `AccessDeniedException`) es para un rol que puede usar el endpoint pero no sobre ese recurso (HU-10: corregir la sesión de otro fisioterapeuta). `GlobalExceptionHandler` la relanza y `AuditingAccessDeniedHandler` responde 403 con su mensaje como `detail` y audita `ACCESS_DENIED`. Los demás 403 conservan el detalle genérico.
   - El locale está fijo en `es-EC`, así que los mensajes de Bean Validation también salen en español.
 - Fechas de calendario ("hoy", edades, fecha de ingreso): usar `ClinicCalendar.today(clock)` de `shared.domain`, con la zona `America/Guayaquil`. Los instantes se guardan en UTC. Las anotaciones `@Past` y `@PastOrPresent` usan el mismo reloj (`ValidationConfig`).
 - Logs con SLF4J (`LoggerFactory.getLogger`), en inglés, **sin datos personales ni clínicos** (nada de cédulas, nombres, correos, diagnósticos ni valores de columnas; usar ids).
@@ -270,6 +295,7 @@ Excepciones acordadas en HU-07 (fuera del patrón de recurso plural):
 - `POST`, `GET` (HU-09) y `PUT` (HU-09) `/api/patients/{patientId}/clinical-record`: singular, porque es el único historial del paciente.
 - `GET /api/physio/patients`: vista de pacientes con datos clínicos, separada de `/api/patients`, que no los incluye. `GET /api/physio/physiotherapists` (HU-08) sigue el mismo criterio.
 - HU-08: `PUT /api/treatments/{id}/responsible` y `PATCH /api/treatments/{id}/status` (sub-recursos en singular del tratamiento).
+- HU-10: `POST` y `GET /api/treatments/{treatmentId}/therapy-sessions`, porque una sesión siempre pertenece a un tratamiento. La sesión ya creada se maneja en `/api/therapy-sessions/{id}`.
 
 Ejemplos: `GET /api/patients?query=...`, `PATCH /api/treatments/{id}/status`, `POST /api/ai-summaries/{id}/approve`.
 
@@ -355,12 +381,25 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
     - "Hábitos y antecedentes" (con la última edición);
     - "Tratamientos anteriores".
   - Sin tratamiento activo, ofrece "Nuevo tratamiento". Sin historial (404), ofrece "Crear historial".
-  - "Editar historial" abre `/physio/patients/:patientId/clinical-record/edit`. "Ver sesiones" está deshabilitado hasta el sprint 4 (HU-10/HU-11).
+  - "Editar historial" abre `/physio/patients/:patientId/clinical-record/edit`.
+  - "Ver sesiones" abre las sesiones del tratamiento activo o, si no hay, del más reciente. La tarjeta del plan activo tiene "Registrar sesión", y cada tratamiento anterior tiene un enlace "Sesiones" (HU-10).
   - `ClinicalRecordForm` tiene tres modos:
     - `record` y `treatment`, los de HU-07;
     - `edit`, que se activa con `data: { mode: 'edit' }` en la ruta y muestra solo "Hábitos y antecedentes", precargado desde el expediente, con `PUT`.
   - Al guardar en cualquier modo, el formulario abre el expediente.
   - La lista del fisioterapeuta muestra "Ver historial" a los pacientes que ya tienen historial.
+- Sesiones terapéuticas (HU-10), en `features/physiotherapist/sessions`:
+  - `/physio/patients/:patientId/treatments/:treatmentId/sessions` (`TherapySessionList`):
+    - tabla paginada en el servidor (10 por página) con N.º, fecha y hora, tipo, EVA, estado, evolución y responsable;
+    - "Corregir" aparece solo en las sesiones del usuario autenticado (`responsible.id`), y "Ver versiones" en todas;
+    - "Registrar sesión" aparece solo si el tratamiento está activo.
+  - `TherapySessionForm` (prototipo 06) sirve dos rutas:
+    - `…/sessions/new` registra la sesión y vuelve desde el expediente;
+    - `…/sessions/:sessionId/edit` corrige con `PUT`. Si la sesión es de otro fisioterapeuta, muestra el aviso "Solo el fisioterapeuta que registró la sesión puede corregirla." con el formulario deshabilitado.
+  - En el formulario, el paciente, el número de sesión y el especialista responsable son de solo lectura. Al registrar, el número que se muestra es el siguiente (total de sesiones + 1) y lo confirma el servidor.
+  - Al guardar, el formulario abre la lista. En un tratamiento que no está activo, no permite registrar.
+  - `SessionVersionsDialog` (`openSessionVersionsDialog`) muestra las versiones de la más reciente a la más antigua, con su autor y fecha.
+  - Etiquetas de estado, evolución e intensidad de la EVA en `session-labels.ts`.
 - Auditoría (HU-18):
   - `features/audit/AuditLogList` se reutiliza en `/admin/audit` y `/director/audit`, con la entrada "Auditoría" en el menú de ambos roles.
   - Tabla paginada en el servidor (20 por página) con fecha y hora de Quito, usuario, acción (badge), entidad con id e IP. Solo metadatos.
@@ -398,7 +437,7 @@ Una historia está terminada cuando:
 
 - Presentar un **plan antes de implementar** cada historia de usuario.
 - **Una historia por rama.**
-- Cada historia tiene su issue en GitHub, con la etiqueta de su sección PB y el milestone de su sprint. Las pendientes son HU-10 (#34), HU-11 (#35) y HU-12 a HU-17 (#36 a #41); las ya implementadas están cerradas con su PR. El PR de la historia lleva `Closes #N` en la descripción.
+- Cada historia tiene su issue en GitHub, con la etiqueta de su sección PB y el milestone de su sprint. Las pendientes son HU-11 (#35) y HU-12 a HU-17 (#36 a #41); las ya implementadas están cerradas con su PR. El PR de la historia lleva `Closes #N` en la descripción.
 
 ## Docker
 

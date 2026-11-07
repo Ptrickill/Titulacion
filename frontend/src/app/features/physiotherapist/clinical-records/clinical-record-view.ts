@@ -1,6 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -28,7 +28,8 @@ const WITHOUT_RECORD = 'El paciente no tiene historial clínico.';
  * `/physio/patients/:patientId/clinical-record` (HU-09, prototype 04): read-only view of the full clinical record
  * before a session. One request brings the patient, the habits and medical history, the active treatment with its
  * current responsible and the previous treatments; the server audits every read. "Editar historial" opens the form of
- * HU-07 in edit mode; "Ver sesiones" stays disabled until the sessions exist (sprint 5).
+ * HU-07 in edit mode. "Ver sesiones" opens the sessions of the active treatment, or of the most recent one when none
+ * is active (HU-10); "Registrar sesión" opens the session form of the active treatment.
  */
 @Component({
   selector: 'app-clinical-record-view',
@@ -59,6 +60,14 @@ export class ClinicalRecordView {
 
   protected readonly record = signal<PatientClinicalRecord | null>(null);
   protected readonly loadError = signal<{ message: string; withoutRecord: boolean } | null>(null);
+  /** Sessions of the active treatment or, without one, of the most recent treatment. */
+  protected readonly sessionsLink = computed(() => {
+    const record = this.record();
+    const treatmentId = record?.activeTreatment?.id ?? record?.previousTreatments[0]?.id;
+    return treatmentId === undefined
+      ? null
+      : ['/physio/patients', this.patientId, 'treatments', treatmentId, 'sessions'];
+  });
 
   constructor() {
     inject(ClinicalRecordApi)

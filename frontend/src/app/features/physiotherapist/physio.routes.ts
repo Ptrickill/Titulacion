@@ -44,6 +44,24 @@ export const PHYSIO_ROUTES: Routes = [
     loadComponent: () => import('./clinical-records/treatment-page').then((m) => m.TreatmentPage),
   },
   {
+    path: 'patients/:patientId/treatments/:treatmentId/sessions',
+    title: 'Sesiones del Tratamiento | Rehab Elite',
+    loadComponent: () =>
+      import('./sessions/therapy-session-list').then((m) => m.TherapySessionList),
+  },
+  {
+    path: 'patients/:patientId/treatments/:treatmentId/sessions/new',
+    title: 'Registrar Sesión | Rehab Elite',
+    loadComponent: () =>
+      import('./sessions/therapy-session-form').then((m) => m.TherapySessionForm),
+  },
+  {
+    path: 'patients/:patientId/treatments/:treatmentId/sessions/:sessionId/edit',
+    title: 'Corregir Sesión | Rehab Elite',
+    loadComponent: () =>
+      import('./sessions/therapy-session-form').then((m) => m.TherapySessionForm),
+  },
+  {
     path: 'clinical-records',
     title: 'Historial Clínico | Rehab Elite',
     component: PlaceholderPage,
