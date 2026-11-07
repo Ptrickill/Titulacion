@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import ec.rehabelite.shared.domain.BusinessRuleException;
 import ec.rehabelite.shared.domain.ConflictException;
+import ec.rehabelite.shared.domain.InvalidRequestException;
 import ec.rehabelite.shared.domain.ResourceNotFoundException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -41,6 +42,14 @@ class GlobalExceptionHandlerTests {
         mockMvc.perform(get("/business-rule"))
                 .andExpect(status().isUnprocessableContent())
                 .andExpect(jsonPath("$.title").value("Regla de negocio incumplida"));
+    }
+
+    @Test
+    void invalidRequestReturns400WithItsOwnMessage() throws Exception {
+        mockMvc.perform(get("/invalid-request"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Solicitud no válida"))
+                .andExpect(jsonPath("$.detail").value("La fecha inicial no puede ser posterior a la fecha final."));
     }
 
     @Test
@@ -97,6 +106,11 @@ class GlobalExceptionHandlerTests {
         @GetMapping("/business-rule")
         void businessRule() {
             throw new BusinessRuleException("El tratamiento ya fue finalizado.");
+        }
+
+        @GetMapping("/invalid-request")
+        void invalidRequest() {
+            throw new InvalidRequestException("La fecha inicial no puede ser posterior a la fecha final.");
         }
 
         @GetMapping("/conflict")

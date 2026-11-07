@@ -24,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -32,6 +33,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * The exceptions Spring MVC raises by itself (wrong method, media type, unreadable body, missing or invalid
@@ -58,13 +60,21 @@ class SpringErrorProblemDetailIntegrationTests extends AbstractIntegrationTest {
     private User physio;
     private User admin;
 
-    /** No endpoint of the API has a required parameter, so this test-only one raises the exception. */
+    /**
+     * No endpoint of the API has a required parameter nor throws a Spring {@code ErrorResponseException}, so these
+     * test-only ones raise them.
+     */
     @RestController
     static class RequiredParameterController {
 
         @GetMapping("/api/problem-details-test/required-parameter")
         String required(@RequestParam String q) {
             return q;
+        }
+
+        @GetMapping("/api/problem-details-test/spring-error-response")
+        void springErrorResponse() {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Spring reason in English for 1712345678");
         }
 
     }
@@ -129,6 +139,23 @@ class SpringErrorProblemDetailIntegrationTests extends AbstractIntegrationTest {
     void aQueryParameterOfTheWrongTypeAnswers400InSpanishWithoutItsValue() throws Exception {
         perform(admin, get("/api/audit-logs").param("action", "1712345678"))
                 .andExpect(spanishProblem(400, BAD_REQUEST, BAD_REQUEST_DETAIL, "/api/audit-logs"))
+                .andExpect(content().string(not(containsString("1712345678"))));
+    }
+
+    @Test
+    void aParameterOutOfItsRangeAnswers400InSpanishWithTheFieldErrors() throws Exception {
+        perform(physio, get("/api/treatments/{id}/therapy-sessions", 1).param("size", "0"))
+                .andExpect(spanishProblem(400, "Datos no válidos", "La solicitud contiene datos no válidos.",
+                        "/api/treatments/1/therapy-sessions"))
+                .andExpect(jsonPath("$.errors").isNotEmpty())
+                .andExpect(content().string(not(containsString("must be"))));
+    }
+
+    @Test
+    void aSpringErrorResponseExceptionDoesNotKeepItsDetail() throws Exception {
+        perform(physio, get("/api/problem-details-test/spring-error-response"))
+                .andExpect(spanishProblem(400, BAD_REQUEST, BAD_REQUEST_DETAIL,
+                        "/api/problem-details-test/spring-error-response"))
                 .andExpect(content().string(not(containsString("1712345678"))));
     }
 
