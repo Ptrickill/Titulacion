@@ -17,6 +17,8 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.web.ErrorResponse;
+import org.springframework.web.ErrorResponseException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -129,14 +131,29 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(status).headers(headers).body(problem);
     }
 
-    /** Replaces the English title/detail Spring MVC uses for its built-in exceptions. */
+    /**
+     * Replaces the English title/detail Spring MVC uses for its built-in exceptions (405, 415, unreadable body,
+     * missing or invalid parameter, unknown path...) with the title and detail of their status. Some of them arrive
+     * without a body (405, 415, missing parameter, 404 of {@code NoResourceFoundException}): their own
+     * {@link ErrorResponse} body is used, so they get the same Spanish format. The headers, such as {@code Allow} of
+     * a 405, are kept.
+     */
     @Override
     protected ResponseEntity<Object> handleExceptionInternal(Exception ex, Object body, HttpHeaders headers,
             HttpStatusCode statusCode, WebRequest request) {
-        if (body instanceof ProblemDetail problem) {
+        ProblemDetail problem = body instanceof ProblemDetail detail ? detail
+                : body == null && ex instanceof ErrorResponse errorResponse ? errorResponse.getBody()
+                : null;
+        if (problem != null) {
             Message message = messageFor(statusCode);
             problem.setTitle(message.title());
-            problem.setDetail(message.detail());
+            // A ResponseStatusException of the application keeps its own Spanish reason. Otherwise the detail of the
+            // status, never Spring's: it may repeat a value sent by the client (personal data)
+            boolean ownReason = ex instanceof ErrorResponseException && problem.getDetail() != null;
+            if (!ownReason) {
+                problem.setDetail(message.detail());
+            }
+            body = problem;
         }
         return super.handleExceptionInternal(ex, body, headers, statusCode, request);
     }
