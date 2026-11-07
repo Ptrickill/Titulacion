@@ -1,0 +1,73 @@
+<h2 mat-dialog-title>Versiones de la sesión N.º {{ data.sequenceNumber }}</h2>
+
+<mat-dialog-content>
+  @if (errorMessage(); as message) {
+    <p class="error" role="alert">{{ message }}</p>
+  } @else if (versions(); as list) {
+    <ol class="versions" aria-label="Versiones, de la más reciente a la más antigua">
+      @for (version of list; track version.revision; let first = $first) {
+        <li>
+          <header>
+            <app-status-badge
+              [label]="typeLabels[version.type]"
+              [tone]="version.type === 'CREATE' ? 'teal' : 'warning'"
+            />
+            @if (first) {
+              <app-status-badge label="Vigente" tone="success" />
+            }
+            <span class="when">{{ version.changedAt | date: 'dd/MM/yyyy, HH:mm' }}</span>
+            <span class="who">
+              {{
+                version.changedBy
+                  ? (version.changedBy.fullName ?? 'Usuario #' + version.changedBy.id)
+                  : 'Sin usuario'
+              }}
+            </span>
+          </header>
+          <dl>
+            <div>
+              <dt>Fecha y hora</dt>
+              <dd>
+                {{ version.session.sessionDate | date: 'dd/MM/yyyy' }}
+                {{ version.session.sessionTime.slice(0, 5) }}
+              </dd>
+            </div>
+            <div>
+              <dt>Tipo</dt>
+              <dd>{{ version.session.sessionType }}</dd>
+            </div>
+            <div>
+              <dt>EVA</dt>
+              <dd>{{ version.session.painScore }}/10</dd>
+            </div>
+            <div>
+              <dt>Estado / evolución</dt>
+              <dd>
+                {{ statusLabels[version.session.status] }} ·
+                {{ progressLabels[version.session.progressStatus] }}
+              </dd>
+            </div>
+            <div class="full">
+              <dt>Actividades realizadas</dt>
+              <dd>{{ version.session.activitiesPerformed }}</dd>
+            </div>
+            <div class="full">
+              <dt>Observaciones clínicas</dt>
+              <dd>{{ version.session.clinicalObservations }}</dd>
+            </div>
+            <div class="full">
+              <dt>Indicaciones para el paciente</dt>
+              <dd>{{ version.session.patientInstructions ?? 'Sin indicaciones' }}</dd>
+            </div>
+          </dl>
+        </li>
+      }
+    </ol>
+  } @else {
+    <mat-progress-bar mode="indeterminate" aria-label="Cargando versiones" />
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button type="button" mat-dialog-close>Cerrar</button>
+</mat-dialog-actions>

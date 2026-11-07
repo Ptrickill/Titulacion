@@ -7,8 +7,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.jayway.jsonpath.JsonPath;
 import ec.rehabelite.AbstractIntegrationTest;
 import ec.rehabelite.TestPatients;
+import ec.rehabelite.TestSessions;
+import ec.rehabelite.TestTreatments;
 import ec.rehabelite.auth.Role;
 import ec.rehabelite.auth.application.JwtTokenService;
 import ec.rehabelite.auth.domain.User;
@@ -16,6 +19,7 @@ import ec.rehabelite.auth.domain.UserRepository;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -32,7 +36,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 /**
- * HU-18: every operation on clinical data of the patients and clinicalrecords endpoints leaves one audit entry with
+ * HU-18: every operation on clinical data of the patients, clinicalrecords and sessions endpoints leaves one audit entry with
  * the user, the action, the entity and its id, the date and the client IP. Personal data reads are not audited, and
  * neither are rejected requests.
  */
@@ -252,7 +256,78 @@ class ClinicalAuditIntegrationTests extends AbstractIntegrationTest {
                 .satisfies(entry -> assertThat(entry).containsEntry("ip_address", "203.0.113.7"));
     }
 
+    // ----- sessions: clinical data (HU-10) -----
+
+    @Test
+    void registeringASessionIsAuditedAsCreate() throws Exception {
+        Long sessionId = registerSession(TestTreatments.insertActive(jdbc));
+
+        assertSingleEntry(physio, "CREATE", "TherapySession", sessionId);
+    }
+
+    @Test
+    void listingTheSessionsIsAuditedAsReadOfTheTreatment() throws Exception {
+        Long treatmentId = TestTreatments.insertActive(jdbc);
+        registerSession(treatmentId);
+        User reader = createUser(Role.PHYSIOTHERAPIST);
+
+        perform(reader, get("/api/treatments/{id}/therapy-sessions", treatmentId)).andExpect(status().isOk());
+
+        assertSingleEntry(reader, "READ", "Treatment", treatmentId);
+        assertThat(entriesOf(reader)).hasSize(1);
+    }
+
+    @Test
+    void readingASessionAndItsVersionsIsAuditedAsRead() throws Exception {
+        Long sessionId = registerSession(TestTreatments.insertActive(jdbc));
+        User reader = createUser(Role.PHYSIOTHERAPIST);
+        User versionsReader = createUser(Role.PHYSIOTHERAPIST);
+
+        perform(reader, get("/api/therapy-sessions/{id}", sessionId)).andExpect(status().isOk());
+        perform(versionsReader, get("/api/therapy-sessions/{id}/versions", sessionId)).andExpect(status().isOk());
+
+        assertSingleEntry(reader, "READ", "TherapySession", sessionId);
+        assertSingleEntry(versionsReader, "READ", "TherapySession", sessionId);
+    }
+
+    @Test
+    void correctingASessionIsAuditedAsUpdate() throws Exception {
+        Long sessionId = registerSession(TestTreatments.insertActive(jdbc));
+
+        perform(physio, put("/api/therapy-sessions/{id}", sessionId).contentType(MediaType.APPLICATION_JSON)
+                        .content(TestSessions.body(2)))
+                .andExpect(status().isOk());
+
+        assertSingleEntry(physio, "UPDATE", "TherapySession", sessionId);
+    }
+
+    @Test
+    void rejectedSessionOperationsAreNotAudited() throws Exception {
+        User other = createUser(Role.PHYSIOTHERAPIST);
+        Long treatmentId = TestTreatments.insertActive(jdbc);
+        Long closed = TestTreatments.insert(jdbc, "COMPLETED", LocalDate.now().minusDays(30));
+
+        perform(other, post("/api/treatments/{id}/therapy-sessions", treatmentId)
+                        .contentType(MediaType.APPLICATION_JSON).content(TestSessions.body(11)))
+                .andExpect(status().isBadRequest());
+        perform(other, post("/api/treatments/{id}/therapy-sessions", closed)
+                        .contentType(MediaType.APPLICATION_JSON).content(TestSessions.body(4)))
+                .andExpect(status().isUnprocessableContent());
+        perform(other, get("/api/treatments/{id}/therapy-sessions", 999_999_999L)).andExpect(status().isNotFound());
+        perform(other, get("/api/therapy-sessions/{id}/versions", 999_999_999L)).andExpect(status().isNotFound());
+
+        assertThat(entriesOf(other)).isEmpty();
+    }
+
     // ----- helpers -----
+
+    private Long registerSession(Long treatmentId) throws Exception {
+        String body = perform(physio, post("/api/treatments/{id}/therapy-sessions", treatmentId)
+                        .contentType(MediaType.APPLICATION_JSON).content(TestSessions.body(5)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        return ((Number) JsonPath.read(body, "$.id")).longValue();
+    }
 
     private record ClinicalData(Long patientId, Long recordId, Long treatmentId) {
     }

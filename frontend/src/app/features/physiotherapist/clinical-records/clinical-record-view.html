@@ -13,13 +13,16 @@
     <mat-icon aria-hidden="true">edit</mat-icon>
     Editar historial
   </a>
-  <span actions title="Disponible próximamente">
-    <button mat-stroked-button type="button" disabled>
-      <mat-icon aria-hidden="true">event_note</mat-icon>
-      Ver sesiones
-      <span class="cdk-visually-hidden">(disponible próximamente)</span>
-    </button>
-  </span>
+  <a
+    actions
+    mat-stroked-button
+    class="sessions"
+    [routerLink]="sessionsLink()"
+    [disabled]="!sessionsLink()"
+  >
+    <mat-icon aria-hidden="true">event_note</mat-icon>
+    Ver sesiones
+  </a>
 </app-page-header>
 
 @if (loadError(); as error) {
@@ -155,6 +158,13 @@
           <mat-icon aria-hidden="true">manage_accounts</mat-icon>
           Plan y asignación
         </a>
+        <a
+          mat-flat-button
+          [routerLink]="['/physio/patients', patientId, 'treatments', t.id, 'sessions', 'new']"
+        >
+          <mat-icon aria-hidden="true">add</mat-icon>
+          Registrar sesión
+        </a>
       </div>
     </section>
   } @else {
@@ -228,13 +238,28 @@
               [label]="statusLabels[previous.status]"
               [tone]="statusTones[previous.status]"
             />
-            <a
-              mat-stroked-button
-              [routerLink]="['/physio/patients', patientId, 'treatments', previous.id]"
-              [attr.aria-label]="'Plan y asignación del tratamiento ' + previous.diagnosis.code"
-            >
-              Plan y asignación
-            </a>
+            <div class="previous-actions">
+              <a
+                mat-stroked-button
+                [routerLink]="[
+                  '/physio/patients',
+                  patientId,
+                  'treatments',
+                  previous.id,
+                  'sessions',
+                ]"
+                [attr.aria-label]="'Sesiones del tratamiento ' + previous.diagnosis.code"
+              >
+                Sesiones
+              </a>
+              <a
+                mat-stroked-button
+                [routerLink]="['/physio/patients', patientId, 'treatments', previous.id]"
+                [attr.aria-label]="'Plan y asignación del tratamiento ' + previous.diagnosis.code"
+              >
+                Plan y asignación
+              </a>
+            </div>
           </li>
         }
       </ul>

@@ -1,0 +1,112 @@
+<app-page-header
+  title="Sesiones del Tratamiento"
+  subtitle="Sesiones registradas en orden de número, con su EVA, estado, evolución y responsable"
+  [backLink]="recordView"
+>
+  @if (treatment()?.status === 'ACTIVE') {
+    <a actions mat-flat-button [routerLink]="[sessionsBase, 'new']">
+      <mat-icon aria-hidden="true">add</mat-icon>
+      Registrar sesión
+    </a>
+  }
+</app-page-header>
+
+@if (loadError(); as message) {
+  <app-empty-state icon="event_busy" title="No se pudieron cargar las sesiones" [message]="message">
+    <a mat-stroked-button [routerLink]="recordView">Volver al expediente</a>
+  </app-empty-state>
+} @else {
+  @if (treatment(); as t) {
+    <section class="treatment" aria-label="Tratamiento">
+      <div>
+        <span class="code">{{ t.diagnosis.code }}</span>
+        <span class="diagnosis">{{ t.diagnosis.description }}</span>
+      </div>
+      <div class="meta">
+        Inicio: {{ t.startDate | date: 'dd/MM/yyyy' }} · {{ t.plannedSessions }} sesiones
+        planificadas
+      </div>
+      <app-status-badge
+        [label]="treatmentStatusLabels[t.status]"
+        [tone]="treatmentStatusTones[t.status]"
+      />
+    </section>
+  }
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" aria-label="Cargando sesiones" />
+  }
+
+  @if (sessions(); as page) {
+    <app-data-table
+      [columns]="columns"
+      [rows]="page.content"
+      [totalItems]="page.totalElements"
+      [pageSize]="pageSize"
+      [pageIndex]="pageIndex()"
+      (pageIndexChange)="pageIndex.set($event)"
+      caption="Sesiones del tratamiento"
+      itemLabel="sesiones"
+      emptyMessage="Aún no hay sesiones registradas en este tratamiento."
+    >
+      <ng-template appDataTableCell="sequenceNumber" [appDataTableCellOf]="page.content" let-s>
+        <span class="number">N.º {{ s.sequenceNumber }}</span>
+      </ng-template>
+
+      <ng-template appDataTableCell="sessionDate" [appDataTableCellOf]="page.content" let-s>
+        <div class="date">{{ s.sessionDate | date: 'dd/MM/yyyy' }}</div>
+        <div class="meta">{{ s.sessionTime.slice(0, 5) }}</div>
+      </ng-template>
+
+      <ng-template appDataTableCell="sessionType" [appDataTableCellOf]="page.content" let-s>
+        <div class="type">{{ s.sessionType }}</div>
+        @if (s.updatedAt) {
+          <div class="meta">Corregida el {{ s.updatedAt | date: 'dd/MM/yyyy, HH:mm' }}</div>
+        }
+      </ng-template>
+
+      <ng-template appDataTableCell="painScore" [appDataTableCellOf]="page.content" let-s>
+        <app-status-badge [label]="s.painScore + '/10'" [tone]="painTone(s.painScore)" />
+      </ng-template>
+
+      <ng-template appDataTableCell="status" [appDataTableCellOf]="page.content" let-s>
+        <div class="badges">
+          <app-status-badge [label]="statusLabels[s.status]" [tone]="statusTones[s.status]" />
+          <app-status-badge
+            [label]="progressLabels[s.progressStatus]"
+            [tone]="progressTones[s.progressStatus]"
+          />
+        </div>
+      </ng-template>
+
+      <ng-template appDataTableCell="responsible" [appDataTableCellOf]="page.content" let-s>
+        {{ s.responsible.fullName ?? 'Usuario #' + s.responsible.id }}
+      </ng-template>
+
+      <ng-template appDataTableCell="id" [appDataTableCellOf]="page.content" let-s>
+        <div class="actions">
+          @if (isMine(s)) {
+            <a
+              mat-icon-button
+              class="correct"
+              matTooltip="Corregir"
+              [routerLink]="[sessionsBase, s.id, 'edit']"
+              [attr.aria-label]="'Corregir la sesión N.º ' + s.sequenceNumber"
+            >
+              <mat-icon aria-hidden="true">edit</mat-icon>
+            </a>
+          }
+          <button
+            mat-icon-button
+            type="button"
+            matTooltip="Ver versiones"
+            (click)="showVersions(s)"
+            [attr.aria-label]="'Ver versiones de la sesión N.º ' + s.sequenceNumber"
+          >
+            <mat-icon aria-hidden="true">history</mat-icon>
+          </button>
+        </div>
+      </ng-template>
+    </app-data-table>
+  }
+}
