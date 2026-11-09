@@ -57,6 +57,49 @@ export interface TherapySessionVersion {
   session: TherapySession;
 }
 
+/** A point of the pain curve (HU-11): the initial evaluation or a COMPLETED session. */
+export interface PainPoint {
+  /** "Evaluación inicial" or "Sesión N". */
+  label: string;
+  /** `yyyy-MM-dd`. */
+  date: string;
+  painScore: number;
+  /** Null for the initial evaluation. */
+  sessionId: number | null;
+  sequenceNumber: number | null;
+}
+
+/** Starting point and plan of the treatment of a timeline. */
+export interface TimelineTreatment {
+  id: number;
+  patientId: number;
+  /** Sessions are only registered on active treatments. */
+  active: boolean;
+  startDate: string;
+  initialPainScore: number;
+  plannedSessions: number;
+  /** COMPLETED sessions of the whole treatment, whatever the filter. */
+  completedSessions: number;
+  diagnosis: { code: string; description: string };
+}
+
+/** GET /api/treatments/{id}/timeline (HU-11). */
+export interface TherapyTimeline {
+  treatment: TimelineTreatment;
+  from: string | null;
+  to: string | null;
+  /** Chronological order: date, time and sequence number. */
+  sessions: TherapySession[];
+  /** The initial evaluation followed by the COMPLETED sessions of the range. */
+  painCurve: PainPoint[];
+}
+
+/** Optional days (`yyyy-MM-dd`, Quito), both included. */
+export interface TimelineRange {
+  from: string | null;
+  to: string | null;
+}
+
 /** Same limit as the backend for the free-text columns. */
 export const SESSION_TEXT_MAX = 4000;
 export const SESSION_TYPE_MAX = 50;
@@ -71,6 +114,18 @@ export class TherapySessionApi {
     return this.http.get<Page<TherapySession>>(`/api/treatments/${treatmentId}/therapy-sessions`, {
       params: new HttpParams().set('page', page).set('size', size),
     });
+  }
+
+  /** The timeline of the treatment; an empty bound is not sent. The server audits it as READ of the treatment. */
+  timeline(treatmentId: number, range: TimelineRange): Observable<TherapyTimeline> {
+    let params = new HttpParams();
+    if (range.from) {
+      params = params.set('from', range.from);
+    }
+    if (range.to) {
+      params = params.set('to', range.to);
+    }
+    return this.http.get<TherapyTimeline>(`/api/treatments/${treatmentId}/timeline`, { params });
   }
 
   find(sessionId: number): Observable<TherapySession> {

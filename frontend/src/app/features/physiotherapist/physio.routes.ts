@@ -50,6 +50,11 @@ export const PHYSIO_ROUTES: Routes = [
       import('./sessions/therapy-session-list').then((m) => m.TherapySessionList),
   },
   {
+    path: 'patients/:patientId/treatments/:treatmentId/timeline',
+    title: 'Línea de Tiempo | Rehab Elite',
+    loadComponent: () => import('./sessions/therapy-timeline').then((m) => m.TherapyTimeline),
+  },
+  {
     path: 'patients/:patientId/treatments/:treatmentId/sessions/new',
     title: 'Registrar Sesión | Rehab Elite',
     loadComponent: () =>
@@ -72,16 +77,8 @@ export const PHYSIO_ROUTES: Routes = [
       icon: 'description',
     } satisfies PlaceholderPageData,
   },
-  {
-    path: 'timeline',
-    title: 'Línea de Tiempo | Rehab Elite',
-    component: PlaceholderPage,
-    data: {
-      heading: 'Línea de Tiempo Terapéutica',
-      subtitle: 'Registro cronológico de sesiones, escala EVA y actividades terapéuticas',
-      icon: 'schedule',
-    } satisfies PlaceholderPageData,
-  },
+  // The timeline belongs to a treatment (HU-11): the menu entry opens the patients to choose one
+  { path: 'timeline', redirectTo: 'patients' },
   {
     path: 'ai-assistant',
     title: 'Asistente Clínico IA | Rehab Elite',

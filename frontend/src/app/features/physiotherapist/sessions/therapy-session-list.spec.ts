@@ -115,6 +115,13 @@ describe('TherapySessionList', () => {
     expect(links('Registrar sesión')).toHaveLength(0);
   });
 
+  it('opens the timeline of the treatment, whatever its status', async () => {
+    await open('COMPLETED');
+    expect(links('Línea de tiempo')[0]?.getAttribute('href')).toBe(
+      '/physio/patients/15/treatments/30/timeline',
+    );
+  });
+
   it('loads the next page from the server', async () => {
     await open('ACTIVE', 12);
 

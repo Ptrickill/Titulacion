@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 
 /** Response bodies of the sessions API. */
 final class TherapySessionResponses {
@@ -45,6 +46,44 @@ final class TherapySessionResponses {
             return "TherapySessionResponse[id=" + id + "]";
         }
 
+    }
+
+    @Schema(description = "Diagnóstico CIE-10")
+    record DiagnosisResponse(@Schema(example = "M51.2") String code, String description) {
+    }
+
+    @Schema(description = "Punto de partida y plan del tratamiento")
+    record TimelineTreatmentResponse(
+            Long id,
+            Long patientId,
+            @Schema(description = "Si el tratamiento está activo (solo entonces se registran sesiones)") boolean active,
+            @Schema(description = "Fecha de inicio: la de la evaluación inicial") LocalDate startDate,
+            @Schema(description = "EVA de la evaluación inicial, 0 a 10") int initialPainScore,
+            @Schema(description = "Sesiones del plan terapéutico") int plannedSessions,
+            @Schema(description = "Sesiones COMPLETED de todo el tratamiento, sin importar el filtro")
+            long completedSessions,
+            DiagnosisResponse diagnosis) {
+    }
+
+    @Schema(description = "Punto de la curva de EVA")
+    record PainPointResponse(
+            @Schema(example = "Sesión 3", description = "\"Evaluación inicial\" o \"Sesión N\"") String label,
+            LocalDate date,
+            @Schema(description = "Escala EVA, 0 a 10") int painScore,
+            @Schema(description = "Sesión del punto; null en la evaluación inicial") Long sessionId,
+            @Schema(description = "Correlativo de la sesión; null en la evaluación inicial") Integer sequenceNumber) {
+    }
+
+    @Schema(description = "Línea de tiempo terapéutica de un tratamiento")
+    record TimelineResponse(
+            TimelineTreatmentResponse treatment,
+            @Schema(description = "Filtro aplicado: desde (día, inclusive); null sin filtro") LocalDate from,
+            @Schema(description = "Filtro aplicado: hasta (día, inclusive); null sin filtro") LocalDate to,
+            @Schema(description = "Sesiones del rango en orden cronológico (fecha, hora y correlativo)")
+            List<TherapySessionResponse> sessions,
+            @Schema(description = "Evaluación inicial seguida de las sesiones COMPLETED del rango; las sesiones "
+                    + "RESCHEDULED y NO_SHOW no son puntos de la curva")
+            List<PainPointResponse> painCurve) {
     }
 
     @Schema(description = "Versión de una sesión terapéutica guardada por Hibernate Envers")

@@ -278,6 +278,18 @@ class ClinicalAuditIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
+    void readingTheTimelineIsAuditedAsReadOfTheTreatment() throws Exception {
+        Long treatmentId = TestTreatments.insertActive(jdbc);
+        registerSession(treatmentId);
+        User reader = createUser(Role.PHYSIOTHERAPIST);
+
+        perform(reader, get("/api/treatments/{id}/timeline", treatmentId)).andExpect(status().isOk());
+
+        assertSingleEntry(reader, "READ", "Treatment", treatmentId);
+        assertThat(entriesOf(reader)).hasSize(1);
+    }
+
+    @Test
     void readingASessionAndItsVersionsIsAuditedAsRead() throws Exception {
         Long sessionId = registerSession(TestTreatments.insertActive(jdbc));
         User reader = createUser(Role.PHYSIOTHERAPIST);
@@ -315,6 +327,10 @@ class ClinicalAuditIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(status().isUnprocessableContent());
         perform(other, get("/api/treatments/{id}/therapy-sessions", 999_999_999L)).andExpect(status().isNotFound());
         perform(other, get("/api/therapy-sessions/{id}/versions", 999_999_999L)).andExpect(status().isNotFound());
+        perform(other, get("/api/treatments/{id}/timeline", 999_999_999L)).andExpect(status().isNotFound());
+        perform(other, get("/api/treatments/{id}/timeline", treatmentId).param("from", "2026-10-09")
+                        .param("to", "2026-10-08"))
+                .andExpect(status().isBadRequest());
 
         assertThat(entriesOf(other)).isEmpty();
     }

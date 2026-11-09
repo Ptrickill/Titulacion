@@ -69,6 +69,7 @@ export class TherapySessionList {
   private readonly treatmentId = Number(this.params.get('treatmentId'));
   protected readonly recordView = `/physio/patients/${this.patientId}/clinical-record`;
   protected readonly sessionsBase = `/physio/patients/${this.patientId}/treatments/${this.treatmentId}/sessions`;
+  protected readonly timelineView = `/physio/patients/${this.patientId}/treatments/${this.treatmentId}/timeline`;
 
   protected readonly pageSize = PAGE_SIZE;
   protected readonly painTone = painScoreTone;

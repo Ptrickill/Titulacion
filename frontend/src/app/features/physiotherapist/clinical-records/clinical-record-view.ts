@@ -60,14 +60,14 @@ export class ClinicalRecordView {
 
   protected readonly record = signal<PatientClinicalRecord | null>(null);
   protected readonly loadError = signal<{ message: string; withoutRecord: boolean } | null>(null);
-  /** Sessions of the active treatment or, without one, of the most recent treatment. */
-  protected readonly sessionsLink = computed(() => {
+  /** The active treatment or, without one, the most recent: "Ver sesiones" and "Línea de tiempo" open it. */
+  private readonly currentTreatmentId = computed(() => {
     const record = this.record();
-    const treatmentId = record?.activeTreatment?.id ?? record?.previousTreatments[0]?.id;
-    return treatmentId === undefined
-      ? null
-      : ['/physio/patients', this.patientId, 'treatments', treatmentId, 'sessions'];
+    return record?.activeTreatment?.id ?? record?.previousTreatments[0]?.id;
   });
+
+  protected readonly sessionsLink = computed(() => this.treatmentLink('sessions'));
+  protected readonly timelineLink = computed(() => this.treatmentLink('timeline'));
 
   constructor() {
     inject(ClinicalRecordApi)
@@ -76,6 +76,13 @@ export class ClinicalRecordView {
         next: (record) => this.record.set(record),
         error: (error: unknown) => this.loadError.set(this.errorFor(error)),
       });
+  }
+
+  private treatmentLink(page: 'sessions' | 'timeline'): (string | number)[] | null {
+    const treatmentId = this.currentTreatmentId();
+    return treatmentId === undefined
+      ? null
+      : ['/physio/patients', this.patientId, 'treatments', treatmentId, page];
   }
 
   private errorFor(error: unknown): { message: string; withoutRecord: boolean } {

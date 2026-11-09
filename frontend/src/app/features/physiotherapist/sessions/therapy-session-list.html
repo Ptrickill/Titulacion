@@ -3,6 +3,10 @@
   subtitle="Sesiones registradas en orden de número, con su EVA, estado, evolución y responsable"
   [backLink]="recordView"
 >
+  <a actions mat-stroked-button class="timeline" [routerLink]="timelineView">
+    <mat-icon aria-hidden="true">timeline</mat-icon>
+    Línea de tiempo
+  </a>
   @if (treatment()?.status === 'ACTIVE') {
     <a actions mat-flat-button [routerLink]="[sessionsBase, 'new']">
       <mat-icon aria-hidden="true">add</mat-icon>
