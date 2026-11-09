@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -16,7 +17,6 @@ import ec.rehabelite.auth.domain.User;
 import ec.rehabelite.auth.domain.UserRepository;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -69,16 +69,17 @@ class TherapyTimelineIntegrationTests extends AbstractIntegrationTest {
     private LocalDate start;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         valeria = createUser(Role.PHYSIOTHERAPIST, "Lcda. Valeria Andrade");
         mateo = createUser(Role.PHYSIOTHERAPIST, "Lcdo. Mateo Ríos");
         treatmentId = TestTreatments.insertActive(jdbc);
         start = jdbc.queryForObject("SELECT start_date FROM treatments WHERE id = ?", LocalDate.class, treatmentId);
-        insert(1, valeria, 2, "10:00", 6, "COMPLETED");
-        insert(2, mateo, 5, "08:00", 6, "RESCHEDULED");
-        insert(3, mateo, 2, "08:00", 5, "COMPLETED");
-        insert(4, valeria, 5, "08:00", 5, "NO_SHOW");
-        insert(5, valeria, 9, "09:00", 3, "COMPLETED");
+        // The server numbers them in this order: #1 to #5
+        register(valeria, 2, "10:00", 6, "COMPLETED");
+        register(mateo, 5, "08:00", 6, "RESCHEDULED");
+        register(mateo, 2, "08:00", 5, "COMPLETED");
+        register(valeria, 5, "08:00", 5, "NO_SHOW");
+        register(valeria, 9, "09:00", 3, "COMPLETED");
     }
 
     @Test
@@ -174,21 +175,25 @@ class TherapyTimelineIntegrationTests extends AbstractIntegrationTest {
 
     @Test
     void aStartAfterTheEndIsRejectedAndNotAudited() throws Exception {
-        timeline(valeria, day(9), day(5))
+        User reader = createUser(Role.PHYSIOTHERAPIST, "Lcda. Paula Mena");
+
+        timeline(reader, day(9), day(5))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Solicitud no válida"))
                 .andExpect(jsonPath("$.detail").value(INVALID_RANGE));
 
-        assertThat(auditEntriesOf(valeria)).isEmpty();
+        assertThat(auditEntriesOf(reader)).isEmpty();
     }
 
     @Test
     void anUnknownTreatmentIsNotFoundAndNotAudited() throws Exception {
-        perform(valeria, get("/api/treatments/{id}/timeline", 999_999_999L))
+        User reader = createUser(Role.PHYSIOTHERAPIST, "Lcda. Paula Mena");
+
+        perform(reader, get("/api/treatments/{id}/timeline", 999_999_999L))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.detail").value("El tratamiento no existe."));
 
-        assertThat(auditEntriesOf(valeria)).isEmpty();
+        assertThat(auditEntriesOf(reader)).isEmpty();
     }
 
     @Test
@@ -222,9 +227,12 @@ class TherapyTimelineIntegrationTests extends AbstractIntegrationTest {
 
     // ----- helpers -----
 
-    private void insert(int sequenceNumber, User responsible, int day, String time, int painScore, String status) {
-        TestSessions.insert(jdbc, treatmentId, sequenceNumber, responsible.getId(), start.plusDays(day),
-                LocalTime.parse(time), painScore, status);
+    /** Registered through the API, so the responsible is the user and the time is stored as the application does. */
+    private void register(User responsible, int day, String time, int painScore, String status) throws Exception {
+        perform(responsible, post("/api/treatments/{id}/therapy-sessions", treatmentId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(TestSessions.body(start.plusDays(day), time, painScore, status)))
+                .andExpect(status().isCreated());
     }
 
     /** Day {@code n} of the treatment as the API writes it. */
