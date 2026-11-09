@@ -6,6 +6,7 @@ import ec.rehabelite.sessions.application.TherapySessionService.SessionPage;
 import ec.rehabelite.sessions.web.TherapySessionResponses.StaffResponse;
 import ec.rehabelite.sessions.web.TherapySessionResponses.TherapySessionResponse;
 import ec.rehabelite.sessions.web.TherapySessionResponses.TherapySessionVersionResponse;
+import ec.rehabelite.sessions.web.TherapySessionResponses.TimelineResponse;
 import ec.rehabelite.shared.web.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -17,8 +18,10 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.net.URI;
+import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -81,6 +84,29 @@ class TherapySessionController {
         SessionPage sessions = sessionService.list(treatmentId, page, size);
         return PageResponse.of(sessions.sessions(), session -> mapper.toResponse(session,
                 new StaffResponse(session.getResponsibleId(), sessions.nameOf(session.getResponsibleId()))));
+    }
+
+    @GetMapping(path = "/api/treatments/{treatmentId}/timeline", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Línea de tiempo del tratamiento",
+            description = "Sesiones del tratamiento en orden cronológico (fecha, hora y correlativo) con su "
+                    + "responsable, el punto de partida (fecha de inicio, EVA inicial, sesiones planificadas y "
+                    + "diagnóstico) y la curva de EVA: la evaluación inicial seguida de las sesiones COMPLETED. Las "
+                    + "fechas filtran por días de Quito, ambas incluidas. Cada consulta queda auditada como READ del "
+                    + "tratamiento.")
+    @ApiResponse(responseCode = "200", description = "Línea de tiempo")
+    @ApiResponse(responseCode = "400", description = "Fecha inicial posterior a la final, o fecha con formato no "
+            + "válido", content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                    schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "403", description = "El rol no es fisioterapeuta", content = @Content(
+            mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "404", description = "El tratamiento no existe", content = @Content(
+            mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = ProblemDetail.class)))
+    TimelineResponse timeline(@PathVariable Long treatmentId,
+            @Parameter(description = "Desde (día, inclusive)", example = "2026-10-01")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @Parameter(description = "Hasta (día, inclusive)", example = "2026-10-31")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return mapper.toResponse(sessionService.timeline(treatmentId, from, to), from, to);
     }
 
     @GetMapping(path = "/api/therapy-sessions/{sessionId}", produces = MediaType.APPLICATION_JSON_VALUE)

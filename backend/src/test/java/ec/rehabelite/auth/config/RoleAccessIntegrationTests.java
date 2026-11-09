@@ -72,6 +72,7 @@ class RoleAccessIntegrationTests extends AbstractIntegrationTest {
             new Area("/api/physio/physiotherapists", "physio", null, PHYSIOTHERAPIST),
             new Area("/api/therapy-sessions", "therapy-sessions", null, PHYSIOTHERAPIST),
             new Area("/api/treatments/3/therapy-sessions", "treatments", 3L, PHYSIOTHERAPIST),
+            new Area("/api/treatments/3/timeline", "treatments", 3L, PHYSIOTHERAPIST),
             new Area("/api/therapy-sessions/5", "therapy-sessions", 5L, PHYSIOTHERAPIST),
             new Area("/api/therapy-sessions/5/versions", "therapy-sessions", 5L, PHYSIOTHERAPIST),
             new Area("/api/ai-summaries/9", "ai-summaries", 9L, PHYSIOTHERAPIST),

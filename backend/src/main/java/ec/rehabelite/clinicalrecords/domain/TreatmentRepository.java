@@ -16,6 +16,13 @@ public interface TreatmentRepository extends JpaRepository<Treatment, Long> {
     @EntityGraph(attributePaths = {"clinicalRecord", "diagnosis", "responsibleAssignments"})
     Optional<Treatment> findWithDetailsById(Long id);
 
+    /**
+     * The treatment with its clinical record (for the patient id) and diagnosis in one statement: what
+     * TreatmentQueryPort tells the other modules.
+     */
+    @EntityGraph(attributePaths = {"clinicalRecord", "diagnosis"})
+    Optional<Treatment> findSummaryById(Long id);
+
     /** Locks the treatment row until the transaction ends, so concurrent changes run one after the other. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT t FROM Treatment t WHERE t.id = :id")

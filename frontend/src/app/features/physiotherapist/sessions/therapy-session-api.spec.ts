@@ -2,7 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { painScoreLabel } from './session-labels';
-import { fakeSession, fakeVersions, pageOf } from './session-testing';
+import { fakeSession, fakeTimeline, fakeVersions, pageOf } from './session-testing';
 import { TherapySessionApi, TherapySessionRequest } from './therapy-session-api';
 
 describe('TherapySessionApi', () => {
@@ -60,6 +60,30 @@ describe('TherapySessionApi', () => {
 
     backend.expectOne('/api/therapy-sessions/90').flush(fakeSession(90));
     backend.expectOne('/api/therapy-sessions/90/versions').flush(fakeVersions());
+  });
+
+  it('reads the timeline of a treatment without a range', () => {
+    api
+      .timeline(30, { from: null, to: null })
+      .subscribe((timeline) => expect(timeline.painCurve).toHaveLength(3));
+
+    const call = backend.expectOne((r) => r.url === '/api/treatments/30/timeline');
+    expect(call.request.method).toBe('GET');
+    expect(call.request.params.keys()).toEqual([]);
+    call.flush(fakeTimeline());
+  });
+
+  it('sends only the bounds of the range that are set', () => {
+    api.timeline(30, { from: '2026-10-05', to: '2026-10-31' }).subscribe();
+    api.timeline(30, { from: null, to: '2026-10-31' }).subscribe();
+
+    const [both, onlyTo] = backend.match((r) => r.url === '/api/treatments/30/timeline');
+    expect(both.request.params.get('from')).toBe('2026-10-05');
+    expect(both.request.params.get('to')).toBe('2026-10-31');
+    expect(onlyTo.request.params.has('from')).toBe(false);
+    expect(onlyTo.request.params.get('to')).toBe('2026-10-31');
+    both.flush(fakeTimeline());
+    onlyTo.flush(fakeTimeline());
   });
 
   it('names the intensity of each EVA value as prototype 06', () => {

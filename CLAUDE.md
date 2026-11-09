@@ -108,7 +108,8 @@ Reglas:
     - `findActivePhysiotherapist(id)`, `activePhysiotherapists()` y `fullNames(ids)` devuelven `StaffMember` (id y nombre) o los nombres, también de cuentas desactivadas.
     - Es la única forma en que otros módulos consultan cuentas del personal; `auth` nunca depende de ellos.
   - `ec.rehabelite.clinicalrecords.TreatmentQueryPort` (HU-10):
-    - `find(id)` devuelve `TreatmentSummary` (id, paciente, `active` y fecha de inicio), sin datos clínicos.
+    - `find(id)` devuelve `TreatmentSummary`: id, paciente, `active`, fecha de inicio y, desde HU-11, el punto de partida (`initialPainScore`, `plannedSessions` y el diagnóstico CIE-10, código y descripción). Nada más del contenido clínico (motivo, enfermedad, objetivo...) y nunca la entidad.
+    - `find` usa `TreatmentRepository.findSummaryById` (`@EntityGraph` de historial y diagnóstico): una sola sentencia.
     - `lockForSessionRegistration(id)` devuelve lo mismo, pero bloquea la fila del tratamiento (`PESSIMISTIC_WRITE`) hasta que termina la transacción de quien llama. Exige una transacción abierta (`MANDATORY`).
     - Es la única forma en que otros módulos (`sessions`, ...) consultan tratamientos; `clinicalrecords` nunca depende de `sessions`.
   - `ec.rehabelite.audit.EntityVersionHistory` (HU-10): `versionsOf(clase, id)` devuelve las versiones de Envers de una entidad `@Audited`, de la más antigua a la más reciente. Cada `EntityVersion` trae la entidad, la revisión, el tipo (`CREATE`, `UPDATE`, `DELETE`), la fecha y el autor (o `null`). Así ningún módulo usa `AuditRevision` ni Envers directamente.
@@ -201,6 +202,17 @@ Reglas:
   - `GET /api/therapy-sessions/{id}/versions`: versiones de la más reciente a la más antigua, con tipo (`CREATE` registro, `UPDATE` corrección), fecha, autor (`changedBy`, id y nombre) y el contenido de la sesión en esa versión. Cualquier fisioterapeuta las ve.
   - No existe `DELETE`: una sesión nunca se elimina (405, con `Allow: GET, PUT`).
   - `TherapySession` guarda `treatmentId` y `responsibleId` como ids, sin relación JPA, porque son de otros módulos.
+- Línea de tiempo terapéutica (HU-11), módulo `sessions` (`TherapySessionService.timeline`), solo `PHYSIOTHERAPIST`:
+  - `GET /api/treatments/{treatmentId}/timeline?from=&to=` devuelve:
+    - `treatment`: id, paciente, `active`, fecha de inicio, EVA inicial, sesiones planificadas, `completedSessions` (las `COMPLETED` de todo el tratamiento, sin importar el filtro) y diagnóstico. Sale de `TreatmentQueryPort.find`.
+    - `sessions`: las sesiones del rango en orden cronológico (fecha, hora y correlativo), con el mismo cuerpo que `GET /api/therapy-sessions/{id}`. Los nombres de los responsables salen de **una** llamada a `StaffDirectory.fullNames`.
+    - `painCurve`: la curva de EVA (`PainPoint.curveOf`, en `sessions.domain`). El primer punto es siempre la EVA inicial con la etiqueta "Evaluación inicial" y la fecha de inicio, aunque haya filtro; después, solo las sesiones `COMPLETED` del rango ("Sesión N"). Las `RESCHEDULED` y `NO_SHOW` aparecen en `sessions`, pero no en la curva.
+    - `from` y `to`: el filtro aplicado.
+  - `from` y `to` son opcionales e inclusivos, en días de Quito (`session_date`). La consulta es una `Specification` (`TherapySessionRepository.findTimeline`): solo los límites enviados se vuelven predicados, porque PostgreSQL no acepta `:param IS NULL` con un parámetro nulo sin tipo.
+  - Errores: `from` posterior a `to` responde 400 con `InvalidRequestException` "La fecha inicial no puede ser posterior a la fecha final." antes de leer nada. Tratamiento inexistente: 404. Ninguno se audita.
+  - Cada consulta correcta audita `READ Treatment`.
+  - **Número fijo de sentencias, sin N+1**: validación del token, tratamiento con historial y diagnóstico, sesiones, conteo de `COMPLETED`, nombres e `INSERT` de auditoría. Son 6, con 1 o con 100 sesiones. Lo comprueba `TherapyTimelinePerformanceIntegrationTests` (100 sesiones de cuatro fisioterapeutas: menos de 2 s, como máximo 6 sentencias y el mismo conteo que con 1 sesión), con Hibernate Statistics como en HU-09.
+  - No es paginada: la vista es la historia completa del tratamiento.
 - Auditoría de información clínica (HU-18, LOPDP):
   - **Regla:** toda operación sobre datos clínicos registra en `audit_logs` el usuario, la acción, la entidad, su id, la fecha (`occurred_at`) y la IP. Los datos personales del paciente no se auditan al leerlos (sí al crearlos o modificarlos). Las peticiones rechazadas (400, 404, 422) no se auditan; los 403 sí (`ACCESS_DENIED`). Un servicio que lee y audita es `@Transactional` sin `readOnly`, porque la auditoría inserta en la misma transacción.
 
@@ -223,6 +235,7 @@ Reglas:
     | `GET /api/treatments/{id}/therapy-sessions` | `READ Treatment` |
     | `GET /api/therapy-sessions/{id}`, `GET /api/therapy-sessions/{id}/versions` | `READ TherapySession` |
     | `PUT /api/therapy-sessions/{id}` | `UPDATE TherapySession` (solo si cambia algo); si no es el autor, `ACCESS_DENIED therapy-sessions` |
+    | `GET /api/treatments/{id}/timeline` | `READ Treatment` |
 
     Al añadir un endpoint clínico, agregarlo a esta tabla y a `ClinicalAuditIntegrationTests`.
   - **IP del cliente:** `server.forward-headers-strategy: framework`. La IP se toma de `X-Forwarded-For` (`ForwardedHeaderFilter`) **solo porque en producción la aplicación está detrás del proxy de Render**, que pone esa cabecera. El filtro confía en la cabecera de cualquier cliente, así que el backend nunca debe quedar expuesto sin el proxy. Sin la cabecera (desarrollo, pruebas) se usa la dirección de la conexión.
@@ -347,7 +360,7 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
 
 - Requiere Node.js `^22.22.3`. `npm start` sirve en `http://localhost:4200` y redirige `/api` a `http://localhost:8080` (`proxy.conf.json`).
 - Carpetas: `src/app/core` (`AuthService` con login y sesión en signals, `authGuard`/`roleGuard`, `authInterceptor`, roles, locale `es-EC`), `src/app/shared/layout` (`AppShell`, `nav-items.ts`, `PlaceholderPage`), `src/app/shared/ui` (componentes reutilizables), `src/app/features/auth`, `features/admin`, `features/physiotherapist`, `features/director`, `features/patient`, `features/dev` (solo desarrollo).
-- Rutas: `/login` y, dentro de `AppShell`, un `*.routes.ts` por rol: `/physio` (`patients`, `clinical-records`, `timeline`, `ai-assistant`), `/admin` (`users`, `patients`, `reports`, `audit`), `/director` (`reports`, `audit`), `/patient`. Cada rol protegido por `authGuard` + `roleGuard(rol)` y cargado de forma diferida. Las secciones sin historia implementada usan `PlaceholderPage` (título y subtítulo en `data`); la historia reemplaza ese `component` por su página real.
+- Rutas: `/login` y, dentro de `AppShell`, un `*.routes.ts` por rol: `/physio` (`patients`, `clinical-records`, `timeline` redirige a `patients` desde HU-11, `ai-assistant`), `/admin` (`users`, `patients`, `reports`, `audit`), `/director` (`reports`, `audit`), `/patient`. Cada rol protegido por `authGuard` + `roleGuard(rol)` y cargado de forma diferida. Las secciones sin historia implementada usan `PlaceholderPage` (título y subtítulo en `data`); la historia reemplaza ese `component` por su página real.
 - Componentes de `shared/ui` (standalone, con pruebas): `page-header`, `stat-card` (variante `compact` para filas de cuatro tarjetas), `status-badge`, `data-table` (paginación en cliente, o en servidor con `[totalItems]` y `[(pageIndex)]`; `appDataTableCell` para celdas personalizadas, y `[appDataTableCellOf]="filas"` tipa `let-row`), `form-section`, `empty-state` (admite varias acciones, separadas), `confirm-dialog` (`openConfirmDialog()` devuelve `Observable<boolean>`) y `hero-banner`. Usarlos antes de crear componentes nuevos. Catálogo visual en `/ui-kit` (solo `isDevMode()`).
 - Diseño: seguir `docs/prototype/`. Capturas de comparación por tarea en `docs/screenshots/<tarea>/`.
 - Nombres según la guía de estilo de Angular CLI 22, en inglés: archivo `patient-list.ts`, clase `PatientList`, selector `app-patient-list`; guards/interceptores `*-guard.ts` / `*-interceptor.ts`. Textos de la interfaz en español.
@@ -384,6 +397,7 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
   - Sin tratamiento activo, ofrece "Nuevo tratamiento". Sin historial (404), ofrece "Crear historial".
   - "Editar historial" abre `/physio/patients/:patientId/clinical-record/edit`.
   - "Ver sesiones" abre las sesiones del tratamiento activo o, si no hay, del más reciente. La tarjeta del plan activo tiene "Registrar sesión", y cada tratamiento anterior tiene un enlace "Sesiones" (HU-10).
+  - "Línea de tiempo" (HU-11) está en la cabecera (mismo tratamiento que "Ver sesiones"), en la tarjeta del plan activo y en cada tratamiento anterior.
   - `ClinicalRecordForm` tiene tres modos:
     - `record` y `treatment`, los de HU-07;
     - `edit`, que se activa con `data: { mode: 'edit' }` en la ruta y muestra solo "Hábitos y antecedentes", precargado desde el expediente, con `PUT`.
@@ -401,6 +415,18 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
   - Al guardar, el formulario abre la lista. En un tratamiento que no está activo, no permite registrar.
   - `SessionVersionsDialog` (`openSessionVersionsDialog`) muestra las versiones de la más reciente a la más antigua, con su autor y fecha.
   - Etiquetas de estado, evolución e intensidad de la EVA en `session-labels.ts`.
+  - La lista tiene "Línea de tiempo" en la cabecera, sea cual sea el estado del tratamiento.
+- Línea de tiempo terapéutica (HU-11), en `features/physiotherapist/sessions`:
+  - `/physio/patients/:patientId/treatments/:treatmentId/timeline` (`TherapyTimeline`, prototipo 05) se arma con `GET /api/treatments/{id}/timeline` y `GET /api/patients/{id}` (cédula y nombre; datos personales, no se auditan). Muestra:
+    - la barra del paciente con la patología, el inicio, la EVA inicial y "Progreso: N / M Sesiones Planificadas";
+    - el filtro "Desde" / "Hasta" con "Limpiar", como en la auditoría: cada cambio recarga; con "Desde" posterior a "Hasta" no busca y solo muestra el aviso;
+    - "Curva de EVA por sesión" (`PainCurveChart`) cuando hay al menos una sesión realizada; si no, un aviso;
+    - una tarjeta por sesión sobre un riel vertical: "Sesión NN", fecha, hora, tipo, responsable, EVA, estado, evolución, actividades, observaciones clínicas (interno) e indicaciones para el paciente;
+    - el estado vacío "Aún no hay sesiones registradas" o, con filtro, "No hay sesiones en ese rango de fechas".
+  - "Registrar Sesión de Hoy" solo si el tratamiento está activo; "Ver sesiones" siempre. Si el tratamiento es de otro paciente, muestra un aviso.
+  - La entrada "Línea de Tiempo" del menú lleva a `/physio/patients`, porque la línea de tiempo pertenece a un tratamiento.
+  - `PainCurveChart` envuelve `BaseChartDirective` de **ng2-charts 11** (compatible con Angular 22) y **chart.js 4**. Registra solo lo que usa una línea (`provideCharts` en el componente). Es una sola serie: línea de 2 px en `--re-text-teal`, puntos de 8 px, la evaluación inicial hueca, eje EVA fijo de 0 a 10, tooltip con punto, fecha e intensidad, y sin leyenda. Los colores y la fuente se leen de los tokens `--re-*` con `getComputedStyle`, porque el canvas no entiende variables CSS. Una tabla `re-visually-hidden` repite los puntos para lectores de pantalla.
+  - En pruebas, `stubCanvas()` de `session-testing.ts` simula el contexto 2D (jsdom no tiene canvas) y `ResizeObserver`, para que Chart.js cree el gráfico de verdad. Devuelve la función que restaura el original.
 - Auditoría (HU-18):
   - `features/audit/AuditLogList` se reutiliza en `/admin/audit` y `/director/audit`, con la entrada "Auditoría" en el menú de ambos roles.
   - Tabla paginada en el servidor (20 por página) con fecha y hora de Quito, usuario, acción (badge), entidad con id e IP. Solo metadatos.
@@ -419,6 +445,7 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
 - Commits en inglés con Conventional Commits y número de issue: `feat(patients): register patient #8`.
 - Ramas: `feature/HU-XX-short-description` (historias), `feature/TEC-XX-...` (tareas técnicas) y `chore/...` (mantenimiento), creadas siempre desde `develop`.
 - Flujo de ramas: los PR de `feature/*` y `chore/*` van **siempre hacia `develop`**, nunca hacia `main`. `develop` se fusiona en `main` **solo al cierre de cada sprint**, mediante un PR `develop → main`. Antes de crear un PR, comprobar que la rama base sea `develop` (GitHub propone `main` por defecto).
+- **Claude Code no fusiona PR**: nunca `gh pr merge` ni fusiones locales hacia `develop` o `main`. José Luis aprueba cada PR y Daniel lo fusiona. Claude Code llega hasta crear o actualizar el PR y reportar su CI; si una tarea depende de un PR abierto, pide que lo fusionen y luego actualiza `develop` con `git pull`.
 - `.editorconfig`: UTF-8, LF, 4 espacios en Java/XML, 2 en TypeScript, HTML, SCSS, YAML y JSON.
 - `README.md` en inglés; documentación funcional en español en `docs/` (`docs/user-stories.md`, evidencias por sprint en `docs/evidence/sprint-N/`).
 - Cada historia es un issue con la plantilla **Historia de usuario** (Como/quiero/para + Dado/Cuando/Entonces); cada PR usa `.github/pull_request_template.md` e incluye `Closes #N`.
@@ -438,7 +465,7 @@ Una historia está terminada cuando:
 
 - Presentar un **plan antes de implementar** cada historia de usuario.
 - **Una historia por rama.**
-- Cada historia tiene su issue en GitHub, con la etiqueta de su sección PB y el milestone de su sprint. Las pendientes son HU-11 (#35) y HU-12 a HU-17 (#36 a #41); las ya implementadas están cerradas con su PR. El PR de la historia lleva `Closes #N` en la descripción.
+- Cada historia tiene su issue en GitHub, con la etiqueta de su sección PB y el milestone de su sprint. Las pendientes son HU-12 a HU-17 (#36 a #41); las ya implementadas están cerradas con su PR. El PR de la historia lleva `Closes #N` en la descripción.
 
 ## Docker
 

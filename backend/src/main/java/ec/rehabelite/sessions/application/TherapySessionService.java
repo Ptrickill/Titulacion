@@ -8,13 +8,17 @@ import ec.rehabelite.auth.CurrentUserProvider;
 import ec.rehabelite.auth.StaffDirectory;
 import ec.rehabelite.clinicalrecords.TreatmentQueryPort;
 import ec.rehabelite.clinicalrecords.TreatmentSummary;
+import ec.rehabelite.sessions.domain.PainPoint;
+import ec.rehabelite.sessions.domain.SessionStatus;
 import ec.rehabelite.sessions.domain.TherapySession;
 import ec.rehabelite.sessions.domain.TherapySessionData;
 import ec.rehabelite.sessions.domain.TherapySessionRepository;
 import ec.rehabelite.shared.domain.BusinessRuleException;
 import ec.rehabelite.shared.domain.ForbiddenOperationException;
+import ec.rehabelite.shared.domain.InvalidRequestException;
 import ec.rehabelite.shared.domain.ResourceNotFoundException;
 import java.time.Clock;
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +51,7 @@ public class TherapySessionService {
     static final String DATE_BEFORE_TREATMENT_START =
             "La fecha de la sesión no puede ser anterior al inicio del tratamiento.";
     static final String ONLY_THE_AUTHOR_CORRECTS = "Solo el fisioterapeuta que registró la sesión puede corregirla.";
+    static final String INVALID_RANGE = "La fecha inicial no puede ser posterior a la fecha final.";
 
     private static final Logger log = LoggerFactory.getLogger(TherapySessionService.class);
     private static final Sort BY_SEQUENCE = Sort.by("sequenceNumber");
@@ -77,6 +82,23 @@ public class TherapySessionService {
 
         public String nameOf(Long userId) {
             return userId == null ? null : userNames.get(userId);
+        }
+
+    }
+
+    /**
+     * The timeline of a treatment (HU-11).
+     *
+     * @param treatment         starting point: start date, initial pain score, planned sessions and diagnosis
+     * @param completedSessions COMPLETED sessions of the whole treatment, whatever the filter (progress of the plan)
+     * @param sessions          sessions of the range, in chronological order
+     * @param painCurve         initial evaluation followed by the COMPLETED sessions of the range
+     */
+    public record Timeline(TreatmentSummary treatment, long completedSessions, List<TherapySession> sessions,
+            List<PainPoint> painCurve, Map<Long, String> userNames) {
+
+        public String nameOf(Long userId) {
+            return userNames.get(userId);
         }
 
     }
@@ -126,6 +148,33 @@ public class TherapySessionService {
 
         auditLogService.record(AuditAction.READ, TREATMENT_ENTITY, treatmentId);
         return new SessionPage(sessions, names);
+    }
+
+    /**
+     * The therapy timeline of a treatment (HU-11): its starting point, the sessions in chronological order between
+     * two optional days (both included) with the names of their responsibles, and the pain curve. The read is
+     * audited as READ of the treatment. A fixed number of statements, whatever the number of sessions: the
+     * treatment, the sessions, the completed count, the names in one call and the audit entry.
+     *
+     * @throws InvalidRequestException if {@code from} is after {@code to} (nothing is read nor audited)
+     * @throws ResourceNotFoundException if the treatment does not exist (not audited)
+     */
+    @Transactional
+    public Timeline timeline(Long treatmentId, LocalDate from, LocalDate to) {
+        if (from != null && to != null && from.isAfter(to)) {
+            throw new InvalidRequestException(INVALID_RANGE);
+        }
+        TreatmentSummary treatment = treatmentQuery.find(treatmentId)
+                .orElseThrow(() -> new ResourceNotFoundException(TREATMENT_NOT_FOUND));
+        List<TherapySession> sessions = sessionRepository.findTimeline(treatmentId, from, to);
+        long completedSessions = sessionRepository.countByTreatmentIdAndStatus(treatmentId, SessionStatus.COMPLETED);
+        Set<Long> responsibleIds = new HashSet<>();
+        sessions.forEach(session -> responsibleIds.add(session.getResponsibleId()));
+        Map<Long, String> names = responsibleIds.isEmpty() ? Map.of() : staffDirectory.fullNames(responsibleIds);
+
+        auditLogService.record(AuditAction.READ, TREATMENT_ENTITY, treatmentId);
+        return new Timeline(treatment, completedSessions, sessions,
+                PainPoint.curveOf(treatment.startDate(), treatment.initialPainScore(), sessions), names);
     }
 
     /**

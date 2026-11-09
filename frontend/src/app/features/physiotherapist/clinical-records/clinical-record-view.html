@@ -23,6 +23,16 @@
     <mat-icon aria-hidden="true">event_note</mat-icon>
     Ver sesiones
   </a>
+  <a
+    actions
+    mat-stroked-button
+    class="timeline"
+    [routerLink]="timelineLink()"
+    [disabled]="!timelineLink()"
+  >
+    <mat-icon aria-hidden="true">timeline</mat-icon>
+    Línea de tiempo
+  </a>
 </app-page-header>
 
 @if (loadError(); as error) {
@@ -159,6 +169,13 @@
           Plan y asignación
         </a>
         <a
+          mat-stroked-button
+          [routerLink]="['/physio/patients', patientId, 'treatments', t.id, 'timeline']"
+        >
+          <mat-icon aria-hidden="true">timeline</mat-icon>
+          Línea de tiempo
+        </a>
+        <a
           mat-flat-button
           [routerLink]="['/physio/patients', patientId, 'treatments', t.id, 'sessions', 'new']"
         >
@@ -251,6 +268,19 @@
                 [attr.aria-label]="'Sesiones del tratamiento ' + previous.diagnosis.code"
               >
                 Sesiones
+              </a>
+              <a
+                mat-stroked-button
+                [routerLink]="[
+                  '/physio/patients',
+                  patientId,
+                  'treatments',
+                  previous.id,
+                  'timeline',
+                ]"
+                [attr.aria-label]="'Línea de tiempo del tratamiento ' + previous.diagnosis.code"
+              >
+                Línea de tiempo
               </a>
               <a
                 mat-stroked-button

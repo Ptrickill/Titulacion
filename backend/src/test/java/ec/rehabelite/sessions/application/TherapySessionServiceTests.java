@@ -2,6 +2,7 @@ package ec.rehabelite.sessions.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.Mockito.inOrder;
@@ -21,6 +22,8 @@ import ec.rehabelite.clinicalrecords.TreatmentQueryPort;
 import ec.rehabelite.clinicalrecords.TreatmentSummary;
 import ec.rehabelite.sessions.application.TherapySessionService.NamedSession;
 import ec.rehabelite.sessions.application.TherapySessionService.SessionVersions;
+import ec.rehabelite.sessions.application.TherapySessionService.Timeline;
+import ec.rehabelite.sessions.domain.PainPoint;
 import ec.rehabelite.sessions.domain.ProgressStatus;
 import ec.rehabelite.sessions.domain.SessionStatus;
 import ec.rehabelite.sessions.domain.TherapySession;
@@ -28,6 +31,7 @@ import ec.rehabelite.sessions.domain.TherapySessionData;
 import ec.rehabelite.sessions.domain.TherapySessionRepository;
 import ec.rehabelite.shared.domain.BusinessRuleException;
 import ec.rehabelite.shared.domain.ForbiddenOperationException;
+import ec.rehabelite.shared.domain.InvalidRequestException;
 import ec.rehabelite.shared.domain.ResourceNotFoundException;
 import java.time.Clock;
 import java.time.Instant;
@@ -37,6 +41,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
@@ -63,7 +68,7 @@ class TherapySessionServiceTests {
 
     @BeforeEach
     void setUp() {
-        TreatmentSummary active = new TreatmentSummary(TREATMENT_ID, 15L, true, START);
+        TreatmentSummary active = treatment(true);
         when(treatmentQuery.lockForSessionRegistration(TREATMENT_ID)).thenReturn(Optional.of(active));
         when(treatmentQuery.find(TREATMENT_ID)).thenReturn(Optional.of(active));
         when(currentUserProvider.currentUserId()).thenReturn(Optional.of(PHYSIO_ID));
@@ -115,7 +120,7 @@ class TherapySessionServiceTests {
     @Test
     void aTreatmentThatIsNotActiveRejectsSessions() {
         when(treatmentQuery.lockForSessionRegistration(TREATMENT_ID))
-                .thenReturn(Optional.of(new TreatmentSummary(TREATMENT_ID, 15L, false, START)));
+                .thenReturn(Optional.of(treatment(false)));
 
         assertThatThrownBy(() -> service.register(TREATMENT_ID, data(START, 5)))
                 .isInstanceOf(BusinessRuleException.class)
@@ -206,6 +211,84 @@ class TherapySessionServiceTests {
         assertThat(versions.nameOf(PHYSIO_ID)).isEqualTo("Lcda. Valeria Andrade");
         assertThat(versions.nameOf(null)).isNull();
         verify(auditLogService).record(AuditAction.READ, "TherapySession", SESSION_ID);
+    }
+
+    // ----- timeline (HU-11) -----
+
+    @Test
+    void theTimelineHasTheSessionsTheirResponsiblesAndThePainCurveAndIsAudited() {
+        TherapySession first = session(1, PHYSIO_ID, LocalDate.of(2026, 10, 3), 6, SessionStatus.COMPLETED);
+        TherapySession rescheduled = session(2, OTHER_PHYSIO_ID, LocalDate.of(2026, 10, 6), 6,
+                SessionStatus.RESCHEDULED);
+        TherapySession noShow = session(3, OTHER_PHYSIO_ID, LocalDate.of(2026, 10, 8), 6, SessionStatus.NO_SHOW);
+        TherapySession last = session(4, OTHER_PHYSIO_ID, LocalDate.of(2026, 10, 10), 3, SessionStatus.COMPLETED);
+        when(sessionRepository.findTimeline(TREATMENT_ID, null, null))
+                .thenReturn(List.of(first, rescheduled, noShow, last));
+        when(sessionRepository.countByTreatmentIdAndStatus(TREATMENT_ID, SessionStatus.COMPLETED)).thenReturn(2L);
+
+        Timeline timeline = service.timeline(TREATMENT_ID, null, null);
+
+        assertThat(timeline.sessions()).containsExactly(first, rescheduled, noShow, last);
+        assertThat(timeline.treatment().initialPainScore()).isEqualTo(7);
+        assertThat(timeline.completedSessions()).isEqualTo(2);
+        assertThat(timeline.nameOf(PHYSIO_ID)).isEqualTo("Lcda. Valeria Andrade");
+        assertThat(timeline.nameOf(OTHER_PHYSIO_ID)).isEqualTo("Lcdo. Mateo Ríos");
+        // Only COMPLETED sessions are points, after the initial evaluation
+        assertThat(timeline.painCurve()).extracting(PainPoint::label, PainPoint::date, PainPoint::painScore)
+                .containsExactly(tuple("Evaluación inicial", START, 7),
+                        tuple("Sesión 1", LocalDate.of(2026, 10, 3), 6),
+                        tuple("Sesión 4", LocalDate.of(2026, 10, 10), 3));
+        // The names of every responsible come from a single call
+        verify(staffDirectory).fullNames(Set.of(PHYSIO_ID, OTHER_PHYSIO_ID));
+        verify(auditLogService).record(AuditAction.READ, "Treatment", TREATMENT_ID);
+    }
+
+    @Test
+    void theTimelinePassesTheRangeAndStillStartsWithTheInitialEvaluation() {
+        LocalDate from = LocalDate.of(2026, 10, 5);
+        LocalDate to = LocalDate.of(2026, 10, 5);
+        when(sessionRepository.findTimeline(TREATMENT_ID, from, to)).thenReturn(List.of());
+
+        Timeline timeline = service.timeline(TREATMENT_ID, from, to);
+
+        assertThat(timeline.sessions()).isEmpty();
+        assertThat(timeline.painCurve()).singleElement()
+                .satisfies(point -> {
+                    assertThat(point.label()).isEqualTo("Evaluación inicial");
+                    assertThat(point.sessionId()).isNull();
+                });
+        verifyNoInteractions(staffDirectory);
+        verify(auditLogService).record(AuditAction.READ, "Treatment", TREATMENT_ID);
+    }
+
+    @Test
+    void aStartAfterTheEndIsRejectedWithoutReadingNorAuditing() {
+        assertThatThrownBy(() -> service.timeline(TREATMENT_ID, LocalDate.of(2026, 10, 9), LocalDate.of(2026, 10, 8)))
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessage("La fecha inicial no puede ser posterior a la fecha final.");
+        verifyNoInteractions(treatmentQuery, sessionRepository, auditLogService);
+    }
+
+    @Test
+    void anUnknownTreatmentHasNoTimeline() {
+        when(treatmentQuery.find(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.timeline(99L, null, null))
+                .isInstanceOf(ResourceNotFoundException.class).hasMessage("El tratamiento no existe.");
+        verifyNoInteractions(sessionRepository, auditLogService);
+    }
+
+    private static TreatmentSummary treatment(boolean active) {
+        return new TreatmentSummary(TREATMENT_ID, 15L, active, START, 7, 12, "M54.5", "Lumbago no especificado");
+    }
+
+    private static TherapySession session(int sequenceNumber, Long responsibleId, LocalDate date, int painScore,
+            SessionStatus status) {
+        TherapySession session = TherapySession.register(TREATMENT_ID, sequenceNumber, responsibleId,
+                new TherapySessionData(date, LocalTime.of(9, 30), "Fisioterapia lumbar", "Movilización lumbar",
+                        "Buena tolerancia", null, painScore, ProgressStatus.IMPROVING, status), NOW);
+        ReflectionTestUtils.setField(session, "id", 100L + sequenceNumber);
+        return session;
     }
 
     private TherapySession existingSession(Long responsibleId) {

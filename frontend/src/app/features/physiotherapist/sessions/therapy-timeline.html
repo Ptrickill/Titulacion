@@ -1,0 +1,175 @@
+<app-page-header
+  title="Línea de Tiempo Terapéutica"
+  subtitle="Registro cronológico de sesiones, escala EVA y actividades terapéuticas"
+  [backLink]="recordView"
+>
+  <a actions mat-stroked-button class="list" [routerLink]="sessionsBase">
+    <mat-icon aria-hidden="true">event_note</mat-icon>
+    Ver sesiones
+  </a>
+  @if (timeline()?.treatment?.active) {
+    <a actions mat-flat-button class="register" [routerLink]="[sessionsBase, 'new']">
+      <mat-icon aria-hidden="true">add</mat-icon>
+      Registrar Sesión de Hoy
+    </a>
+  }
+</app-page-header>
+
+@if (loadError(); as message) {
+  <app-empty-state icon="timeline" title="No se pudo cargar la línea de tiempo" [message]="message">
+    <a mat-stroked-button [routerLink]="recordView">Volver al expediente</a>
+  </app-empty-state>
+} @else {
+  @if (timeline(); as t) {
+    <section class="patient-bar" aria-label="Paciente y tratamiento">
+      @if (patient(); as p) {
+        <span class="national-id">{{ p.nationalId }}</span>
+      }
+      <div class="identity">
+        <div class="name">
+          Paciente:
+          @if (patient(); as p) {
+            {{ p.firstName }} {{ p.lastName }}
+          } @else {
+            #{{ t.treatment.patientId }}
+          }
+        </div>
+        <div class="meta">
+          Patología:
+          <span class="diagnosis"
+            >{{ t.treatment.diagnosis.code }} {{ t.treatment.diagnosis.description }}</span
+          >
+        </div>
+        <div class="meta">
+          Inicio: {{ t.treatment.startDate | date: 'dd/MM/yyyy' }} · EVA inicial:
+          {{ t.treatment.initialPainScore }}/10
+        </div>
+      </div>
+      <span class="progress">
+        Progreso: {{ t.treatment.completedSessions }} / {{ t.treatment.plannedSessions }} Sesiones
+        Planificadas
+      </span>
+    </section>
+  }
+
+  <form class="filters" [formGroup]="filters" aria-label="Filtro por rango de fechas" novalidate>
+    <mat-form-field appearance="fill" subscriptSizing="dynamic">
+      <mat-label>Desde</mat-label>
+      <input matInput type="date" formControlName="from" />
+    </mat-form-field>
+
+    <mat-form-field appearance="fill" subscriptSizing="dynamic">
+      <mat-label>Hasta</mat-label>
+      <input matInput type="date" formControlName="to" />
+    </mat-form-field>
+
+    <button mat-stroked-button type="button" class="clear" (click)="clear()">
+      <mat-icon aria-hidden="true">filter_alt_off</mat-icon>
+      Limpiar
+    </button>
+  </form>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" aria-label="Cargando línea de tiempo" />
+  }
+
+  <!-- With an inverted range nothing is searched, so the previous sessions are not shown either -->
+  @if (filters.hasError('range')) {
+    <p class="range-error" role="alert">
+      La fecha inicial no puede ser posterior a la fecha final.
+    </p>
+  } @else if (timeline(); as t) {
+    @if (t.sessions.length === 0) {
+      @if (filtered()) {
+        <app-empty-state
+          icon="event_busy"
+          title="No hay sesiones en ese rango de fechas"
+          message="Cambie las fechas o limpie el filtro para ver toda la línea de tiempo."
+        >
+          <button mat-stroked-button type="button" (click)="clear()">Limpiar filtro</button>
+        </app-empty-state>
+      } @else {
+        <app-empty-state
+          icon="timeline"
+          title="Aún no hay sesiones registradas"
+          message="Las sesiones de este tratamiento aparecerán aquí en orden cronológico, con su EVA y su responsable."
+        >
+          @if (t.treatment.active) {
+            <a mat-flat-button [routerLink]="[sessionsBase, 'new']">Registrar sesión</a>
+          }
+        </app-empty-state>
+      }
+    } @else {
+      <section class="card curve" aria-labelledby="curve-title">
+        <header>
+          <h2 id="curve-title">Curva de EVA por sesión</h2>
+          <p>
+            Evaluación inicial y sesiones realizadas. Las sesiones reprogramadas y las inasistencias
+            no se grafican.
+          </p>
+        </header>
+        @if (t.painCurve.length > 1) {
+          <app-pain-curve-chart [points]="t.painCurve" />
+        } @else {
+          <p class="no-curve">No hay sesiones realizadas en este rango para graficar.</p>
+        }
+      </section>
+
+      <ol class="timeline" aria-label="Sesiones en orden cronológico">
+        @for (s of t.sessions; track s.id) {
+          <li class="entry">
+            <div class="when">
+              <span class="number">Sesión {{ s.sequenceNumber.toString().padStart(2, '0') }}</span>
+              <span class="day">{{ s.sessionDate | date: "dd 'de' MMMM" }}</span>
+              <span class="time">{{ s.sessionTime.slice(0, 5) }}</span>
+            </div>
+            <span class="dot" aria-hidden="true"></span>
+            <article class="session" [attr.aria-label]="'Sesión ' + s.sequenceNumber">
+              <header>
+                <div>
+                  <h3>{{ s.sessionType }}</h3>
+                  <span class="responsible">
+                    <mat-icon aria-hidden="true">person</mat-icon>
+                    {{ s.responsible.fullName ?? 'Usuario #' + s.responsible.id }}
+                  </span>
+                </div>
+                <div class="badges">
+                  <app-status-badge
+                    [label]="'EVA: ' + s.painScore + '/10'"
+                    [tone]="painTone(s.painScore)"
+                  />
+                  <app-status-badge
+                    [label]="statusLabels[s.status]"
+                    [tone]="statusTones[s.status]"
+                  />
+                  <app-status-badge
+                    [label]="progressLabels[s.progressStatus]"
+                    [tone]="progressTones[s.progressStatus]"
+                  />
+                </div>
+              </header>
+
+              <div class="activities">
+                <h4>
+                  <mat-icon aria-hidden="true">monitor_heart</mat-icon> Actividades realizadas
+                </h4>
+                <p>{{ s.activitiesPerformed }}</p>
+              </div>
+
+              <div class="notes">
+                <div class="observations">
+                  <h4>Observaciones clínicas (interno)</h4>
+                  <p>“{{ s.clinicalObservations }}”</p>
+                </div>
+                <div class="instructions">
+                  <h4>Indicaciones para el paciente</h4>
+                  <p>{{ s.patientInstructions ?? 'Sin indicaciones para el paciente.' }}</p>
+                </div>
+              </div>
+            </article>
+          </li>
+        }
+      </ol>
+    }
+  }
+}

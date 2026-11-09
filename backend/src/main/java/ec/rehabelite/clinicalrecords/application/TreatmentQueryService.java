@@ -20,7 +20,7 @@ class TreatmentQueryService implements TreatmentQueryPort {
     @Override
     @Transactional(readOnly = true)
     public Optional<TreatmentSummary> find(Long treatmentId) {
-        return treatmentRepository.findById(treatmentId).map(TreatmentQueryService::summaryOf);
+        return treatmentRepository.findSummaryById(treatmentId).map(TreatmentQueryService::summaryOf);
     }
 
     /** MANDATORY: the lock is only useful while the caller's transaction is still open. */
@@ -32,7 +32,9 @@ class TreatmentQueryService implements TreatmentQueryPort {
 
     private static TreatmentSummary summaryOf(Treatment treatment) {
         return new TreatmentSummary(treatment.getId(), treatment.getClinicalRecord().getPatientId(),
-                treatment.isActive(), treatment.getStartDate());
+                treatment.isActive(), treatment.getStartDate(), treatment.getInitialPainScore(),
+                treatment.getPlannedSessions(), treatment.getDiagnosis().getCode(),
+                treatment.getDiagnosis().getDescription());
     }
 
 }

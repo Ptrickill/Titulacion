@@ -155,6 +155,34 @@ describe('ClinicalRecordView', () => {
       (a) => a.textContent?.trim() === 'Sesiones',
     );
     expect(sessions?.getAttribute('href')).toBe('/physio/patients/15/treatments/20/sessions');
+    const timeline = Array.from(previous.querySelectorAll('a')).find(
+      (a) => a.textContent?.trim() === 'Línea de tiempo',
+    );
+    expect(timeline?.getAttribute('href')).toBe('/physio/patients/15/treatments/20/timeline');
+  });
+
+  it('opens the timeline of the active treatment from the header and from its plan', async () => {
+    await open();
+    await respond(fakeClinicalRecord(15));
+
+    const timelines = Array.from(element.querySelectorAll('a'))
+      .filter((a) => a.textContent?.trim().endsWith('Línea de tiempo'))
+      .map((a) => a.getAttribute('href'));
+    // Header, active plan and the previous treatment
+    expect(timelines).toEqual([
+      '/physio/patients/15/treatments/30/timeline',
+      '/physio/patients/15/treatments/30/timeline',
+      '/physio/patients/15/treatments/20/timeline',
+    ]);
+  });
+
+  it('without an active treatment the timeline is the one of the most recent treatment', async () => {
+    await open();
+    await respond(fakeClinicalRecord(15, { activeTreatment: null }));
+
+    expect(link('Línea de tiempo')?.getAttribute('href')).toBe(
+      '/physio/patients/15/treatments/20/timeline',
+    );
   });
 
   it('without an active treatment shows the sessions of the most recent one and no session form', async () => {
