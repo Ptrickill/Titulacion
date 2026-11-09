@@ -2,6 +2,7 @@ package ec.rehabelite.shared.web;
 
 import ec.rehabelite.shared.domain.BusinessRuleException;
 import ec.rehabelite.shared.domain.ConflictException;
+import ec.rehabelite.shared.domain.InvalidRequestException;
 import ec.rehabelite.shared.domain.ResourceNotFoundException;
 import java.util.List;
 import java.util.Map;
@@ -18,7 +19,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.ErrorResponse;
-import org.springframework.web.ErrorResponseException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -67,6 +67,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ResourceNotFoundException.class)
     ProblemDetail handleResourceNotFound(ResourceNotFoundException ex) {
         return problem(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidRequestException.class)
+    ProblemDetail handleInvalidRequest(InvalidRequestException ex) {
+        return problem(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
     @ExceptionHandler(BusinessRuleException.class)
@@ -147,12 +152,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         if (problem != null) {
             Message message = messageFor(statusCode);
             problem.setTitle(message.title());
-            // A ResponseStatusException of the application keeps its own Spanish reason. Otherwise the detail of the
-            // status, never Spring's: it may repeat a value sent by the client (personal data)
-            boolean ownReason = ex instanceof ErrorResponseException && problem.getDetail() != null;
-            if (!ownReason) {
-                problem.setDetail(message.detail());
-            }
+            // Always the detail of the status, never Spring's (also for its ErrorResponseException subclasses): it
+            // is in English and may repeat a value sent by the client. Only the application's own exceptions keep
+            // their message, and they have their own handlers above
+            problem.setDetail(message.detail());
             body = problem;
         }
         return super.handleExceptionInternal(ex, body, headers, statusCode, request);
