@@ -122,13 +122,37 @@ describe('PhysioPatientList', () => {
     expect(links[0]).toEqual([
       ['Ver historial', '/physio/patients/1/clinical-record'],
       ['Plan y asignación', '/physio/patients/1/treatments/9'],
+      ['Línea de tiempo', '/physio/patients/1/treatments/9/timeline'],
     ]);
     expect(links[1]).toEqual([
       ['Ver historial', '/physio/patients/2/clinical-record'],
       ['Plan y asignación', '/physio/patients/2/treatments/9'],
+      ['Línea de tiempo', '/physio/patients/2/treatments/9/timeline'],
       ['Nuevo tratamiento', '/physio/patients/2/clinical-record/41/treatments/new'],
     ]);
     expect(links[2]).toEqual([['Crear historial', '/physio/patients/3/clinical-record/new']]);
+  });
+
+  it('offers the timeline of the current treatment only to the patients that have one', async () => {
+    listRequest().flush(
+      page([
+        patient(1, 'Juan', 'Pérez', 40, ACTIVE_TREATMENT),
+        patient(2, 'María', 'Velasco', 41, { ...ACTIVE_TREATMENT, id: 12, status: 'COMPLETED' }),
+        patient(3, 'Lucía', 'Mora', 42),
+        patient(4, 'Andrés', 'Cárdenas'),
+      ]),
+    );
+    await fixture.whenStable();
+
+    const timelines = rows().map((row) => row.querySelector('a.timeline'));
+    expect(timelines.map((a) => a?.getAttribute('href') ?? null)).toEqual([
+      '/physio/patients/1/treatments/9/timeline',
+      '/physio/patients/2/treatments/12/timeline',
+      null,
+      null,
+    ]);
+    expect(timelines[0]?.textContent?.trim()).toBe('Línea de tiempo');
+    expect(timelines[0]?.getAttribute('aria-label')).toBe('Línea de tiempo de Juan Pérez');
   });
 
   it('searches as the user types, from the first page', async () => {

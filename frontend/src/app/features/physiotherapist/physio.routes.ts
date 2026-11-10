@@ -78,7 +78,11 @@ export const PHYSIO_ROUTES: Routes = [
     } satisfies PlaceholderPageData,
   },
   // The timeline belongs to a treatment (HU-11): the menu entry opens the patients to choose one
-  { path: 'timeline', redirectTo: 'patients' },
+  {
+    path: 'timeline',
+    title: 'Línea de Tiempo | Rehab Elite',
+    loadComponent: () => import('./sessions/timeline-entry').then((m) => m.TimelineEntry),
+  },
   {
     path: 'ai-assistant',
     title: 'Asistente Clínico IA | Rehab Elite',

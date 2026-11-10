@@ -1,0 +1,102 @@
+<app-page-header
+  title="Línea de Tiempo Terapéutica"
+  subtitle="Elija un paciente para abrir la línea de tiempo de su tratamiento activo o, si no tiene, del más reciente"
+/>
+
+<section class="filters" aria-label="Búsqueda de pacientes">
+  <mat-form-field appearance="fill" subscriptSizing="dynamic" class="search">
+    <mat-icon matPrefix aria-hidden="true">search</mat-icon>
+    <input
+      matInput
+      type="search"
+      placeholder="Buscar por nombres o cédula..."
+      aria-label="Buscar por nombres o cédula"
+      autocomplete="off"
+      (input)="patients.onInput($event)"
+    />
+  </mat-form-field>
+</section>
+
+@if (patients.loading()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Cargando pacientes" />
+}
+
+@if (patients.loadError()) {
+  <app-empty-state
+    icon="cloud_off"
+    title="No se pudieron cargar los pacientes"
+    message="Revise su conexión e intente nuevamente."
+  >
+    <button mat-stroked-button type="button" (click)="patients.reload()">Reintentar</button>
+  </app-empty-state>
+} @else if (patients.results(); as page) {
+  @if (page.totalElements === 0 && !patients.state().query && !patients.loading()) {
+    <app-empty-state
+      icon="group_off"
+      title="No hay pacientes registrados"
+      message="Cuando la administración registre pacientes, aparecerán aquí."
+    />
+  } @else {
+    <app-data-table
+      [columns]="columns"
+      [rows]="page.content"
+      [totalItems]="page.totalElements"
+      [pageSize]="pageSize"
+      [pageIndex]="patients.state().page"
+      (pageIndexChange)="patients.goToPage($event)"
+      caption="Pacientes y la línea de tiempo de su tratamiento"
+      itemLabel="pacientes"
+      emptyMessage="Ningún paciente coincide con la búsqueda."
+    >
+      <ng-template appDataTableCell="lastName" [appDataTableCellOf]="page.content" let-patient>
+        <div class="patient">
+          <span class="avatar" aria-hidden="true">{{ initials(patient) }}</span>
+          <div>
+            <div class="name">{{ patient.firstName }} {{ patient.lastName }}</div>
+            <div class="meta">Cédula: {{ patient.nationalId }} • {{ formatAge(patient.age) }}</div>
+          </div>
+        </div>
+      </ng-template>
+
+      <ng-template
+        appDataTableCell="currentTreatment"
+        [appDataTableCellOf]="page.content"
+        let-patient
+      >
+        @if (patient.currentTreatment; as treatment) {
+          <div class="diagnosis">{{ treatment.diagnosisDescription }}</div>
+          <div class="code">{{ treatment.diagnosisCode }}</div>
+        } @else {
+          <span class="none">—</span>
+        }
+      </ng-template>
+
+      <ng-template appDataTableCell="age" [appDataTableCellOf]="page.content" let-patient>
+        @if (patient.currentTreatment; as treatment) {
+          <app-status-badge
+            [label]="statusLabels[treatment.status]"
+            [tone]="statusTones[treatment.status]"
+          />
+          <div class="planned">{{ plannedLabel(treatment.plannedSessions) }}</div>
+        } @else {
+          <app-status-badge label="Sin tratamiento" tone="neutral" />
+        }
+      </ng-template>
+
+      <ng-template appDataTableCell="id" [appDataTableCellOf]="page.content" let-patient>
+        @if (patient.currentTreatment; as treatment) {
+          <a
+            mat-stroked-button
+            class="action open"
+            [routerLink]="['/physio/patients', patient.id, 'treatments', treatment.id, 'timeline']"
+            [attr.aria-label]="
+              'Abrir la línea de tiempo de ' + patient.firstName + ' ' + patient.lastName
+            "
+          >
+            Abrir línea de tiempo
+          </a>
+        }
+      </ng-template>
+    </app-data-table>
+  }
+}
