@@ -28,8 +28,6 @@ public final class TestSessions {
 
     /**
      * A session with the given date, time ({@code HH:mm}), pain score and status, e.g. for the timeline of HU-11.
-     * Registering it through the API keeps the time exactly as the application writes it: a time inserted with SQL is
-     * read shifted when the JVM time zone differs from {@code hibernate.jdbc.time_zone}.
      */
     public static String body(LocalDate date, String time, int painScore, String status) {
         return body(date, painScore, "Movilización lumbar y TENS 15 minutos", "")
