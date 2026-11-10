@@ -12,35 +12,35 @@
       placeholder="Buscar por nombres o cédula..."
       aria-label="Buscar por nombres o cédula"
       autocomplete="off"
-      (input)="onSearch($event)"
+      (input)="patients.onInput($event)"
     />
   </mat-form-field>
 </section>
 
-@if (loading()) {
+@if (patients.loading()) {
   <mat-progress-bar mode="indeterminate" aria-label="Cargando pacientes" />
 }
 
-@if (loadError()) {
+@if (patients.loadError()) {
   <app-empty-state
     icon="cloud_off"
     title="No se pudieron cargar los pacientes"
     message="Revise su conexión e intente nuevamente."
   >
-    <button mat-stroked-button type="button" (click)="reload()">Reintentar</button>
+    <button mat-stroked-button type="button" (click)="patients.reload()">Reintentar</button>
   </app-empty-state>
-} @else if (results(); as page) {
+} @else if (patients.results(); as page) {
   <app-data-table
     [columns]="columns"
     [rows]="page.content"
     [totalItems]="page.totalElements"
     [pageSize]="pageSize"
-    [pageIndex]="search().page"
-    (pageIndexChange)="goToPage($event)"
+    [pageIndex]="patients.state().page"
+    (pageIndexChange)="patients.goToPage($event)"
     caption="Pacientes con su tratamiento"
     itemLabel="pacientes"
     [emptyMessage]="
-      search().query
+      patients.state().query
         ? 'Ningún paciente coincide con la búsqueda.'
         : 'Aún no hay pacientes registrados.'
     "
@@ -117,6 +117,14 @@
             [attr.aria-label]="'Plan y asignación de ' + patient.firstName + ' ' + patient.lastName"
           >
             Plan y asignación
+          </a>
+          <a
+            mat-stroked-button
+            class="action timeline"
+            [routerLink]="['/physio/patients', patient.id, 'treatments', treatment.id, 'timeline']"
+            [attr.aria-label]="'Línea de tiempo de ' + patient.firstName + ' ' + patient.lastName"
+          >
+            Línea de tiempo
           </a>
         }
         @if (patient.clinicalRecordId === null) {

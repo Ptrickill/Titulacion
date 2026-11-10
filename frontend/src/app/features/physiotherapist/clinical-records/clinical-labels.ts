@@ -24,6 +24,11 @@ export function initialsOf(fullName: string | null): string {
     .join('');
 }
 
+/** Initials of a patient in the tables: the first letter of the first names and of the last names. */
+export function patientInitials(patient: { firstName: string; lastName: string }): string {
+  return `${patient.firstName.charAt(0)}${patient.lastName.charAt(0)}`.toUpperCase();
+}
+
 /** Tone of the initial EVA: 7 or more is severe pain, 4 to 6 moderate. */
 export function painScoreTone(painScore: number): BadgeTone {
   if (painScore >= 7) {

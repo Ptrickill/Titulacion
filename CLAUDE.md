@@ -366,7 +366,7 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
 
 - Requiere Node.js `^22.22.3`. `npm start` sirve en `http://localhost:4200` y redirige `/api` a `http://localhost:8080` (`proxy.conf.json`).
 - Carpetas: `src/app/core` (`AuthService` con login y sesión en signals, `authGuard`/`roleGuard`, `authInterceptor`, roles, locale `es-EC`), `src/app/shared/layout` (`AppShell`, `nav-items.ts`, `PlaceholderPage`), `src/app/shared/ui` (componentes reutilizables), `src/app/features/auth`, `features/admin`, `features/physiotherapist`, `features/director`, `features/patient`, `features/dev` (solo desarrollo).
-- Rutas: `/login` y, dentro de `AppShell`, un `*.routes.ts` por rol: `/physio` (`patients`, `clinical-records`, `timeline` redirige a `patients` desde HU-11, `ai-assistant`), `/admin` (`users`, `patients`, `reports`, `audit`), `/director` (`reports`, `audit`), `/patient`. Cada rol protegido por `authGuard` + `roleGuard(rol)` y cargado de forma diferida. Las secciones sin historia implementada usan `PlaceholderPage` (título y subtítulo en `data`); la historia reemplaza ese `component` por su página real.
+- Rutas: `/login` y, dentro de `AppShell`, un `*.routes.ts` por rol: `/physio` (`patients`, `clinical-records`, `timeline`, `ai-assistant`), `/admin` (`users`, `patients`, `reports`, `audit`), `/director` (`reports`, `audit`), `/patient`. Cada rol protegido por `authGuard` + `roleGuard(rol)` y cargado de forma diferida. Las secciones sin historia implementada usan `PlaceholderPage` (título y subtítulo en `data`); la historia reemplaza ese `component` por su página real.
 - Componentes de `shared/ui` (standalone, con pruebas): `page-header`, `stat-card` (variante `compact` para filas de cuatro tarjetas), `status-badge`, `data-table` (paginación en cliente, o en servidor con `[totalItems]` y `[(pageIndex)]`; `appDataTableCell` para celdas personalizadas, y `[appDataTableCellOf]="filas"` tipa `let-row`), `form-section`, `empty-state` (admite varias acciones, separadas), `confirm-dialog` (`openConfirmDialog()` devuelve `Observable<boolean>`) y `hero-banner`. Usarlos antes de crear componentes nuevos. Catálogo visual en `/ui-kit` (solo `isDevMode()`).
 - Diseño: seguir `docs/prototype/`. Capturas de comparación por tarea en `docs/screenshots/<tarea>/`.
 - Nombres según la guía de estilo de Angular CLI 22, en inglés: archivo `patient-list.ts`, clase `PatientList`, selector `app-patient-list`; guards/interceptores `*-guard.ts` / `*-interceptor.ts`. Textos de la interfaz en español.
@@ -380,7 +380,8 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
 - Errores de la API: mostrar el `detail` en español con `problemDetailMessage(error, textoAlternativo)` de `core/http/problem-detail.ts`. Las páginas de resultados usan el tipo `Page<T>` de `core/http/page.ts`.
 - `AppShell` vuelve al inicio el área de contenido (`mat-sidenav-content`, que es la que se desplaza) en cada navegación.
 - Historial clínico del fisioterapeuta (HU-07):
-  - `/physio/patients` (`PhysioPatientList`): tabla paginada en el servidor con el resumen del tratamiento y las acciones "Crear historial" o "Nuevo tratamiento".
+  - `/physio/patients` (`PhysioPatientList`): tabla paginada en el servidor con el resumen del tratamiento y las acciones "Crear historial" o "Nuevo tratamiento". Cada fila con tratamiento tiene además "Línea de tiempo" (HU-11), que abre la de su tratamiento vigente.
+  - `PhysioPatientSearch` (`patients/physio-patient-search.ts`) es la búsqueda de `GET /api/physio/patients` (espera de 300 ms, paginación en el servidor, carga y error en signals). La comparten `PhysioPatientList` y `TimelineEntry`; se crea en un inicializador de campo del componente. Los estilos de las filas están en `patients/_patient-rows.scss`.
   - `ClinicalRecordForm` sirve dos rutas:
     - `/physio/patients/:patientId/clinical-record/new`: cuatro secciones.
     - `/physio/patients/:patientId/clinical-record/:recordId/treatments/new`: sin "Hábitos y antecedentes".
@@ -430,7 +431,12 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
     - una tarjeta por sesión sobre un riel vertical: "Sesión NN", fecha, hora, tipo, responsable, EVA, estado, evolución, actividades, observaciones clínicas (interno) e indicaciones para el paciente;
     - el estado vacío "Aún no hay sesiones registradas" o, con filtro, "No hay sesiones en ese rango de fechas".
   - "Registrar Sesión de Hoy" solo si el tratamiento está activo; "Ver sesiones" siempre. Si el tratamiento es de otro paciente, muestra un aviso.
-  - La entrada "Línea de Tiempo" del menú lleva a `/physio/patients`, porque la línea de tiempo pertenece a un tratamiento.
+  - `/physio/timeline` (`TimelineEntry`, "Línea de Tiempo Terapéutica") es la entrada del menú. La línea de tiempo pertenece a un tratamiento, así que esta página sirve para elegir al paciente:
+    - usa `GET /api/physio/patients` tal cual, con su búsqueda por nombre o cédula, su paginación y su total (`PhysioPatientSearch`). No hay endpoint propio;
+    - un paciente con tratamiento muestra el diagnóstico, las sesiones planificadas y el estado, y "Abrir línea de tiempo" abre la de su tratamiento vigente (el activo o, si no hay, el más reciente);
+    - un paciente sin tratamiento aparece con la etiqueta "Sin tratamiento" y sin acción;
+    - no muestra las sesiones realizadas: ese endpoint no las devuelve;
+    - el estado vacío es "No hay pacientes registrados"; una búsqueda sin resultados muestra "Ningún paciente coincide con la búsqueda.".
   - `PainCurveChart` envuelve `BaseChartDirective` de **ng2-charts 11** (compatible con Angular 22) y **chart.js 4**. Registra solo lo que usa una línea (`provideCharts` en el componente). Es una sola serie: línea de 2 px en `--re-text-teal`, puntos de 8 px, la evaluación inicial hueca, eje EVA fijo de 0 a 10, tooltip con punto, fecha e intensidad, y sin leyenda. Los colores y la fuente se leen de los tokens `--re-*` con `getComputedStyle`, porque el canvas no entiende variables CSS. Una tabla `re-visually-hidden` repite los puntos para lectores de pantalla.
   - En pruebas, `stubCanvas()` de `session-testing.ts` simula el contexto 2D (jsdom no tiene canvas) y `ResizeObserver`, para que Chart.js cree el gráfico de verdad. Devuelve la función que restaura el original.
 - Auditoría (HU-18):
