@@ -74,3 +74,68 @@ Capturas de la verificación de cada historia (datos sintéticos):
 - Desde el 05/11/2026 cada historia tiene su issue (#25 a #42), cerrado con el PR que la implementa.
 - Revisión de los PR: ⏳ completar quién revisó y aprobó cada PR; este dato no está en el repositorio.
 - Decisión de alcance en HU-06: el prototipo 10 muestra las columnas "Sesiones" y "Estado" y el filtro Activo/Inactivo. No se implementaron porque dependen del tratamiento, que es dato clínico, y HU-06 exige que el administrador no lo vea.
+
+## Incremento complementario: HU-10 y HU-11
+
+El sprint 3 incorpora además el registro de sesiones (PB-04: HU-10) y la línea de tiempo terapéutica (PB-05: HU-11), planificadas originalmente para el sprint 4: 13 puntos en 2 historias. Con ellas, el sprint 3 cubre HU-01 a HU-11 y HU-18.
+
+| Historia | Puntos | Issue | PR |
+|---|---|---|---|
+| HU-10 Registrar sesión terapéutica | 8 | [#34](https://github.com/Ptrickill/Titulacion/issues/34) | [#45](https://github.com/Ptrickill/Titulacion/pull/45) |
+| HU-11 Línea de tiempo de sesiones | 5 | [#35](https://github.com/Ptrickill/Titulacion/issues/35) | [#48](https://github.com/Ptrickill/Titulacion/pull/48) y [#50](https://github.com/Ptrickill/Titulacion/pull/50) |
+
+### Pull requests del incremento
+
+Fechas tomadas de `git log` (commit de fusión de cada PR en `develop`, hora de Ecuador). Todos los PR tienen como base `develop`. Los PR #49 y #50 se fusionaron el 09/11/2026, un día después de la fecha de cierre del sprint.
+
+| PR | Historia | Descripción | Fusionado |
+|---|---|---|---|
+| [#45](https://github.com/Ptrickill/Titulacion/pull/45) | HU-10 | Registro y corrección de sesiones terapéuticas, con el correlativo y el responsable asignados por el servidor y las versiones de cada corrección; lista de sesiones, formulario y diálogo de versiones | 06/11/2026 19:54 |
+| [#46](https://github.com/Ptrickill/Titulacion/pull/46) | — (corrección, hallazgo de HU-10) | Los errores propios de Spring MVC (405, 415, 400 y 404) responden con el título y el detalle en español | 06/11/2026 20:40 |
+| [#47](https://github.com/Ptrickill/Titulacion/pull/47) | — (corrección, continúa el #46) | Solo las excepciones de la aplicación conservan su mensaje; se agrega `InvalidRequestException` (400) | 08/11/2026 22:15 |
+| [#48](https://github.com/Ptrickill/Titulacion/pull/48) | HU-11 | Línea de tiempo terapéutica (`GET /api/treatments/{treatmentId}/timeline`) con la curva de EVA por sesión y el filtro por rango de fechas | 08/11/2026 23:13 |
+| [#49](https://github.com/Ptrickill/Titulacion/pull/49) | — (corrección) | Se elimina `hibernate.jdbc.time_zone`: la fecha y la hora de la sesión se guardan tal como llegan, sea cual sea la zona horaria de la JVM | 09/11/2026 23:04 |
+| [#50](https://github.com/Ptrickill/Titulacion/pull/50) | HU-11 | Página de entrada `/physio/timeline` para elegir al paciente y acción "Línea de tiempo" en la lista de pacientes del fisioterapeuta | 09/11/2026 23:58 |
+
+### Pantallas del incremento
+
+Capturas de la verificación de cada historia (datos sintéticos):
+
+| Historia | Carpeta | Capturas |
+|---|---|---|
+| HU-10 | [`hu-10-therapy-sessions`](../../screenshots/hu-10-therapy-sessions/) | 12 |
+| HU-11 | [`hu-11-timeline`](../../screenshots/hu-11-timeline/) | 22 |
+
+### Decisiones
+
+1. **Solo el autor corrige la sesión (HU-10).** Si otro fisioterapeuta intenta corregirla, la API responde 403 con el detalle "Solo el fisioterapeuta que registró la sesión puede corregirla." y el intento queda en la auditoría (`ACCESS_DENIED`).
+2. **La curva de EVA excluye las sesiones `RESCHEDULED` y `NO_SHOW` (HU-11).** Esas sesiones aparecen en la línea de tiempo, pero la curva solo tiene las sesiones realizadas (`COMPLETED`).
+3. **La curva parte de la evaluación inicial (HU-11).** Su primer punto es siempre la EVA inicial del tratamiento, con su fecha de inicio, aunque haya un filtro de fechas.
+4. **La página de entrada lista todos los pacientes (HU-11).** Usa `GET /api/physio/patients` sin cambios. Un paciente sin tratamiento aparece con la etiqueta "Sin tratamiento" y sin la acción de abrir la línea de tiempo.
+
+### Defectos corregidos
+
+| PR | Defecto | Severidad | Corrección |
+|---|---|---|---|
+| [#46](https://github.com/Ptrickill/Titulacion/pull/46) y [#47](https://github.com/Ptrickill/Titulacion/pull/47) | Mensajes de error en inglés: el 405 de `DELETE /api/therapy-sessions/{id}` y otros errores propios de Spring MVC respondían con el título y el detalle en inglés | Baja | Todos los errores responden en español; el detalle nunca repite un valor enviado por el cliente |
+| [#49](https://github.com/Ptrickill/Titulacion/pull/49) | Zona horaria: con la JVM en UTC (la CI y la imagen Docker), la hora de la sesión (`session_time`) se guardaba y se leía corrida 5 horas | Media | Se elimina `hibernate.jdbc.time_zone`; `TherapySessionTimeZoneIntegrationTests` lo comprueba con la JVM en UTC |
+
+### Resultados de pruebas del incremento
+
+Ejecutadas el 13/11/2026 sobre `develop` (commit `25decac`, fusión del PR #51, que es posterior a este incremento):
+
+| Comando | Total | Fallos | Errores | Omitidas | Resultado |
+|---|---|---|---|---|---|
+| `.\mvnw.cmd clean verify` (en `backend/`) | 496 | 0 | 0 | 0 | BUILD SUCCESS |
+| `npx ng test --watch=false` (en `frontend/`) | 246 (47 archivos) | 0 | 0 | 0 | Todas en verde |
+
+### Pendiente de completar
+
+Estos datos no están en el repositorio:
+
+| Elemento | Estado |
+|---|---|
+| Acta de la revisión del sprint | ⏳ |
+| Retrospectiva | ⏳ |
+| Burndown | ⏳ |
+| Revisión de los PR #45 a #50 (quién revisó y aprobó cada uno; GitHub no registra revisiones en ellos) | ⏳ |
