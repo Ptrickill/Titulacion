@@ -3,6 +3,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { RouterLink } from '@angular/router';
 import { DataTable, DataTableColumn } from '../../../shared/ui/data-table/data-table';
@@ -25,9 +26,12 @@ const PAGE_SIZE = 10;
 
 /**
  * "Gestión de Pacientes" of the physiotherapist (HU-07, prototype 03): patients with the summary of their current
- * treatment, searched by name or national ID and paginated in the server. Patients without a clinical record offer
- * "Crear historial"; records without an active treatment offer "Nuevo tratamiento". Every patient with a treatment
- * links to its plan and to its timeline (HU-11).
+ * treatment, searched by name or national ID and paginated in the server.
+ *
+ * The actions of a row do not fit next to the other columns, so they live in a menu (SCRUM-51): patients without a
+ * clinical record offer "Crear historial"; records without an active treatment offer "Nuevo tratamiento"; every
+ * patient with a treatment links to its plan and to its timeline (HU-11). The name of the patient is the one-click
+ * way to the main action: the record, or its creation.
  */
 @Component({
   selector: 'app-physio-patient-list',
@@ -37,6 +41,7 @@ const PAGE_SIZE = 10;
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    MatMenuModule,
     MatProgressBarModule,
     PageHeader,
     DataTable,
@@ -66,4 +71,18 @@ export class PhysioPatientList {
     { key: 'age', header: 'Estado' },
     { key: 'id', header: 'Acciones', align: 'end' },
   ];
+
+  protected fullName(patient: PhysioPatient): string {
+    return `${patient.firstName} ${patient.lastName}`;
+  }
+
+  /** Main action of the row: the clinical record, or its creation when the patient has none. */
+  protected recordAction(patient: PhysioPatient): string {
+    return patient.clinicalRecordId === null ? 'Crear historial' : 'Ver historial';
+  }
+
+  protected recordLink(patient: PhysioPatient): (string | number)[] {
+    const record = ['/physio/patients', patient.id, 'clinical-record'];
+    return patient.clinicalRecordId === null ? [...record, 'new'] : record;
+  }
 }
