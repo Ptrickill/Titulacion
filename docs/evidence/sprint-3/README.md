@@ -39,7 +39,7 @@ Las secciones [Pull requests](#pull-requests), [Resultados de pruebas](#resultad
 | 1 | Tablero al inicio | Captura del tablero (GitHub Projects) con el backlog del sprint comprometido | `board-start.png` | ⏳ |
 | 2 | Tablero al cierre | Captura del tablero con las historias terminadas y las que pasan al siguiente sprint | `board-end.png` | ⏳ |
 | 3 | Burndown | Gráfico de puntos restantes por día del sprint | `burndown.png` | ⏳ |
-| 4 | Pull requests | PR fusionados hacia `develop` con su historia y revisión | Tablas de [HU-01 a HU-06](#pull-requests), del [historial clínico y la auditoría](#pull-requests-historial-clínico-y-auditoría) y de las [sesiones y la línea de tiempo](#pull-requests-sesiones-y-línea-de-tiempo) | ✅ PR, historia y fecha; estado de la CI hasta el PR #43 · ⏳ revisión (ver [Observaciones](#observaciones) y [Defectos del proceso](#defectos-del-proceso)) |
+| 4 | Pull requests | PR fusionados hacia `develop` con su historia | Tablas de [HU-01 a HU-06](#pull-requests), del [historial clínico y la auditoría](#pull-requests-historial-clínico-y-auditoría) y de las [sesiones y la línea de tiempo](#pull-requests-sesiones-y-línea-de-tiempo) | ✅ PR, historia y fecha; estado de la CI hasta el PR #43. Sin aprobaciones registradas (ver [Defectos del proceso](#defectos-del-proceso)) |
 | 5 | Integración continua | Ejecución en verde del workflow **CI** (backend y frontend) del último PR de cada incremento | `ci-run.png` + [ejecución del PR #14](https://github.com/Ptrickill/Titulacion/actions/runs/41004910223) y [en `develop` tras su fusión](https://github.com/Ptrickill/Titulacion/actions/runs/41005233539) · [ejecución del PR #43](https://github.com/Ptrickill/Titulacion/actions/runs/41970821629) y [en `develop` tras su fusión](https://github.com/Ptrickill/Titulacion/actions/runs/41971221105) · [ejecución del PR #50](https://github.com/Ptrickill/Titulacion/actions/runs/42758690409) | ⏳ captura `ci-run.png` |
 | 6 | Pruebas | Resultado de `mvnw clean verify` (artefacto `surefire-reports`) y de `ng test` | `tests-backend.png`, `tests-frontend.png` · totales de [HU-01 a HU-06](#resultados-de-pruebas), del [historial clínico y la auditoría](#resultados-de-pruebas-historial-clínico-y-auditoría) y de las [sesiones y la línea de tiempo](#resultados-de-pruebas-sesiones-y-línea-de-tiempo) | ⏳ capturas |
 | 7 | Pantallas | Capturas de las funcionalidades entregadas en el sprint | [`docs/screenshots/`](../../screenshots/): [HU-01 a HU-06](#pantallas), [historial clínico y auditoría](#pantallas-historial-clínico-y-auditoría) y [sesiones y línea de tiempo](#pantallas-sesiones-y-línea-de-tiempo) | ✅ |
@@ -87,7 +87,7 @@ Capturas de la verificación de cada historia (datos sintéticos):
 ## Observaciones
 
 - Desde el 05/11/2026 cada historia tiene su issue (#25 a #42), cerrado con el PR que la implementa.
-- Revisión de los PR: ⏳ completar quién revisó y aprobó cada PR; este dato no está en el repositorio.
+- Revisión de los PR: GitHub no registra aprobaciones en los PR #6 a #14. El desarrollo lo ejecuta un solo integrante y GitHub no permite aprobar un PR propio (ver [Defectos del proceso](#defectos-del-proceso)).
 - Decisión de alcance en HU-06: el prototipo 10 muestra las columnas "Sesiones" y "Estado" y el filtro Activo/Inactivo. No se implementaron porque dependen del tratamiento, que es dato clínico, y HU-06 exige que el administrador no lo vea.
 
 ## Incremento: HU-07, HU-08, HU-09, HU-18 y TEC-06
@@ -138,8 +138,8 @@ Capturas de la verificación de cada historia (datos sintéticos):
 1. La pantalla de auditoría se incorpora durante la implementación como medio de verificación de HU-18 y no forma parte del prototipo inicial.
 2. HU-08 restringe las transiciones de estado del tratamiento a `ACTIVE → COMPLETED`, `ACTIVE → ABANDONED` y `ABANDONED → ACTIVE` (esta última solo si el historial no tiene otro tratamiento activo). `COMPLETED` es un estado final.
 3. HU-09 incorpora la edición de hábitos y antecedentes (`PUT /api/patients/{patientId}/clinical-record`), que ya estaba en el contrato de la API.
-4. Desde el 05/11/2026 cada historia tiene su issue (#25 a #42), y `develop` y `main` exigen un PR aprobado y los checks de CI en verde (ruleset "Protección develop y main": 1 aprobación y los checks Backend y Frontend). Los PR #17 a #24 y #43 se fusionaron antes, por eso no usan `Closes #N`.
-5. Revisión de los PR: ⏳ completar quién revisó y aprobó cada PR; GitHub no registra revisiones en los PR #17 a #24 ni en #43, y este dato no está en el repositorio.
+4. Desde el 05/11/2026 cada historia tiene su issue (#25 a #42), y `develop` y `main` exigen un PR aprobado y los checks de CI en verde (ruleset "Protección develop y main": 1 aprobación y los checks Backend y Frontend). Los PR #17 a #24 y #43 se fusionaron antes, por eso no usan `Closes #N`. Desde el PR #52 la regla ya no exige la aprobación (ver [Defectos del proceso](#defectos-del-proceso)).
+5. Revisión de los PR: GitHub no registra aprobaciones en los PR #17 a #24 ni en #43, porque el desarrollo lo ejecuta un solo integrante (ver [Defectos del proceso](#defectos-del-proceso)).
 
 ## Incremento complementario: HU-10 y HU-11
 
@@ -185,7 +185,7 @@ Capturas de la verificación de cada historia (datos sintéticos):
 
 | Hallazgo | Acción |
 |---|---|
-| Los PR #45 a #51 se fusionaron sin revisión de código, mediante la omisión de la regla de protección por parte del administrador del repositorio. | El administrador sale de la lista de omisión de la regla "Protección develop y main"; desde el PR #52, cada PR se fusiona solo con la aprobación registrada en GitHub. |
+| La regla "Protección develop y main" exige una aprobación que el proyecto no registra: el desarrollo lo ejecuta un solo integrante y GitHub no permite aprobar un PR propio. Los PR #45 a #51 se fusionaron mediante la omisión de la regla por parte del administrador. | Desde el PR #52, la regla exige PR y los checks Backend y Frontend en verde, sin aprobación ni omisión. El autor completa la lista de verificación de la definición de terminado en la descripción del PR antes de fusionar. |
 
 ### Resultados de pruebas (sesiones y línea de tiempo)
 
