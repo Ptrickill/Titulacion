@@ -61,7 +61,7 @@ Los comentarios `# TODO` de `.env` / `.env.example` son instrucciones para el de
 - **Backend:** Java 21, Spring Boot 4, Spring Security con JWT HS256 (OAuth2 Resource Server), Spring Data JPA, Flyway, Hibernate Envers (HU-18), Spring Modulith, Bean Validation, MapStruct, springdoc-openapi.
 - **Frontend:** Angular 22 con Angular Material.
 - **Base de datos:** PostgreSQL 16.
-- **IA:** API de Claude (Sprint 6, módulo `aisummary`).
+- **IA:** API de Claude (Sprint 5, módulo `aisummary`).
 - **Pruebas:** JUnit 5, Mockito, Testcontainers (backend); Vitest y Playwright (frontend).
 
 ## Arquitectura backend: monolito modular
@@ -457,13 +457,15 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
 
 ## Convenciones de repositorio
 
-- Commits en inglés con Conventional Commits y número de issue: `feat(patients): register patient #8`.
-- Ramas: `feature/HU-XX-short-description` (historias), `feature/TEC-XX-...` (tareas técnicas) y `chore/...` (mantenimiento), creadas siempre desde `develop`.
-- Flujo de ramas: los PR de `feature/*` y `chore/*` van **siempre hacia `develop`**, nunca hacia `main`. `develop` se fusiona en `main` **solo al cierre de cada sprint**, mediante un PR `develop → main`. Antes de crear un PR, comprobar que la rama base sea `develop` (GitHub propone `main` por defecto).
+- **Clave de Jira:** cada tarea tiene una clave `SCRUM-XX`, que va en la rama, en los commits y en el título del PR.
+- Commits en inglés con Conventional Commits y la clave de Jira después del tipo: `fix(physio): SCRUM-51 keep the patient table inside its card`.
+- Ramas, creadas siempre desde `develop`: `feature/SCRUM-XX-short-description` (historias y tareas técnicas), `fix/SCRUM-XX-...` (correcciones) y `chore/SCRUM-XX-...` (mantenimiento y documentación). Ejemplo: `fix/SCRUM-51-physio-patients-table-overflow`.
+- Las ramas y los commits anteriores a SCRUM-51 usan `feature/HU-XX-...`, `feature/TEC-XX-...` o `chore/...` y el número de issue (`#8`). No se reescriben.
+- Flujo de ramas: los PR de `feature/*`, `fix/*` y `chore/*` van **siempre hacia `develop`**, nunca hacia `main`. `develop` se fusiona en `main` **solo al cierre de cada sprint**, mediante un PR `develop → main`. Antes de crear un PR, comprobar que la rama base sea `develop` (GitHub propone `main` por defecto).
 - **Claude Code no fusiona PR**: nunca `gh pr merge` ni fusiones locales hacia `develop` o `main`. José Luis aprueba cada PR y Daniel lo fusiona. Claude Code llega hasta crear o actualizar el PR y reportar su CI; si una tarea depende de un PR abierto, pide que lo fusionen y luego actualiza `develop` con `git pull`.
 - `.editorconfig`: UTF-8, LF, 4 espacios en Java/XML, 2 en TypeScript, HTML, SCSS, YAML y JSON.
 - `README.md` en inglés; documentación funcional en español en `docs/` (`docs/user-stories.md`, evidencias por sprint en `docs/evidence/sprint-N/`).
-- Cada historia es un issue con la plantilla **Historia de usuario** (Como/quiero/para + Dado/Cuando/Entonces); cada PR usa `.github/pull_request_template.md` e incluye `Closes #N`.
+- Cada historia es un issue con la plantilla **Historia de usuario** (Como/quiero/para + Dado/Cuando/Entonces); cada PR usa `.github/pull_request_template.md`, lleva la clave `SCRUM-XX` en el título e incluye `Closes #N` en la descripción cuando cierra un issue de GitHub.
 - CI (`.github/workflows/ci.yml`) corre en push y PR hacia `main` y `develop`: backend `./mvnw -B verify`, frontend `npm ci` + `ng test` + `ng build`. No fusionar con CI en rojo. `backend/mvnw` debe conservar el modo ejecutable en Git (`git update-index --chmod=+x backend/mvnw`).
 
 ## Definición de terminado
@@ -480,7 +482,18 @@ Una historia está terminada cuando:
 
 - Presentar un **plan antes de implementar** cada historia de usuario.
 - **Una historia por rama.**
-- Cada historia tiene su issue en GitHub, con la etiqueta de su sección PB y el milestone de su sprint. Las pendientes son HU-12 a HU-17 (#36 a #41); las ya implementadas están cerradas con su PR. El PR de la historia lleva `Closes #N` en la descripción.
+- Cada historia tiene su issue en GitHub, con la etiqueta de su sección PB y el milestone de su sprint. Las pendientes son HU-12 a HU-17 (#36 a #41); las ya implementadas están cerradas con su PR. El PR de la historia lleva la clave `SCRUM-XX` en el título y `Closes #N` en la descripción.
+
+### Plan vigente
+
+| Sprint | Alcance |
+|---|---|
+| 3 | HU-01 a HU-11 y HU-18 (terminadas) |
+| 4 | HU-12 a HU-15 |
+| 5 | HU-16, HU-17 y SonarQube |
+| 6 | TEC-07 (despliegue en Render) y Playwright |
+| 7 | k6, OWASP ZAP, UptimeRobot y compatibilidad |
+| 8 | Aceptación, SUS y `v1.0.0` |
 
 ## Docker
 
