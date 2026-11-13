@@ -40,7 +40,17 @@ Closes #<!-- número del issue de la historia, p. ej. Closes #8 -->
 - [ ] Sin datos personales ni clínicos en logs
 - [ ] Sin secretos en el código; variables nuevas agregadas a `.env.example`
 - [ ] Cambios de esquema en una migración Flyway **nueva** (no se editaron migraciones aplicadas)
-- [ ] Commits con Conventional Commits y número de issue
+- [ ] Commits con Conventional Commits y la clave `SCRUM-XX`
+
+## Definición de terminado
+
+<!-- El proyecto no tiene revisor: el autor completa esta lista antes de fusionar. Si un punto no corresponde al cambio, escriba "no aplica" junto a él. -->
+
+- [ ] Cumple todos sus criterios de aceptación
+- [ ] Tiene pruebas unitarias y de integración con Testcontainers
+- [ ] Sus endpoints aparecen documentados en OpenAPI
+- [ ] `.\mvnw.cmd verify` (backend) y `ng test` (frontend) en verde, también en la CI de GitHub Actions
+- [ ] Se entrega un resumen de cambios
 
 ## Capturas de pantalla
 

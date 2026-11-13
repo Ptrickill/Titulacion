@@ -462,10 +462,11 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
 - Ramas, creadas siempre desde `develop`: `feature/SCRUM-XX-short-description` (historias y tareas técnicas), `fix/SCRUM-XX-...` (correcciones) y `chore/SCRUM-XX-...` (mantenimiento y documentación). Ejemplo: `fix/SCRUM-51-physio-patients-table-overflow`.
 - Las ramas y los commits anteriores a SCRUM-51 usan `feature/HU-XX-...`, `feature/TEC-XX-...` o `chore/...` y el número de issue (`#8`). No se reescriben.
 - Flujo de ramas: los PR de `feature/*`, `fix/*` y `chore/*` van **siempre hacia `develop`**, nunca hacia `main`. `develop` se fusiona en `main` **solo al cierre de cada sprint**, mediante un PR `develop → main`. Antes de crear un PR, comprobar que la rama base sea `develop` (GitHub propone `main` por defecto).
-- **Claude Code no fusiona PR**: nunca `gh pr merge` ni fusiones locales hacia `develop` o `main`. José Luis aprueba cada PR y Daniel lo fusiona. Claude Code llega hasta crear o actualizar el PR y reportar su CI; si una tarea depende de un PR abierto, pide que lo fusionen y luego actualiza `develop` con `git pull`.
+- **Regla de fusión** (ruleset "Protección develop y main"): PR obligatorio y los checks Backend y Frontend en verde, sin aprobación ni omisión de la regla. El desarrollo lo ejecuta un solo integrante y GitHub no permite aprobar un PR propio, así que no hay revisor: el autor completa la lista de verificación de la definición de terminado en la descripción del PR antes de fusionar.
+- **Claude Code no fusiona PR**: nunca `gh pr merge` ni fusiones locales hacia `develop` o `main`. Daniel fusiona cada PR. Claude Code llega hasta crear o actualizar el PR y reportar su CI; si una tarea depende de un PR abierto, pide que lo fusionen y luego actualiza `develop` con `git pull`.
 - `.editorconfig`: UTF-8, LF, 4 espacios en Java/XML, 2 en TypeScript, HTML, SCSS, YAML y JSON.
 - `README.md` en inglés; documentación funcional en español en `docs/` (`docs/user-stories.md`, evidencias por sprint en `docs/evidence/sprint-N/`).
-- Cada historia es un issue con la plantilla **Historia de usuario** (Como/quiero/para + Dado/Cuando/Entonces); cada PR usa `.github/pull_request_template.md`, lleva la clave `SCRUM-XX` en el título e incluye `Closes #N` en la descripción cuando cierra un issue de GitHub.
+- Cada historia es un issue con la plantilla **Historia de usuario** (Como/quiero/para + Dado/Cuando/Entonces); cada PR usa `.github/pull_request_template.md`, lleva la clave `SCRUM-XX` en el título e incluye en la descripción `Closes #N`, cuando cierra un issue de GitHub, y la lista de verificación de la definición de terminado.
 - CI (`.github/workflows/ci.yml`) corre en push y PR hacia `main` y `develop`: backend `./mvnw -B verify`, frontend `npm ci` + `ng test` + `ng build`. No fusionar con CI en rojo. `backend/mvnw` debe conservar el modo ejecutable en Git (`git update-index --chmod=+x backend/mvnw`).
 
 ## Definición de terminado
@@ -477,6 +478,8 @@ Una historia está terminada cuando:
 - [ ] Sus endpoints aparecen documentados en OpenAPI.
 - [ ] `.\mvnw.cmd verify` (en `backend/`) y `ng test` (en `frontend/`) están en verde, también en la CI de GitHub Actions.
 - [ ] Se entrega un resumen de cambios.
+
+El autor marca esta lista en la descripción del PR (sección "Definición de terminado" de la plantilla) antes de fusionar. Si un punto no corresponde al cambio, lo indica como "no aplica".
 
 ## Forma de trabajo
 
