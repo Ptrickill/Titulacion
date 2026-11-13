@@ -73,13 +73,7 @@
   font-style: italic;
 }
 
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-// Compact, like the prototype's row buttons, so the five columns fit without horizontal scroll
+// Compact, like the prototype's row buttons, so the columns fit without horizontal scroll
 .action {
   height: 32px;
   padding: 0 12px;

@@ -4,7 +4,10 @@ import {
   provideHttpClientTesting,
   TestRequest,
 } from '@angular/common/http/testing';
+import { TestKey } from '@angular/cdk/testing';
+import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { MatMenuHarness } from '@angular/material/menu/testing';
 import { provideRouter } from '@angular/router';
 import { Page } from '../../../core/http/page';
 import { CurrentTreatment, PhysioPatient } from '../clinical-records/clinical-record-api';
@@ -50,6 +53,21 @@ describe('PhysioPatientList', () => {
   const listRequest = (): TestRequest =>
     backend.expectOne((request) => request.url === '/api/physio/patients');
   const rows = () => Array.from(element.querySelectorAll('tbody tr'));
+  const nameLinks = () => rows().map((row) => row.querySelector<HTMLAnchorElement>('.name a')!);
+
+  /** The menu of each row, in the order of the rows. */
+  const menus = () => TestbedHarnessEnvironment.loader(fixture).getAllHarnesses(MatMenuHarness);
+
+  /** Opens the menu and returns the text and the destination of each of its actions. */
+  async function actionsOf(menu: MatMenuHarness): Promise<[string, string | null][]> {
+    await menu.open();
+    const actions: [string, string | null][] = [];
+    for (const item of await menu.getItems()) {
+      actions.push([await item.getText(), await (await item.host()).getAttribute('href')]);
+    }
+    await menu.close();
+    return actions;
+  }
 
   beforeEach(async () => {
     TestBed.configureTestingModule({
@@ -103,56 +121,106 @@ describe('PhysioPatientList', () => {
     expect(none).toContain('Sin historial');
   });
 
-  it('links to the record view and the plan, and offers a record or treatment when it applies', async () => {
+  it('offers every action of a row with a treatment in its menu, whatever the status', async () => {
     listRequest().flush(
       page([
         patient(1, 'Juan', 'Pérez', 40, ACTIVE_TREATMENT),
-        patient(2, 'María', 'Velasco', 41, { ...ACTIVE_TREATMENT, status: 'ABANDONED' }),
-        patient(3, 'Andrés', 'Cárdenas'),
+        patient(2, 'María', 'Velasco', 41, { ...ACTIVE_TREATMENT, id: 10, status: 'COMPLETED' }),
+        patient(3, 'Pedro', 'Cordero', 42, { ...ACTIVE_TREATMENT, id: 11, status: 'ABANDONED' }),
       ]),
     );
     await fixture.whenStable();
 
-    const links = rows().map((row) =>
-      Array.from(row.querySelectorAll('a')).map((a) => [
-        a.textContent?.trim(),
-        a.getAttribute('href'),
-      ]),
-    );
-    expect(links[0]).toEqual([
+    const [active, completed, abandoned] = await menus();
+    expect(await actionsOf(active)).toEqual([
       ['Ver historial', '/physio/patients/1/clinical-record'],
       ['Plan y asignación', '/physio/patients/1/treatments/9'],
       ['Línea de tiempo', '/physio/patients/1/treatments/9/timeline'],
     ]);
-    expect(links[1]).toEqual([
+    expect(await actionsOf(completed)).toEqual([
       ['Ver historial', '/physio/patients/2/clinical-record'],
-      ['Plan y asignación', '/physio/patients/2/treatments/9'],
-      ['Línea de tiempo', '/physio/patients/2/treatments/9/timeline'],
+      ['Plan y asignación', '/physio/patients/2/treatments/10'],
+      ['Línea de tiempo', '/physio/patients/2/treatments/10/timeline'],
       ['Nuevo tratamiento', '/physio/patients/2/clinical-record/41/treatments/new'],
     ]);
-    expect(links[2]).toEqual([['Crear historial', '/physio/patients/3/clinical-record/new']]);
+    expect(await actionsOf(abandoned)).toEqual([
+      ['Ver historial', '/physio/patients/3/clinical-record'],
+      ['Plan y asignación', '/physio/patients/3/treatments/11'],
+      ['Línea de tiempo', '/physio/patients/3/treatments/11/timeline'],
+      ['Nuevo tratamiento', '/physio/patients/3/clinical-record/42/treatments/new'],
+    ]);
   });
 
-  it('offers the timeline of the current treatment only to the patients that have one', async () => {
+  it('offers a treatment to a record without one, and a record to a patient without one', async () => {
+    listRequest().flush(page([patient(1, 'Lucía', 'Mora', 42), patient(2, 'Andrés', 'Cárdenas')]));
+    await fixture.whenStable();
+
+    const [withRecord, withoutRecord] = await menus();
+    expect(await actionsOf(withRecord)).toEqual([
+      ['Ver historial', '/physio/patients/1/clinical-record'],
+      ['Nuevo tratamiento', '/physio/patients/1/clinical-record/42/treatments/new'],
+    ]);
+    expect(await actionsOf(withoutRecord)).toEqual([
+      ['Crear historial', '/physio/patients/2/clinical-record/new'],
+    ]);
+  });
+
+  it('keeps the actions of each row in one menu button, named after the patient', async () => {
     listRequest().flush(
-      page([
-        patient(1, 'Juan', 'Pérez', 40, ACTIVE_TREATMENT),
-        patient(2, 'María', 'Velasco', 41, { ...ACTIVE_TREATMENT, id: 12, status: 'COMPLETED' }),
-        patient(3, 'Lucía', 'Mora', 42),
-        patient(4, 'Andrés', 'Cárdenas'),
-      ]),
+      page([patient(1, 'Juan', 'Pérez', 40, ACTIVE_TREATMENT), patient(2, 'Andrés', 'Cárdenas')]),
     );
     await fixture.whenStable();
 
-    const timelines = rows().map((row) => row.querySelector('a.timeline'));
-    expect(timelines.map((a) => a?.getAttribute('href') ?? null)).toEqual([
-      '/physio/patients/1/treatments/9/timeline',
-      '/physio/patients/2/treatments/12/timeline',
-      null,
-      null,
+    const triggers = rows().map((row) => Array.from(row.querySelectorAll('button')));
+    expect(triggers.map((buttons) => buttons.length)).toEqual([1, 1]);
+    expect(triggers.map(([button]) => button.getAttribute('aria-label'))).toEqual([
+      'Acciones de Juan Pérez',
+      'Acciones de Andrés Cárdenas',
     ]);
-    expect(timelines[0]?.textContent?.trim()).toBe('Línea de tiempo');
-    expect(timelines[0]?.getAttribute('aria-label')).toBe('Línea de tiempo de Juan Pérez');
+    expect(triggers[0][0].getAttribute('aria-haspopup')).toBe('menu');
+    // Closed, the only link of a row is the name
+    expect(rows().map((row) => row.querySelectorAll('a').length)).toEqual([1, 1]);
+  });
+
+  it('moves through the menu with the keyboard and gives the focus back when it closes', async () => {
+    listRequest().flush(page([patient(1, 'Juan', 'Pérez', 40, ACTIVE_TREATMENT)]));
+    await fixture.whenStable();
+
+    const [menu] = await menus();
+    const trigger = rows()[0].querySelector('button')!;
+    await menu.open();
+    const focused = () => document.activeElement?.textContent?.trim();
+    const panel = document.querySelector<HTMLElement>('.mat-mdc-menu-panel')!;
+    expect(panel.getAttribute('role')).toBe('menu');
+    expect(panel.getAttribute('aria-label')).toBe('Acciones de Juan Pérez');
+
+    const [first, second] = await menu.getItems();
+    await first.focus();
+    expect(focused()).toBe('Ver historial');
+    await (await first.host()).sendKeys(TestKey.DOWN_ARROW);
+    expect(focused()).toBe('Plan y asignación');
+    await (await second.host()).sendKeys(TestKey.DOWN_ARROW);
+    expect(focused()).toBe('Línea de tiempo');
+
+    await (await second.host()).sendKeys(TestKey.ESCAPE);
+    await fixture.whenStable();
+    expect(await menu.isOpen()).toBe(false);
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it('links the name of the patient to the record, or to its creation without one', async () => {
+    listRequest().flush(
+      page([patient(1, 'Juan', 'Pérez', 40, ACTIVE_TREATMENT), patient(2, 'Andrés', 'Cárdenas')]),
+    );
+    await fixture.whenStable();
+
+    const [withRecord, withoutRecord] = nameLinks();
+    expect(withRecord.textContent?.trim()).toBe('Juan Pérez');
+    expect(withRecord.getAttribute('href')).toBe('/physio/patients/1/clinical-record');
+    expect(withRecord.getAttribute('aria-label')).toBe('Ver historial de Juan Pérez');
+    expect(withoutRecord.textContent?.trim()).toBe('Andrés Cárdenas');
+    expect(withoutRecord.getAttribute('href')).toBe('/physio/patients/2/clinical-record/new');
+    expect(withoutRecord.getAttribute('aria-label')).toBe('Crear historial de Andrés Cárdenas');
   });
 
   it('searches as the user types, from the first page', async () => {

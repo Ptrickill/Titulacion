@@ -380,7 +380,10 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
 - Errores de la API: mostrar el `detail` en español con `problemDetailMessage(error, textoAlternativo)` de `core/http/problem-detail.ts`. Las páginas de resultados usan el tipo `Page<T>` de `core/http/page.ts`.
 - `AppShell` vuelve al inicio el área de contenido (`mat-sidenav-content`, que es la que se desplaza) en cada navegación.
 - Historial clínico del fisioterapeuta (HU-07):
-  - `/physio/patients` (`PhysioPatientList`): tabla paginada en el servidor con el resumen del tratamiento y las acciones "Crear historial" o "Nuevo tratamiento". Cada fila con tratamiento tiene además "Línea de tiempo" (HU-11), que abre la de su tratamiento vigente.
+  - `/physio/patients` (`PhysioPatientList`): tabla paginada en el servidor con el resumen del tratamiento.
+    - Las acciones de cada fila están en un menú (`mat-menu`, SCRUM-51), que abre un botón de icono con el `aria-label` "Acciones de {paciente}". En botones no caben: la tabla se salía de su tarjeta. No volver a ponerlas como botones en la fila.
+    - El menú ofrece "Ver historial" o "Crear historial", "Nuevo tratamiento" si no hay tratamiento activo y, en cada fila con tratamiento, "Plan y asignación" y "Línea de tiempo" (HU-11, la de su tratamiento vigente).
+    - El nombre del paciente es un enlace a la acción principal: el expediente o, si no tiene historial, su creación.
   - `PhysioPatientSearch` (`patients/physio-patient-search.ts`) es la búsqueda de `GET /api/physio/patients` (espera de 300 ms, paginación en el servidor, carga y error en signals). La comparten `PhysioPatientList` y `TimelineEntry`; se crea en un inicializador de campo del componente. Los estilos de las filas están en `patients/_patient-rows.scss`.
   - `ClinicalRecordForm` sirve dos rutas:
     - `/physio/patients/:patientId/clinical-record/new`: cuatro secciones.
