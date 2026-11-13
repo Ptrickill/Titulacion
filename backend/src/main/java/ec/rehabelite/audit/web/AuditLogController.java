@@ -6,6 +6,7 @@ import ec.rehabelite.audit.application.AuditLogQueryService;
 import ec.rehabelite.audit.application.AuditLogQueryService.AuditLogPage;
 import ec.rehabelite.audit.domain.AuditLog;
 import ec.rehabelite.audit.domain.AuditLogFilter;
+import ec.rehabelite.shared.domain.InvalidRequestException;
 import ec.rehabelite.shared.web.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -21,14 +22,12 @@ import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 /** Read-only audit log (HU-18) for the administrator and the operations director. */
 @RestController
@@ -84,7 +83,7 @@ class AuditLogController {
             @Parameter(description = "Tamaño de página (1 a 100)", example = "20")
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
         if (from != null && to != null && from.isAfter(to)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, INVALID_RANGE);
+            throw new InvalidRequestException(INVALID_RANGE);
         }
         AuditLogPage result = queryService.search(
                 new AuditLogFilter(userId, action, entityType, entityId, from, to), page, size);

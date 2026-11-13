@@ -124,23 +124,75 @@ describe('ClinicalRecordView', () => {
     expect(row).toContain('Cierre: 02/05/2025');
     expect(row).toContain('Responsable: Lcdo. Martín Cevallos');
     expect(row).toContain('Finalizado');
-    expect(previous.querySelector('a')?.getAttribute('href')).toBe(
-      '/physio/patients/15/treatments/20',
+    const plan = Array.from(previous.querySelectorAll('a')).find(
+      (a) => a.textContent?.trim() === 'Plan y asignación',
     );
+    expect(plan?.getAttribute('href')).toBe('/physio/patients/15/treatments/20');
   });
 
-  it('opens the edit form and keeps "Ver sesiones" disabled', async () => {
+  it('opens the edit form, the sessions of the active treatment and the session form', async () => {
     await open();
     await respond(fakeClinicalRecord(15));
 
     expect(link('Editar historial')?.getAttribute('href')).toBe(
       '/physio/patients/15/clinical-record/edit',
     );
-    const sessions = Array.from(element.querySelectorAll('button')).find((b) =>
-      b.textContent?.includes('Ver sesiones'),
-    )!;
-    expect(sessions.disabled).toBe(true);
-    expect(sessions.textContent).toContain('(disponible próximamente)');
+    expect(link('Ver sesiones')?.getAttribute('href')).toBe(
+      '/physio/patients/15/treatments/30/sessions',
+    );
+    expect(link('Ver sesiones')?.getAttribute('aria-disabled')).not.toBe('true');
+    expect(link('Registrar sesión')?.getAttribute('href')).toBe(
+      '/physio/patients/15/treatments/30/sessions/new',
+    );
+  });
+
+  it('links the sessions of each previous treatment', async () => {
+    await open();
+    await respond(fakeClinicalRecord(15));
+
+    const previous = section('Tratamientos anteriores')!;
+    const sessions = Array.from(previous.querySelectorAll('a')).find(
+      (a) => a.textContent?.trim() === 'Sesiones',
+    );
+    expect(sessions?.getAttribute('href')).toBe('/physio/patients/15/treatments/20/sessions');
+    const timeline = Array.from(previous.querySelectorAll('a')).find(
+      (a) => a.textContent?.trim() === 'Línea de tiempo',
+    );
+    expect(timeline?.getAttribute('href')).toBe('/physio/patients/15/treatments/20/timeline');
+  });
+
+  it('opens the timeline of the active treatment from the header and from its plan', async () => {
+    await open();
+    await respond(fakeClinicalRecord(15));
+
+    const timelines = Array.from(element.querySelectorAll('a'))
+      .filter((a) => a.textContent?.trim().endsWith('Línea de tiempo'))
+      .map((a) => a.getAttribute('href'));
+    // Header, active plan and the previous treatment
+    expect(timelines).toEqual([
+      '/physio/patients/15/treatments/30/timeline',
+      '/physio/patients/15/treatments/30/timeline',
+      '/physio/patients/15/treatments/20/timeline',
+    ]);
+  });
+
+  it('without an active treatment the timeline is the one of the most recent treatment', async () => {
+    await open();
+    await respond(fakeClinicalRecord(15, { activeTreatment: null }));
+
+    expect(link('Línea de tiempo')?.getAttribute('href')).toBe(
+      '/physio/patients/15/treatments/20/timeline',
+    );
+  });
+
+  it('without an active treatment shows the sessions of the most recent one and no session form', async () => {
+    await open();
+    await respond(fakeClinicalRecord(15, { activeTreatment: null }));
+
+    expect(link('Ver sesiones')?.getAttribute('href')).toBe(
+      '/physio/patients/15/treatments/20/sessions',
+    );
+    expect(link('Registrar sesión')).toBeUndefined();
   });
 
   it('offers a new treatment when none is active', async () => {

@@ -1,58 +1,25 @@
-:host {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+@use './patient-rows';
+
+// The name opens the record: it keeps the look of the name and shows it is a link on hover and focus
+.record-link {
+  color: inherit;
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--re-text-teal);
+    text-decoration: underline;
+  }
 }
 
-.filters {
-  display: flex;
-  padding: 14px;
-  background: var(--re-card);
-  border: 1px solid var(--re-gray-200);
-  border-radius: var(--re-radius-lg);
-  box-shadow: var(--re-shadow-sm);
-}
-
-.search {
-  flex: 1;
-}
-
-.patient {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.avatar {
-  display: grid;
-  flex: none;
-  place-items: center;
+// The row actions are a menu: side by side they made the table wider than its card (SCRUM-51)
+.more {
   width: 36px;
   height: 36px;
+  padding: 6px;
   color: var(--re-text-teal);
   background: var(--re-teal-50);
   border: 1px solid var(--re-teal-100);
-  border-radius: 50%;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.name,
-.diagnosis {
-  color: var(--re-text);
-  font-weight: 700;
-}
-
-// The ID line never breaks, which keeps the patient column wide enough for the name
-.meta {
-  white-space: nowrap;
-}
-
-.meta,
-.code {
-  color: var(--re-text-muted);
-  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
-  font-size: 11.5px;
 }
 
 .severity {
@@ -70,37 +37,4 @@
 
 .tone-danger {
   color: var(--re-danger);
-}
-
-.sessions {
-  padding: 2px 8px;
-  color: var(--re-gray-700);
-  background: var(--re-gray-100);
-  border-radius: var(--re-radius-sm);
-  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
-  font-size: 11.5px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.none {
-  color: var(--re-text-muted);
-  font-style: italic;
-}
-
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-// Compact, like the prototype's row buttons, so the five columns fit without horizontal scroll
-.action {
-  height: 32px;
-  padding: 0 12px;
-  color: var(--re-text-teal);
-  border-color: var(--re-teal-100);
-  background: var(--re-teal-50);
-  font-size: 13px;
-  white-space: nowrap;
 }

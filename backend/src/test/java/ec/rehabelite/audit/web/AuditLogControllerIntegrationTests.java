@@ -139,6 +139,7 @@ class AuditLogControllerIntegrationTests extends AbstractIntegrationTest {
     void invalidFiltersAre400() throws Exception {
         search(admin, "from", "2026-03-12", "to", "2026-03-10")
                 .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Solicitud no válida"))
                 .andExpect(jsonPath("$.detail").value("La fecha inicial no puede ser posterior a la fecha final."));
         search(admin, "size", "0").andExpect(status().isBadRequest());
         search(admin, "size", "101").andExpect(status().isBadRequest());

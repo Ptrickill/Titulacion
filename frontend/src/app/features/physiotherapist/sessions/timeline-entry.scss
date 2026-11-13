@@ -1,0 +1,8 @@
+@use '../patients/patient-rows';
+
+.planned {
+  margin-top: 4px;
+  color: var(--re-text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}

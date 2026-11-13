@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import ec.rehabelite.audit.AuditAction;
 import ec.rehabelite.audit.AuditLogService;
 import ec.rehabelite.auth.config.AuditingAccessDeniedHandler.AuditedResource;
+import ec.rehabelite.shared.domain.ForbiddenOperationException;
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -57,6 +58,28 @@ class AuditingAccessDeniedHandlerTests {
                 .contains("\"detail\":\"No tiene permisos para realizar esta acción.\"")
                 .contains("\"instance\":\"/api/patients/12\"")
                 .doesNotContain("1712345678");
+    }
+
+    /** HU-10: a service denies an operation on one resource with its own Spanish message, still audited. */
+    @Test
+    void aForbiddenOperationKeepsItsMessageAsTheDetail() throws Exception {
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        handler.handle(new MockHttpServletRequest("PUT", "/api/therapy-sessions/41"), response,
+                new ForbiddenOperationException("Solo el fisioterapeuta que registró la sesión puede corregirla."));
+
+        verify(auditLogService).record(AuditAction.ACCESS_DENIED, "therapy-sessions", 41L);
+        assertThat(response.getStatus()).isEqualTo(403);
+        assertThat(response.getContentAsString(StandardCharsets.UTF_8))
+                .contains("\"title\":\"Acceso denegado\"")
+                .contains("\"detail\":\"Solo el fisioterapeuta que registró la sesión puede corregirla.\"");
+    }
+
+    /** Spring's own denials carry English messages, so they keep the generic Spanish detail. */
+    @Test
+    void otherDenialsKeepTheGenericDetail() {
+        assertThat(AuditingAccessDeniedHandler.detailOf(new AccessDeniedException("Access Denied")))
+                .isEqualTo("No tiene permisos para realizar esta acción.");
     }
 
     @Test

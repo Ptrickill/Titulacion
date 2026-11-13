@@ -1,0 +1,203 @@
+<app-page-header
+  [title]="isEdit ? 'Corregir Sesión Terapéutica' : 'Registrar Sesión Terapéutica'"
+  [subtitle]="
+    isEdit
+      ? 'La corrección conserva la versión anterior; el número de sesión y el responsable no cambian'
+      : 'Registro de evolución, escala EVA, actividades e indicaciones para el paciente'
+  "
+  [backLink]="backLink"
+/>
+
+@if (loadError(); as message) {
+  <app-empty-state icon="event_busy" title="No se pudo abrir la sesión" [message]="message">
+    <a mat-stroked-button [routerLink]="backLink">Volver</a>
+  </app-empty-state>
+} @else if (!ready()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Cargando sesión" />
+} @else {
+  @if (blockedMessage(); as message) {
+    <div class="notice" role="alert">
+      <mat-icon aria-hidden="true">lock</mat-icon>
+      <span>{{ message }}</span>
+    </div>
+  }
+
+  <form class="card" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="grid">
+      <mat-form-field appearance="fill" subscriptSizing="dynamic" floatLabel="always" class="full">
+        <mat-label>Paciente en tratamiento</mat-label>
+        <mat-icon matPrefix aria-hidden="true">person</mat-icon>
+        <input matInput readonly [value]="patientLabel()" />
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" subscriptSizing="dynamic">
+        <mat-label>Tipo de sesión / intervención</mat-label>
+        <mat-icon matPrefix aria-hidden="true">stethoscope</mat-icon>
+        <input
+          matInput
+          formControlName="sessionType"
+          [attr.maxlength]="typeMax"
+          placeholder="Ej.: Fisioterapia lumbar mecánica"
+          autocomplete="off"
+        />
+        @if (form.controls.sessionType.hasError('required')) {
+          <mat-error>Ingrese el tipo de sesión.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" subscriptSizing="dynamic" floatLabel="always">
+        <mat-label>Número de sesión</mat-label>
+        <mat-icon matPrefix aria-hidden="true">tag</mat-icon>
+        <input matInput readonly [value]="sequenceLabel()" />
+        <mat-hint>{{
+          isEdit ? 'No cambia al corregir.' : 'Lo asigna el sistema al guardar.'
+        }}</mat-hint>
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" subscriptSizing="dynamic">
+        <mat-label>Fecha de la sesión</mat-label>
+        <mat-icon matPrefix aria-hidden="true">calendar_today</mat-icon>
+        <input matInput type="date" formControlName="sessionDate" [max]="today" />
+        @if (form.controls.sessionDate.hasError('required')) {
+          <mat-error>Ingrese la fecha de la sesión.</mat-error>
+        } @else if (form.controls.sessionDate.hasError('future')) {
+          <mat-error>La fecha no puede ser posterior a hoy.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" subscriptSizing="dynamic">
+        <mat-label>Hora de la sesión</mat-label>
+        <mat-icon matPrefix aria-hidden="true">schedule</mat-icon>
+        <input matInput type="time" formControlName="sessionTime" />
+        @if (form.controls.sessionTime.hasError('required')) {
+          <mat-error>Ingrese la hora de la sesión.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" subscriptSizing="dynamic">
+        <mat-label>Intensidad del dolor EVA (0–10)</mat-label>
+        <mat-icon matPrefix aria-hidden="true">monitor_heart</mat-icon>
+        <mat-select formControlName="painScore">
+          @for (score of painScores; track score) {
+            <mat-option [value]="score">{{ score }} - {{ painLabel(score) }}</mat-option>
+          }
+        </mat-select>
+        @let score = form.controls.painScore.value;
+        @if (score !== null) {
+          <app-status-badge
+            matSuffix
+            class="eva"
+            [label]="score + '/10'"
+            [tone]="painTone(score)"
+          />
+        }
+        @if (form.controls.painScore.hasError('required')) {
+          <mat-error>Seleccione la EVA de la sesión.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" subscriptSizing="dynamic">
+        <mat-label>Estado de la sesión</mat-label>
+        <mat-icon matPrefix aria-hidden="true">task_alt</mat-icon>
+        <mat-select formControlName="status">
+          @for (status of statuses; track status) {
+            <mat-option [value]="status">{{ statusOptions[status] }}</mat-option>
+          }
+        </mat-select>
+        @if (form.controls.status.hasError('required')) {
+          <mat-error>Seleccione el estado de la sesión.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" subscriptSizing="dynamic">
+        <mat-label>Estado de evolución</mat-label>
+        <mat-icon matPrefix aria-hidden="true">trending_up</mat-icon>
+        <mat-select formControlName="progressStatus">
+          @for (progress of progressStatuses; track progress) {
+            <mat-option [value]="progress">{{ progressLabels[progress] }}</mat-option>
+          }
+        </mat-select>
+        @if (form.controls.progressStatus.hasError('required')) {
+          <mat-error>Seleccione el estado de evolución.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" subscriptSizing="dynamic" floatLabel="always">
+        <mat-label>Especialista responsable</mat-label>
+        <mat-icon matPrefix aria-hidden="true">badge</mat-icon>
+        <input matInput readonly [value]="responsibleName()" />
+        <mat-hint>
+          {{
+            isEdit
+              ? 'Quien registró la sesión; solo esa persona puede corregirla.'
+              : 'Queda como responsable quien registra la sesión.'
+          }}
+        </mat-hint>
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" subscriptSizing="dynamic" class="full">
+        <mat-label>Actividades realizadas</mat-label>
+        <textarea
+          matInput
+          cdkTextareaAutosize
+          cdkAutosizeMinRows="3"
+          formControlName="activitiesPerformed"
+          [attr.maxlength]="textMax"
+          placeholder="Ejercicios terapéuticos, técnicas manuales, electroterapia, rangos articulares o protocolos ejecutados en la sesión..."
+        ></textarea>
+        @if (form.controls.activitiesPerformed.hasError('required')) {
+          <mat-error>Describa las actividades realizadas.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" subscriptSizing="dynamic" class="full">
+        <mat-label>Observaciones clínicas (uso interno)</mat-label>
+        <textarea
+          matInput
+          cdkTextareaAutosize
+          cdkAutosizeMinRows="3"
+          formControlName="clinicalObservations"
+          [attr.maxlength]="textMax"
+          placeholder="Respuesta al tratamiento, signos de alarma, tolerancia, evolución..."
+        ></textarea>
+        <mat-hint>No se muestran al paciente.</mat-hint>
+        @if (form.controls.clinicalObservations.hasError('required')) {
+          <mat-error>Ingrese las observaciones clínicas.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" subscriptSizing="dynamic" class="full">
+        <mat-label>Indicaciones para el paciente (opcional)</mat-label>
+        <textarea
+          matInput
+          cdkTextareaAutosize
+          cdkAutosizeMinRows="2"
+          formControlName="patientInstructions"
+          [attr.maxlength]="textMax"
+          placeholder="Pautas de autocuidado, ejercicios para el hogar, ergonomía y recomendaciones posteriores a la sesión..."
+        ></textarea>
+      </mat-form-field>
+    </div>
+
+    @if (errorMessage(); as message) {
+      <div class="error" role="alert">
+        <mat-icon aria-hidden="true">error</mat-icon>
+        <span>{{ message }}</span>
+      </div>
+    }
+
+    <div class="actions">
+      <a mat-stroked-button [routerLink]="backLink">Cancelar</a>
+      @if (!blockedMessage()) {
+        <button mat-flat-button type="submit" [disabled]="submitting()">
+          @if (submitting()) {
+            <mat-spinner diameter="18" aria-label="Guardando" />
+          } @else {
+            <mat-icon aria-hidden="true">save</mat-icon>
+          }
+          {{ isEdit ? 'Guardar corrección' : 'Registrar sesión' }}
+        </button>
+      }
+    </div>
+  </form>
+}

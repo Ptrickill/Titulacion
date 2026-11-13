@@ -206,9 +206,12 @@ app-page-header {
   font-style: italic;
 }
 
-.card-actions {
+.card-actions,
+.previous-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
+  gap: 8px 12px;
 }
 
 .no-active {

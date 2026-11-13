@@ -61,7 +61,7 @@ Los comentarios `# TODO` de `.env` / `.env.example` son instrucciones para el de
 - **Backend:** Java 21, Spring Boot 4, Spring Security con JWT HS256 (OAuth2 Resource Server), Spring Data JPA, Flyway, Hibernate Envers (HU-18), Spring Modulith, Bean Validation, MapStruct, springdoc-openapi.
 - **Frontend:** Angular 22 con Angular Material.
 - **Base de datos:** PostgreSQL 16.
-- **IA:** API de Claude (Sprint 7, módulo `aisummary`).
+- **IA:** API de Claude (Sprint 5, módulo `aisummary`).
 - **Pruebas:** JUnit 5, Mockito, Testcontainers (backend); Vitest y Playwright (frontend).
 
 ## Arquitectura backend: monolito modular
@@ -107,6 +107,12 @@ Reglas:
   - `ec.rehabelite.auth.StaffDirectory` (HU-08):
     - `findActivePhysiotherapist(id)`, `activePhysiotherapists()` y `fullNames(ids)` devuelven `StaffMember` (id y nombre) o los nombres, también de cuentas desactivadas.
     - Es la única forma en que otros módulos consultan cuentas del personal; `auth` nunca depende de ellos.
+  - `ec.rehabelite.clinicalrecords.TreatmentQueryPort` (HU-10):
+    - `find(id)` devuelve `TreatmentSummary`: id, paciente, `active`, fecha de inicio y, desde HU-11, el punto de partida (`initialPainScore`, `plannedSessions` y el diagnóstico CIE-10, código y descripción). Nada más del contenido clínico (motivo, enfermedad, objetivo...) y nunca la entidad.
+    - `find` usa `TreatmentRepository.findSummaryById` (`@EntityGraph` de historial y diagnóstico): una sola sentencia.
+    - `lockForSessionRegistration(id)` devuelve lo mismo, pero bloquea la fila del tratamiento (`PESSIMISTIC_WRITE`) hasta que termina la transacción de quien llama. Exige una transacción abierta (`MANDATORY`).
+    - Es la única forma en que otros módulos (`sessions`, ...) consultan tratamientos; `clinicalrecords` nunca depende de `sessions`.
+  - `ec.rehabelite.audit.EntityVersionHistory` (HU-10): `versionsOf(clase, id)` devuelve las versiones de Envers de una entidad `@Audited`, de la más antigua a la más reciente. Cada `EntityVersion` trae la entidad, la revisión, el tipo (`CREATE`, `UPDATE`, `DELETE`), la fecha y el autor (o `null`). Así ningún módulo usa `AuditRevision` ni Envers directamente.
 - Seguridad: JWT HS256 emitido por `POST /api/auth/login` (claims `sub` = id, `email`, `fullName`, `role`; el rol da la autoridad `ROLE_<rol>`). Públicos solo login, `/actuator/health` y la documentación OpenAPI. El reloj se inyecta como bean `Clock` (`shared.config`).
 - Estado de cuentas (HU-03):
   - `PATCH /api/users/{id}/status` con `{ "active": boolean }` (`UserManagementService.changeStatus`).
@@ -181,6 +187,32 @@ Reglas:
     - Errores 404: los mismos dos mensajes que el `GET`.
     - `ClinicalRecord.update` llena `updated_by` y `updated_at`, y se audita `UPDATE ClinicalRecord`. Enviar los mismos datos no cambia ni audita nada.
     - Responde los hábitos y antecedentes con `updatedAt`.
+- Sesiones terapéuticas (HU-10), módulo `sessions` (`TherapySessionService`), solo `PHYSIOTHERAPIST`:
+  - `POST /api/treatments/{treatmentId}/therapy-sessions` registra la sesión: fecha, hora, tipo (hasta 50), actividades, observaciones clínicas, indicaciones para el paciente (opcional; en blanco se guarda `null`), EVA 0–10, evolución y estado.
+    - El servidor asigna el correlativo: el mayor del tratamiento + 1, leído con el tratamiento bloqueado (`TreatmentQueryPort.lockForSessionRegistration`). Así dos registros simultáneos nunca repiten número (`TherapySessionConcurrencyIntegrationTests`); `uq_therapy_sessions_treatment_sequence` es el respaldo.
+    - El responsable es siempre el usuario del token. El request no tiene `responsibleId` ni `sequenceNumber`; si el cliente los envía, se ignoran.
+    - Errores: campo vacío, EVA fuera de 0–10 o fecha posterior a hoy (`@PastOrPresent`): 400. Tratamiento inexistente: 404. Tratamiento que no está `ACTIVE`, o fecha anterior a su inicio: 422.
+  - `GET /api/treatments/{treatmentId}/therapy-sessions?page=&size=`: `PageResponse` ordenada por correlativo (`size` 1–100, 20 por defecto), con el nombre del responsable de `StaffDirectory.fullNames`. 404 si el tratamiento no existe.
+  - `GET /api/therapy-sessions/{id}`: la sesión con su responsable.
+  - `PUT /api/therapy-sessions/{id}` corrige los campos editables, con las mismas validaciones (400 y 422 por la fecha). El correlativo y el responsable nunca cambian (`updatable = false`).
+    - **Regla: solo el fisioterapeuta que registró la sesión (`responsible_id`) puede corregirla.** Si otro fisioterapeuta envía el `PUT`, la respuesta es 403 con el detalle "Solo el fisioterapeuta que registró la sesión puede corregirla." y queda `ACCESS_DENIED` en `audit_logs` (entidad `therapy-sessions` con el id de la ruta). Primero se comprueba que la sesión exista (404).
+    - Se puede corregir aunque el tratamiento ya no esté activo.
+    - Enviar los mismos datos no cambia ni audita nada.
+    - Envers guarda la versión anterior en `therapy_sessions_aud`.
+  - `GET /api/therapy-sessions/{id}/versions`: versiones de la más reciente a la más antigua, con tipo (`CREATE` registro, `UPDATE` corrección), fecha, autor (`changedBy`, id y nombre) y el contenido de la sesión en esa versión. Cualquier fisioterapeuta las ve.
+  - No existe `DELETE`: una sesión nunca se elimina (405, con `Allow: GET, PUT`).
+  - `TherapySession` guarda `treatmentId` y `responsibleId` como ids, sin relación JPA, porque son de otros módulos.
+- Línea de tiempo terapéutica (HU-11), módulo `sessions` (`TherapySessionService.timeline`), solo `PHYSIOTHERAPIST`:
+  - `GET /api/treatments/{treatmentId}/timeline?from=&to=` devuelve:
+    - `treatment`: id, paciente, `active`, fecha de inicio, EVA inicial, sesiones planificadas, `completedSessions` (las `COMPLETED` de todo el tratamiento, sin importar el filtro) y diagnóstico. Sale de `TreatmentQueryPort.find`.
+    - `sessions`: las sesiones del rango en orden cronológico (fecha, hora y correlativo), con el mismo cuerpo que `GET /api/therapy-sessions/{id}`. Los nombres de los responsables salen de **una** llamada a `StaffDirectory.fullNames`.
+    - `painCurve`: la curva de EVA (`PainPoint.curveOf`, en `sessions.domain`). El primer punto es siempre la EVA inicial con la etiqueta "Evaluación inicial" y la fecha de inicio, aunque haya filtro; después, solo las sesiones `COMPLETED` del rango ("Sesión N"). Las `RESCHEDULED` y `NO_SHOW` aparecen en `sessions`, pero no en la curva.
+    - `from` y `to`: el filtro aplicado.
+  - `from` y `to` son opcionales e inclusivos, en días de Quito (`session_date`). La consulta es una `Specification` (`TherapySessionRepository.findTimeline`): solo los límites enviados se vuelven predicados, porque PostgreSQL no acepta `:param IS NULL` con un parámetro nulo sin tipo.
+  - Errores: `from` posterior a `to` responde 400 con `InvalidRequestException` "La fecha inicial no puede ser posterior a la fecha final." antes de leer nada. Tratamiento inexistente: 404. Ninguno se audita.
+  - Cada consulta correcta audita `READ Treatment`.
+  - **Número fijo de sentencias, sin N+1**: validación del token, tratamiento con historial y diagnóstico, sesiones, conteo de `COMPLETED`, nombres e `INSERT` de auditoría. Son 6, con 1 o con 100 sesiones. Lo comprueba `TherapyTimelinePerformanceIntegrationTests` (100 sesiones de cuatro fisioterapeutas: menos de 2 s, como máximo 6 sentencias y el mismo conteo que con 1 sesión), con Hibernate Statistics como en HU-09.
+  - No es paginada: la vista es la historia completa del tratamiento.
 - Auditoría de información clínica (HU-18, LOPDP):
   - **Regla:** toda operación sobre datos clínicos registra en `audit_logs` el usuario, la acción, la entidad, su id, la fecha (`occurred_at`) y la IP. Los datos personales del paciente no se auditan al leerlos (sí al crearlos o modificarlos). Las peticiones rechazadas (400, 404, 422) no se auditan; los 403 sí (`ACCESS_DENIED`). Un servicio que lee y audita es `@Transactional` sin `readOnly`, porque la auditoría inserta en la misma transacción.
 
@@ -199,6 +231,11 @@ Reglas:
     | `PATCH /api/treatments/{id}/status` | `STATUS_CHANGE Treatment` |
     | `GET /api/physio/patients` | `READ ClinicalRecord` por cada historial de la página (`PhysioPatientService`, `recordAll`) |
     | `GET /api/icd10-diagnoses`, `GET /api/physio/physiotherapists` | ninguna (catálogo y personal) |
+    | `POST /api/treatments/{id}/therapy-sessions` | `CREATE TherapySession` |
+    | `GET /api/treatments/{id}/therapy-sessions` | `READ Treatment` |
+    | `GET /api/therapy-sessions/{id}`, `GET /api/therapy-sessions/{id}/versions` | `READ TherapySession` |
+    | `PUT /api/therapy-sessions/{id}` | `UPDATE TherapySession` (solo si cambia algo); si no es el autor, `ACCESS_DENIED therapy-sessions` |
+    | `GET /api/treatments/{id}/timeline` | `READ Treatment` |
 
     Al añadir un endpoint clínico, agregarlo a esta tabla y a `ClinicalAuditIntegrationTests`.
   - **IP del cliente:** `server.forward-headers-strategy: framework`. La IP se toma de `X-Forwarded-For` (`ForwardedHeaderFilter`) **solo porque en producción la aplicación está detrás del proxy de Render**, que pone esa cabecera. El filtro confía en la cabecera de cualquier cliente, así que el backend nunca debe quedar expuesto sin el proxy. Sin la cabecera (desarrollo, pruebas) se usa la dirección de la conexión.
@@ -215,7 +252,7 @@ Reglas:
     - `Treatment` es `@Audited`. `clinicalRecord` y `diagnosis` guardan solo el id (`RelationTargetAuditMode.NOT_AUDITED`), y `responsibleAssignments` es `@NotAudited` porque ya es un historial.
     - Configuración en `application.yml` (`org.hibernate.envers.*`): sufijo `_aud`, `rev`, `revtype` y `store_data_at_delete`.
     - **Regla:** todo cambio futuro de columnas en `treatments` o `therapy_sessions` incluye el mismo cambio en su tabla `_aud` **en la misma migración**. Hibernate valida ambas (`ddl-auto: validate`), y `FlywayMigrationTests` compara sus columnas.
-    - **HU-10** debe mapear `TherapySession` con `@Audited` y validar que `therapy_sessions_aud` coincide con las columnas de `therapy_sessions`. Si cambia algo, lo hace una migración nueva, nunca editando V3.
+    - `TherapySession` (HU-10) es `@Audited` sobre `therapy_sessions_aud` tal como la creó V3. `FlywayMigrationTests` comprueba que cada tabla `_aud` tiene las mismas columnas, tipos y largos que su tabla. Si cambia algo, lo hace una migración nueva, nunca editando V3.
 - Respuestas paginadas: devolver `PageResponse.of(page, mapper)` (`content`, `page`, `size`, `totalElements`, `totalPages`), nunca el `Page` de Spring Data.
 - Acceso por rol (HU-04): la tabla vive en `auth.config.RoleAccessRules`. Una regla puede limitarse a un método HTTP y gana la primera que coincide. Al añadir un área de API nueva, registrarla ahí y en `RoleAccessIntegrationTests`.
 
@@ -240,10 +277,18 @@ Reglas:
 - Inyección por constructor; nunca `@Autowired` en campos.
 - Lombok **solo**: `@Getter`, `@Setter`, `@NoArgsConstructor` en entidades y `@RequiredArgsConstructor` en servicios. Nada de `@Data`, `@Builder`, `@Slf4j`, etc.
 - DTO siempre como `record`; las entidades **nunca** se exponen en la API (mapear con MapStruct).
-- Errores: lanzar `ResourceNotFoundException` (404), `BusinessRuleException` (422) o `ConflictException` (409) de `ec.rehabelite.shared.domain`, con mensaje en español; `GlobalExceptionHandler` los convierte en `ProblemDetail` en español.
+- Errores: lanzar `InvalidRequestException` (400, para lo que Bean Validation no expresa, p. ej. un rango de fechas invertido), `ResourceNotFoundException` (404), `BusinessRuleException` (422) o `ConflictException` (409) de `ec.rehabelite.shared.domain`, con mensaje en español; `GlobalExceptionHandler` los convierte en `ProblemDetail` en español. Nunca lanzar `ResponseStatusException`: su motivo se reemplaza por el detalle genérico de su código.
   - `ConflictException` añade sus propiedades a la respuesta: solo ids o códigos, nunca datos personales.
+  - `ForbiddenOperationException` (`shared.domain`, extiende `AccessDeniedException`) es para un rol que puede usar el endpoint pero no sobre ese recurso (HU-10: corregir la sesión de otro fisioterapeuta). `GlobalExceptionHandler` la relanza y `AuditingAccessDeniedHandler` responde 403 con su mensaje como `detail` y audita `ACCESS_DENIED`. Los demás 403 conservan el detalle genérico.
   - El locale está fijo en `es-EC`, así que los mensajes de Bean Validation también salen en español.
+  - Las excepciones propias de Spring MVC salen con el título y el detalle en español de su código, sin cambiar el código. Son el 405 (conserva la cabecera `Allow`), el 415, el cuerpo ilegible, el parámetro faltante o de tipo inválido (400) y la ruta inexistente (`NoResourceFoundException`, 404). El detalle nunca repite el valor enviado por el cliente. Las excepciones de Spring que extienden `ErrorResponseException` (p. ej. `ResponseStatusException`) tampoco conservan el suyo: solo las excepciones de la aplicación (`shared.domain`) conservan su mensaje. Un parámetro fuera de rango (`@Min`/`@Max`, `HandlerMethodValidationException`) responde 400 "Datos no válidos" con la lista `errors`, igual que la validación del cuerpo. Lo hace `GlobalExceptionHandler.handleExceptionInternal`, que usa el `ErrorResponse` de la excepción cuando Spring no trae cuerpo, y lo comprueba `SpringErrorProblemDetailIntegrationTests`.
 - Fechas de calendario ("hoy", edades, fecha de ingreso): usar `ClinicCalendar.today(clock)` de `shared.domain`, con la zona `America/Guayaquil`. Los instantes se guardan en UTC. Las anotaciones `@Past` y `@PastOrPresent` usan el mismo reloj (`ValidationConfig`).
+- Fechas, horas y zona horaria en la base:
+  - **Regla:** un momento exacto (`created_at`, `occurred_at`, `valid_from`...) es una columna `timestamptz` mapeada con `Instant`. Una fecha o una hora de la clínica (`session_date`, `session_time`, `birth_date`, `start_date`...) es `date` o `time` mapeada con `LocalDate` o `LocalTime`: es la fecha y la hora local de Quito, y se guarda tal como llega, sin conversión.
+  - Nunca usar `LocalDateTime`, `java.util.Date` ni `timestamp` sin zona.
+  - **Nunca configurar `hibernate.jdbc.time_zone`.** Con esa propiedad, una JVM en otra zona (UTC en la CI y en la imagen Docker) guardaba y leía `session_time` corrida 5 horas. El resultado no debe depender de la zona de la JVM: no fijar `TZ` ni `user.timezone` para compensar.
+  - "Hoy" nunca se calcula con la zona de la JVM (`LocalDate.now()`), sino con `ClinicCalendar.today(clock)`. El bean `Clock` es UTC y `ClinicCalendar` le aplica `America/Guayaquil`.
+  - Lo comprueba `TherapySessionTimeZoneIntegrationTests`: pone la JVM en UTC, registra una sesión por la API y lee la base con JDBC directo (`session_date` y `session_time` como texto, `created_at` como época).
 - Logs con SLF4J (`LoggerFactory.getLogger`), en inglés, **sin datos personales ni clínicos** (nada de cédulas, nombres, correos, diagnósticos ni valores de columnas; usar ids).
 - Configuración propia bajo `app.*` en el record validado `ec.rehabelite.shared.config.AppProperties`.
 - Perfiles: **no hay perfil por defecto**; sin perfil solo aplica la configuración común.
@@ -270,6 +315,7 @@ Excepciones acordadas en HU-07 (fuera del patrón de recurso plural):
 - `POST`, `GET` (HU-09) y `PUT` (HU-09) `/api/patients/{patientId}/clinical-record`: singular, porque es el único historial del paciente.
 - `GET /api/physio/patients`: vista de pacientes con datos clínicos, separada de `/api/patients`, que no los incluye. `GET /api/physio/physiotherapists` (HU-08) sigue el mismo criterio.
 - HU-08: `PUT /api/treatments/{id}/responsible` y `PATCH /api/treatments/{id}/status` (sub-recursos en singular del tratamiento).
+- HU-10: `POST` y `GET /api/treatments/{treatmentId}/therapy-sessions`, porque una sesión siempre pertenece a un tratamiento. La sesión ya creada se maneja en `/api/therapy-sessions/{id}`.
 
 Ejemplos: `GET /api/patients?query=...`, `PATCH /api/treatments/{id}/status`, `POST /api/ai-summaries/{id}/approve`.
 
@@ -334,7 +380,11 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
 - Errores de la API: mostrar el `detail` en español con `problemDetailMessage(error, textoAlternativo)` de `core/http/problem-detail.ts`. Las páginas de resultados usan el tipo `Page<T>` de `core/http/page.ts`.
 - `AppShell` vuelve al inicio el área de contenido (`mat-sidenav-content`, que es la que se desplaza) en cada navegación.
 - Historial clínico del fisioterapeuta (HU-07):
-  - `/physio/patients` (`PhysioPatientList`): tabla paginada en el servidor con el resumen del tratamiento y las acciones "Crear historial" o "Nuevo tratamiento".
+  - `/physio/patients` (`PhysioPatientList`): tabla paginada en el servidor con el resumen del tratamiento.
+    - Las acciones de cada fila están en un menú (`mat-menu`, SCRUM-51), que abre un botón de icono con el `aria-label` "Acciones de {paciente}". En botones no caben: la tabla se salía de su tarjeta. No volver a ponerlas como botones en la fila.
+    - El menú ofrece "Ver historial" o "Crear historial", "Nuevo tratamiento" si no hay tratamiento activo y, en cada fila con tratamiento, "Plan y asignación" y "Línea de tiempo" (HU-11, la de su tratamiento vigente).
+    - El nombre del paciente es un enlace a la acción principal: el expediente o, si no tiene historial, su creación.
+  - `PhysioPatientSearch` (`patients/physio-patient-search.ts`) es la búsqueda de `GET /api/physio/patients` (espera de 300 ms, paginación en el servidor, carga y error en signals). La comparten `PhysioPatientList` y `TimelineEntry`; se crea en un inicializador de campo del componente. Los estilos de las filas están en `patients/_patient-rows.scss`.
   - `ClinicalRecordForm` sirve dos rutas:
     - `/physio/patients/:patientId/clinical-record/new`: cuatro secciones.
     - `/physio/patients/:patientId/clinical-record/:recordId/treatments/new`: sin "Hábitos y antecedentes".
@@ -355,12 +405,43 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
     - "Hábitos y antecedentes" (con la última edición);
     - "Tratamientos anteriores".
   - Sin tratamiento activo, ofrece "Nuevo tratamiento". Sin historial (404), ofrece "Crear historial".
-  - "Editar historial" abre `/physio/patients/:patientId/clinical-record/edit`. "Ver sesiones" está deshabilitado hasta el sprint 5 (HU-10/HU-11).
+  - "Editar historial" abre `/physio/patients/:patientId/clinical-record/edit`.
+  - "Ver sesiones" abre las sesiones del tratamiento activo o, si no hay, del más reciente. La tarjeta del plan activo tiene "Registrar sesión", y cada tratamiento anterior tiene un enlace "Sesiones" (HU-10).
+  - "Línea de tiempo" (HU-11) está en la cabecera (mismo tratamiento que "Ver sesiones"), en la tarjeta del plan activo y en cada tratamiento anterior.
   - `ClinicalRecordForm` tiene tres modos:
     - `record` y `treatment`, los de HU-07;
     - `edit`, que se activa con `data: { mode: 'edit' }` en la ruta y muestra solo "Hábitos y antecedentes", precargado desde el expediente, con `PUT`.
   - Al guardar en cualquier modo, el formulario abre el expediente.
   - La lista del fisioterapeuta muestra "Ver historial" a los pacientes que ya tienen historial.
+- Sesiones terapéuticas (HU-10), en `features/physiotherapist/sessions`:
+  - `/physio/patients/:patientId/treatments/:treatmentId/sessions` (`TherapySessionList`):
+    - tabla paginada en el servidor (10 por página) con N.º, fecha y hora, tipo, EVA, estado, evolución y responsable;
+    - "Corregir" aparece solo en las sesiones del usuario autenticado (`responsible.id`), y "Ver versiones" en todas;
+    - "Registrar sesión" aparece solo si el tratamiento está activo.
+  - `TherapySessionForm` (prototipo 06) sirve dos rutas:
+    - `…/sessions/new` registra la sesión y vuelve desde el expediente;
+    - `…/sessions/:sessionId/edit` corrige con `PUT`. Si la sesión es de otro fisioterapeuta, muestra el aviso "Solo el fisioterapeuta que registró la sesión puede corregirla." con el formulario deshabilitado.
+  - En el formulario, el paciente, el número de sesión y el especialista responsable son de solo lectura. Al registrar, el número que se muestra es el siguiente (total de sesiones + 1) y lo confirma el servidor.
+  - Al guardar, el formulario abre la lista. En un tratamiento que no está activo, no permite registrar.
+  - `SessionVersionsDialog` (`openSessionVersionsDialog`) muestra las versiones de la más reciente a la más antigua, con su autor y fecha.
+  - Etiquetas de estado, evolución e intensidad de la EVA en `session-labels.ts`.
+  - La lista tiene "Línea de tiempo" en la cabecera, sea cual sea el estado del tratamiento.
+- Línea de tiempo terapéutica (HU-11), en `features/physiotherapist/sessions`:
+  - `/physio/patients/:patientId/treatments/:treatmentId/timeline` (`TherapyTimeline`, prototipo 05) se arma con `GET /api/treatments/{id}/timeline` y `GET /api/patients/{id}` (cédula y nombre; datos personales, no se auditan). Muestra:
+    - la barra del paciente con la patología, el inicio, la EVA inicial y "Progreso: N / M Sesiones Planificadas";
+    - el filtro "Desde" / "Hasta" con "Limpiar", como en la auditoría: cada cambio recarga; con "Desde" posterior a "Hasta" no busca y solo muestra el aviso;
+    - "Curva de EVA por sesión" (`PainCurveChart`) cuando hay al menos una sesión realizada; si no, un aviso;
+    - una tarjeta por sesión sobre un riel vertical: "Sesión NN", fecha, hora, tipo, responsable, EVA, estado, evolución, actividades, observaciones clínicas (interno) e indicaciones para el paciente;
+    - el estado vacío "Aún no hay sesiones registradas" o, con filtro, "No hay sesiones en ese rango de fechas".
+  - "Registrar Sesión de Hoy" solo si el tratamiento está activo; "Ver sesiones" siempre. Si el tratamiento es de otro paciente, muestra un aviso.
+  - `/physio/timeline` (`TimelineEntry`, "Línea de Tiempo Terapéutica") es la entrada del menú. La línea de tiempo pertenece a un tratamiento, así que esta página sirve para elegir al paciente:
+    - usa `GET /api/physio/patients` tal cual, con su búsqueda por nombre o cédula, su paginación y su total (`PhysioPatientSearch`). No hay endpoint propio;
+    - un paciente con tratamiento muestra el diagnóstico, las sesiones planificadas y el estado, y "Abrir línea de tiempo" abre la de su tratamiento vigente (el activo o, si no hay, el más reciente);
+    - un paciente sin tratamiento aparece con la etiqueta "Sin tratamiento" y sin acción;
+    - no muestra las sesiones realizadas: ese endpoint no las devuelve;
+    - el estado vacío es "No hay pacientes registrados"; una búsqueda sin resultados muestra "Ningún paciente coincide con la búsqueda.".
+  - `PainCurveChart` envuelve `BaseChartDirective` de **ng2-charts 11** (compatible con Angular 22) y **chart.js 4**. Registra solo lo que usa una línea (`provideCharts` en el componente). Es una sola serie: línea de 2 px en `--re-text-teal`, puntos de 8 px, la evaluación inicial hueca, eje EVA fijo de 0 a 10, tooltip con punto, fecha e intensidad, y sin leyenda. Los colores y la fuente se leen de los tokens `--re-*` con `getComputedStyle`, porque el canvas no entiende variables CSS. Una tabla `re-visually-hidden` repite los puntos para lectores de pantalla.
+  - En pruebas, `stubCanvas()` de `session-testing.ts` simula el contexto 2D (jsdom no tiene canvas) y `ResizeObserver`, para que Chart.js cree el gráfico de verdad. Devuelve la función que restaura el original.
 - Auditoría (HU-18):
   - `features/audit/AuditLogList` se reutiliza en `/admin/audit` y `/director/audit`, con la entrada "Auditoría" en el menú de ambos roles.
   - Tabla paginada en el servidor (20 por página) con fecha y hora de Quito, usuario, acción (badge), entidad con id e IP. Solo metadatos.
@@ -376,12 +457,16 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
 
 ## Convenciones de repositorio
 
-- Commits en inglés con Conventional Commits y número de issue: `feat(patients): register patient #8`.
-- Ramas: `feature/HU-XX-short-description` (historias), `feature/TEC-XX-...` (tareas técnicas) y `chore/...` (mantenimiento), creadas siempre desde `develop`.
-- Flujo de ramas: los PR de `feature/*` y `chore/*` van **siempre hacia `develop`**, nunca hacia `main`. `develop` se fusiona en `main` **solo al cierre de cada sprint**, mediante un PR `develop → main`. Antes de crear un PR, comprobar que la rama base sea `develop` (GitHub propone `main` por defecto).
+- **Clave de Jira:** cada tarea tiene una clave `SCRUM-XX`, que va en la rama, en los commits y en el título del PR.
+- Commits en inglés con Conventional Commits y la clave de Jira después del tipo: `fix(physio): SCRUM-51 keep the patient table inside its card`.
+- Ramas, creadas siempre desde `develop`: `feature/SCRUM-XX-short-description` (historias y tareas técnicas), `fix/SCRUM-XX-...` (correcciones) y `chore/SCRUM-XX-...` (mantenimiento y documentación). Ejemplo: `fix/SCRUM-51-physio-patients-table-overflow`.
+- Las ramas y los commits anteriores a SCRUM-51 usan `feature/HU-XX-...`, `feature/TEC-XX-...` o `chore/...` y el número de issue (`#8`). No se reescriben.
+- Flujo de ramas: los PR de `feature/*`, `fix/*` y `chore/*` van **siempre hacia `develop`**, nunca hacia `main`. `develop` se fusiona en `main` **solo al cierre de cada sprint**, mediante un PR `develop → main`. Antes de crear un PR, comprobar que la rama base sea `develop` (GitHub propone `main` por defecto).
+- **Regla de fusión** (ruleset "Protección develop y main"): PR obligatorio y los checks Backend y Frontend en verde, sin aprobación ni omisión de la regla. El desarrollo lo ejecuta un solo integrante y GitHub no permite aprobar un PR propio, así que no hay revisor: el autor completa la lista de verificación de la definición de terminado en la descripción del PR antes de fusionar.
+- **Claude Code no fusiona PR**: nunca `gh pr merge` ni fusiones locales hacia `develop` o `main`. Daniel fusiona cada PR. Claude Code llega hasta crear o actualizar el PR y reportar su CI; si una tarea depende de un PR abierto, pide que lo fusionen y luego actualiza `develop` con `git pull`.
 - `.editorconfig`: UTF-8, LF, 4 espacios en Java/XML, 2 en TypeScript, HTML, SCSS, YAML y JSON.
 - `README.md` en inglés; documentación funcional en español en `docs/` (`docs/user-stories.md`, evidencias por sprint en `docs/evidence/sprint-N/`).
-- Cada historia es un issue con la plantilla **Historia de usuario** (Como/quiero/para + Dado/Cuando/Entonces); cada PR usa `.github/pull_request_template.md` e incluye `Closes #N`.
+- Cada historia es un issue con la plantilla **Historia de usuario** (Como/quiero/para + Dado/Cuando/Entonces); cada PR usa `.github/pull_request_template.md`, lleva la clave `SCRUM-XX` en el título e incluye en la descripción `Closes #N`, cuando cierra un issue de GitHub, y la lista de verificación de la definición de terminado.
 - CI (`.github/workflows/ci.yml`) corre en push y PR hacia `main` y `develop`: backend `./mvnw -B verify`, frontend `npm ci` + `ng test` + `ng build`. No fusionar con CI en rojo. `backend/mvnw` debe conservar el modo ejecutable en Git (`git update-index --chmod=+x backend/mvnw`).
 
 ## Definición de terminado
@@ -394,10 +479,24 @@ Una historia está terminada cuando:
 - [ ] `.\mvnw.cmd verify` (en `backend/`) y `ng test` (en `frontend/`) están en verde, también en la CI de GitHub Actions.
 - [ ] Se entrega un resumen de cambios.
 
+El autor marca esta lista en la descripción del PR (sección "Definición de terminado" de la plantilla) antes de fusionar. Si un punto no corresponde al cambio, lo indica como "no aplica".
+
 ## Forma de trabajo
 
 - Presentar un **plan antes de implementar** cada historia de usuario.
 - **Una historia por rama.**
+- Cada historia tiene su issue en GitHub, con la etiqueta de su sección PB y el milestone de su sprint. Las pendientes son HU-12 a HU-17 (#36 a #41); las ya implementadas están cerradas con su PR. El PR de la historia lleva la clave `SCRUM-XX` en el título y `Closes #N` en la descripción.
+
+### Plan vigente
+
+| Sprint | Alcance |
+|---|---|
+| 3 | HU-01 a HU-11 y HU-18 (terminadas) |
+| 4 | HU-12 a HU-15 |
+| 5 | HU-16, HU-17 y SonarQube |
+| 6 | TEC-07 (despliegue en Render) y Playwright |
+| 7 | k6, OWASP ZAP, UptimeRobot y compatibilidad |
+| 8 | Aceptación, SUS y `v1.0.0` |
 
 ## Docker
 

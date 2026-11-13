@@ -1,0 +1,34 @@
+<div class="plot">
+  <canvas
+    baseChart
+    type="line"
+    role="img"
+    [attr.aria-label]="summary()"
+    [data]="chartData()"
+    [options]="options"
+    [legend]="false"
+  ></canvas>
+</div>
+
+<!-- The same points as text, for screen readers: identity and values never depend on the chart alone -->
+<table class="re-visually-hidden">
+  <caption>
+    Curva de EVA
+  </caption>
+  <thead>
+    <tr>
+      <th scope="col">Punto</th>
+      <th scope="col">Fecha</th>
+      <th scope="col">EVA</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (point of points(); track point.label) {
+      <tr>
+        <th scope="row">{{ point.label }}</th>
+        <td>{{ point.date | date: 'dd/MM/yyyy' }}</td>
+        <td>{{ point.painScore }}/10</td>
+      </tr>
+    }
+  </tbody>
+</table>

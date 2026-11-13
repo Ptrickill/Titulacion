@@ -51,11 +51,15 @@ class FlywayMigrationTests extends AbstractIntegrationTest {
                 WHERE table_name = 'revinfo' AND column_name = 'user_id'""", String.class)).isEqualTo("YES");
     }
 
-    /** Until HU-10 maps TherapySession, its _aud table must mirror therapy_sessions column by column. */
+    /**
+     * Each _aud table mirrors its table column by column, with the same type and length (HU-10 maps TherapySession
+     * with @Audited on therapy_sessions_aud as created in V3). A change to either table must change both.
+     */
     @Test
-    void theTherapySessionVersionsHaveTheSameColumnsAsTheSessions() {
+    void theVersionTablesHaveTheSameColumnsAsTheirTables() {
         String columns = """
-                SELECT column_name || ':' || data_type FROM information_schema.columns
+                SELECT column_name || ':' || data_type || ':' || coalesce(character_maximum_length::text, '-')
+                FROM information_schema.columns
                 WHERE table_name = ? AND column_name NOT IN ('rev', 'revtype') ORDER BY column_name""";
         assertThat(jdbc.queryForList(columns, String.class, "therapy_sessions_aud"))
                 .isEqualTo(jdbc.queryForList(columns, String.class, "therapy_sessions"));

@@ -44,6 +44,29 @@ export const PHYSIO_ROUTES: Routes = [
     loadComponent: () => import('./clinical-records/treatment-page').then((m) => m.TreatmentPage),
   },
   {
+    path: 'patients/:patientId/treatments/:treatmentId/sessions',
+    title: 'Sesiones del Tratamiento | Rehab Elite',
+    loadComponent: () =>
+      import('./sessions/therapy-session-list').then((m) => m.TherapySessionList),
+  },
+  {
+    path: 'patients/:patientId/treatments/:treatmentId/timeline',
+    title: 'Línea de Tiempo | Rehab Elite',
+    loadComponent: () => import('./sessions/therapy-timeline').then((m) => m.TherapyTimeline),
+  },
+  {
+    path: 'patients/:patientId/treatments/:treatmentId/sessions/new',
+    title: 'Registrar Sesión | Rehab Elite',
+    loadComponent: () =>
+      import('./sessions/therapy-session-form').then((m) => m.TherapySessionForm),
+  },
+  {
+    path: 'patients/:patientId/treatments/:treatmentId/sessions/:sessionId/edit',
+    title: 'Corregir Sesión | Rehab Elite',
+    loadComponent: () =>
+      import('./sessions/therapy-session-form').then((m) => m.TherapySessionForm),
+  },
+  {
     path: 'clinical-records',
     title: 'Historial Clínico | Rehab Elite',
     component: PlaceholderPage,
@@ -54,15 +77,11 @@ export const PHYSIO_ROUTES: Routes = [
       icon: 'description',
     } satisfies PlaceholderPageData,
   },
+  // The timeline belongs to a treatment (HU-11): the menu entry opens the patients to choose one
   {
     path: 'timeline',
     title: 'Línea de Tiempo | Rehab Elite',
-    component: PlaceholderPage,
-    data: {
-      heading: 'Línea de Tiempo Terapéutica',
-      subtitle: 'Registro cronológico de sesiones, escala EVA y actividades terapéuticas',
-      icon: 'schedule',
-    } satisfies PlaceholderPageData,
+    loadComponent: () => import('./sessions/timeline-entry').then((m) => m.TimelineEntry),
   },
   {
     path: 'ai-assistant',

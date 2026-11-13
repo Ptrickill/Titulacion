@@ -1,22 +1,11 @@
-import { Component, DestroyRef, inject, signal } from '@angular/core';
-import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { Component } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { RouterLink } from '@angular/router';
-import {
-  catchError,
-  debounceTime,
-  distinctUntilChanged,
-  map,
-  Observable,
-  of,
-  Subject,
-  switchMap,
-} from 'rxjs';
-import { Page } from '../../../core/http/page';
 import { DataTable, DataTableColumn } from '../../../shared/ui/data-table/data-table';
 import { DataTableCell } from '../../../shared/ui/data-table/data-table-cell';
 import { EmptyState } from '../../../shared/ui/empty-state';
@@ -24,24 +13,25 @@ import { PageHeader } from '../../../shared/ui/page-header';
 import { StatusBadge } from '../../../shared/ui/status-badge';
 import { formatAge } from '../../admin/patients/patient-age';
 import {
+  patientInitials,
   SEVERITY_LABELS,
   SEVERITY_TONES,
   TREATMENT_STATUS_LABELS,
   TREATMENT_STATUS_TONES,
 } from '../clinical-records/clinical-labels';
-import { ClinicalRecordApi, PhysioPatient } from '../clinical-records/clinical-record-api';
+import { PhysioPatient } from '../clinical-records/clinical-record-api';
+import { PhysioPatientSearch } from './physio-patient-search';
 
 const PAGE_SIZE = 10;
 
-interface SearchState {
-  query: string;
-  page: number;
-}
-
 /**
  * "Gestión de Pacientes" of the physiotherapist (HU-07, prototype 03): patients with the summary of their current
- * treatment, searched by name or national ID and paginated in the server. Patients without a clinical record offer
- * "Crear historial"; records without an active treatment offer "Nuevo tratamiento".
+ * treatment, searched by name or national ID and paginated in the server.
+ *
+ * The actions of a row do not fit next to the other columns, so they live in a menu (SCRUM-51): patients without a
+ * clinical record offer "Crear historial"; records without an active treatment offer "Nuevo tratamiento"; every
+ * patient with a treatment links to its plan and to its timeline (HU-11). The name of the patient is the one-click
+ * way to the main action: the record, or its creation.
  */
 @Component({
   selector: 'app-physio-patient-list',
@@ -51,6 +41,7 @@ interface SearchState {
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    MatMenuModule,
     MatProgressBarModule,
     PageHeader,
     DataTable,
@@ -62,10 +53,11 @@ interface SearchState {
   styleUrl: './physio-patient-list.scss',
 })
 export class PhysioPatientList {
-  private readonly api = inject(ClinicalRecordApi);
+  protected readonly patients = new PhysioPatientSearch(PAGE_SIZE);
 
   protected readonly pageSize = PAGE_SIZE;
   protected readonly formatAge = formatAge;
+  protected readonly initials = patientInitials;
   protected readonly severityLabels = SEVERITY_LABELS;
   protected readonly severityTones = SEVERITY_TONES;
   protected readonly statusLabels = TREATMENT_STATUS_LABELS;
@@ -80,59 +72,17 @@ export class PhysioPatientList {
     { key: 'id', header: 'Acciones', align: 'end' },
   ];
 
-  protected readonly search = signal<SearchState>({ query: '', page: 0 });
-  protected readonly results = signal<Page<PhysioPatient> | null>(null);
-  protected readonly loading = signal(true);
-  protected readonly loadError = signal(false);
-
-  private readonly typed = new Subject<string>();
-
-  constructor() {
-    const destroyRef = inject(DestroyRef);
-    // A new query starts again from the first page
-    this.typed
-      .pipe(
-        map((query) => query.trim()),
-        debounceTime(300),
-        distinctUntilChanged(),
-        takeUntilDestroyed(destroyRef),
-      )
-      .subscribe((query) => this.search.set({ query, page: 0 }));
-
-    toObservable(this.search)
-      .pipe(
-        switchMap((state) => this.load(state)),
-        takeUntilDestroyed(destroyRef),
-      )
-      .subscribe((page) => {
-        this.loading.set(false);
-        this.loadError.set(page === null);
-        if (page) {
-          this.results.set(page);
-        }
-      });
+  protected fullName(patient: PhysioPatient): string {
+    return `${patient.firstName} ${patient.lastName}`;
   }
 
-  protected onSearch(event: Event): void {
-    this.typed.next((event.target as HTMLInputElement).value);
+  /** Main action of the row: the clinical record, or its creation when the patient has none. */
+  protected recordAction(patient: PhysioPatient): string {
+    return patient.clinicalRecordId === null ? 'Crear historial' : 'Ver historial';
   }
 
-  protected goToPage(page: number): void {
-    this.search.update((state) => ({ ...state, page }));
-  }
-
-  protected reload(): void {
-    this.search.update((state) => ({ ...state }));
-  }
-
-  protected initials(patient: PhysioPatient): string {
-    return `${patient.firstName.charAt(0)}${patient.lastName.charAt(0)}`.toUpperCase();
-  }
-
-  private load(state: SearchState): Observable<Page<PhysioPatient> | null> {
-    this.loading.set(true);
-    return this.api
-      .listPatients(state.query, state.page, PAGE_SIZE)
-      .pipe(catchError(() => of(null)));
+  protected recordLink(patient: PhysioPatient): (string | number)[] {
+    const record = ['/physio/patients', patient.id, 'clinical-record'];
+    return patient.clinicalRecordId === null ? [...record, 'new'] : record;
   }
 }

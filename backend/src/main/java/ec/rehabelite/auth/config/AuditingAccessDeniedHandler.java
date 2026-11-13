@@ -2,6 +2,7 @@ package ec.rehabelite.auth.config;
 
 import ec.rehabelite.audit.AuditAction;
 import ec.rehabelite.audit.AuditLogService;
+import ec.rehabelite.shared.domain.ForbiddenOperationException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -16,7 +17,8 @@ import org.springframework.stereotype.Component;
 /**
  * Answers 403 with a Spanish problem response and records ACCESS_DENIED in the audit log, attributed to
  * the authenticated user. The entity is taken from the path ({@code /api/patients/12} → {@code patients}, 12);
- * the query string is never stored because it may contain personal data.
+ * the query string is never stored because it may contain personal data. The detail is the generic one, or the
+ * message of a {@link ForbiddenOperationException} raised by a service.
  */
 @Component
 @RequiredArgsConstructor
@@ -46,7 +48,12 @@ class AuditingAccessDeniedHandler implements AccessDeniedHandler {
         }
         log.info("Access denied method={} entityType={} entityId={}", request.getMethod(), resource.entityType(),
                 resource.entityId());
-        writer.write(request, response, HttpStatus.FORBIDDEN, TITLE, DETAIL);
+        writer.write(request, response, HttpStatus.FORBIDDEN, TITLE, detailOf(ex));
+    }
+
+    /** Only a {@link ForbiddenOperationException} carries a Spanish message for the user; Spring's are English. */
+    static String detailOf(AccessDeniedException ex) {
+        return ex instanceof ForbiddenOperationException ? ex.getMessage() : DETAIL;
     }
 
     private static String pathWithinApplication(HttpServletRequest request) {

@@ -1,0 +1,76 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+// Prototype 06: white card with a teal top border
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 840px;
+  padding: 24px;
+  background: var(--re-card);
+  border: 1px solid var(--re-gray-200);
+  border-top: 4px solid var(--re-teal);
+  border-radius: var(--re-radius-lg);
+  box-shadow: var(--re-shadow-sm);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+
+  .full {
+    grid-column: 1 / -1;
+  }
+}
+
+// With dynamic subscripts a field with an error must not stretch the field next to it
+mat-form-field {
+  align-self: start;
+}
+
+.eva {
+  margin-right: 8px;
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+}
+
+.notice,
+.error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 840px;
+  padding: 10px 12px;
+  border-radius: var(--re-radius-sm);
+  font-size: 13px;
+}
+
+.notice {
+  color: var(--re-warning);
+  background: var(--re-warning-bg);
+  border: 1px solid var(--re-warning-border);
+  font-weight: 600;
+}
+
+.error {
+  color: var(--re-danger);
+  background: var(--re-danger-bg);
+  border: 1px solid var(--re-danger-border);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+@media (max-width: 719.98px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
