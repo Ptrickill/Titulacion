@@ -185,7 +185,7 @@ Capturas de la verificación de cada historia (datos sintéticos):
 
 | Hallazgo | Acción |
 |---|---|
-| La regla "Protección develop y main" exige una aprobación que el proyecto no registra: el desarrollo lo ejecuta un solo integrante y GitHub no permite aprobar un PR propio. Los PR #45 a #51 se fusionaron mediante la omisión de la regla por parte del administrador. | Desde el PR #52, la regla exige PR y los checks Backend y Frontend en verde, sin aprobación ni omisión. El autor completa la lista de verificación de la definición de terminado en la descripción del PR antes de fusionar. |
+| La regla "Protección develop y main" exige una aprobación que el proyecto no registra: el desarrollo lo ejecuta un solo integrante y GitHub no permite aprobar un PR propio. Los PR #45 a #51 se fusionaron mediante la omisión de la regla por parte del administrador. | Desde el PR #52, la regla "Protección develop y main" exige PR y los checks Backend y Frontend en verde, sin aprobación ni omisión. Desde el PR #53, el autor completa en la descripción del PR la lista de verificación de la definición de terminado antes de fusionar. |
 
 ### Resultados de pruebas (sesiones y línea de tiempo)
 
