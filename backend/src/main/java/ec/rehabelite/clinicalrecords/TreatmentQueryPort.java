@@ -1,5 +1,6 @@
 package ec.rehabelite.clinicalrecords;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -17,5 +18,12 @@ public interface TreatmentQueryPort {
      * called inside a transaction.
      */
     Optional<TreatmentSummary> lockForSessionRegistration(Long treatmentId);
+
+    /**
+     * Every treatment of the patient with its current responsible (HU-12): the active one first, then the others
+     * from the most recent to the oldest. Empty when the patient has no clinical record. Two statements, whatever
+     * the number of treatments.
+     */
+    List<PatientTreatment> findByPatient(Long patientId);
 
 }

@@ -1,0 +1,35 @@
+<div class="heading">
+  <h2 class="title">Evolución del dolor (escala EVA)</h2>
+  @if (change(); as c) {
+    <app-status-badge class="change" [label]="c.badge" [tone]="c.tone" [icon]="c.icon" />
+  }
+</div>
+<p class="subtitle">Seguimiento de la intensidad del dolor registrada en cada sesión</p>
+
+<ul class="bars">
+  @for (bar of bars(); track $index) {
+    <li class="bar">
+      <span class="label">{{ bar.label }}</span>
+      <span class="score" [class]="'tone-' + bar.tone">{{ bar.painScore }}/10 EVA</span>
+      <span class="rail" aria-hidden="true">
+        <span class="fill" [class]="'tone-' + bar.tone" [style.width]="bar.width"></span>
+      </span>
+    </li>
+  }
+</ul>
+
+<p class="summary">
+  <mat-icon aria-hidden="true">auto_awesome</mat-icon>
+  <span>
+    @if (!hasSessions()) {
+      Aún no hay sesiones realizadas.
+    } @else if (painReduction()! > 0) {
+      Reducción de dolor lograda: <strong>{{ changeInPoints() }}</strong> en la escala visual
+      analógica.
+    } @else if (painReduction()! < 0) {
+      El dolor aumentó <strong>{{ changeInPoints() }}</strong> respecto a la evaluación inicial.
+    } @else {
+      Sin cambios respecto a la evaluación inicial.
+    }
+  </span>
+</p>

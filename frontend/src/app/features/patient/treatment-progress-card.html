@@ -1,0 +1,30 @@
+<h2 class="title">Progreso del tratamiento</h2>
+<p class="subtitle">Sesiones realizadas vs. planificadas</p>
+
+<div class="ring" role="img" [attr.aria-label]="ringLabel()">
+  <svg viewBox="0 0 120 120" aria-hidden="true">
+    <circle class="track" cx="60" cy="60" [attr.r]="radius" />
+    <circle
+      class="value"
+      cx="60"
+      cy="60"
+      [attr.r]="radius"
+      [attr.stroke-dasharray]="circumference"
+      [attr.stroke-dashoffset]="dashOffset()"
+    />
+  </svg>
+  <div class="count" aria-hidden="true">
+    <span class="completed">{{ completed() }}</span>
+    <span class="planned">de {{ planned() }} {{ sessionsWord() }}</span>
+  </div>
+</div>
+
+<p class="summary">
+  @if (percentage() >= 100) {
+    ¡Completaste tu plan de sesiones!
+  } @else if (completed() === 0) {
+    Tu plan comienza con la primera sesión.
+  } @else {
+    ¡Completado un <strong>{{ percentage() }}%</strong> de tu plan!
+  }
+</p>

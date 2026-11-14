@@ -1,0 +1,40 @@
+// Shared look of the cards of the patient portal (prototype 14).
+
+@mixin card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 20px;
+  background: var(--re-card);
+  border: 1px solid var(--re-gray-200);
+  border-radius: var(--re-radius-lg);
+  box-shadow: var(--re-shadow-sm);
+}
+
+@mixin title {
+  margin: 0;
+  color: var(--re-text);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+@mixin subtitle {
+  margin: 8px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--re-gray-100);
+  color: var(--re-text-muted);
+  font-size: 12px;
+}
+
+// Closing note of a card, on a soft teal background
+@mixin summary {
+  margin: auto 0 0;
+  padding: 10px 12px;
+  color: var(--re-text);
+  background: var(--re-teal-50);
+  border: 1px solid var(--re-teal-100);
+  border-radius: var(--re-radius-sm);
+  font-size: 13px;
+}

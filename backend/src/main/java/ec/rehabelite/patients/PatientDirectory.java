@@ -12,6 +12,12 @@ public interface PatientDirectory {
 
     Optional<PatientCard> find(Long patientId);
 
+    /**
+     * The patient linked to a portal account ({@code patients.portal_user_id}); empty when the account has none.
+     * The patient portal (HU-12) identifies its patient only this way, never by an id sent by the client.
+     */
+    Optional<PatientCard> findByPortalUser(Long userId);
+
     /** Personal and contact data, for the full clinical record view (HU-09). */
     Optional<PatientProfile> findProfile(Long patientId);
 

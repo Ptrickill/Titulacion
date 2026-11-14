@@ -1,0 +1,101 @@
+@use './portal-card' as card;
+
+:host {
+  @include card.card;
+}
+
+.heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.title {
+  @include card.title;
+}
+
+.subtitle {
+  @include card.subtitle;
+}
+
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 20px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 12px;
+  font-size: 13px;
+}
+
+.label {
+  color: var(--re-text);
+  font-weight: 500;
+}
+
+.score {
+  font-weight: 700;
+}
+
+.rail {
+  grid-column: 1 / -1;
+  height: 6px;
+  overflow: hidden;
+  background: var(--re-gray-100);
+  border-radius: var(--re-radius-pill);
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--re-radius-pill);
+}
+
+// Text and bar share the tone of the EVA value: 7 or more, 4 to 6, 3 or less
+.score.tone-danger {
+  color: var(--re-danger);
+}
+
+.score.tone-warning {
+  color: var(--re-warning);
+}
+
+.score.tone-success {
+  color: var(--re-success);
+}
+
+.fill.tone-danger {
+  background: var(--re-danger);
+}
+
+.fill.tone-warning {
+  background: var(--re-warning);
+}
+
+.fill.tone-success {
+  background: var(--re-success);
+}
+
+.summary {
+  @include card.summary;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  mat-icon {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    color: var(--re-text-teal);
+    font-size: 20px;
+  }
+}
