@@ -1,0 +1,63 @@
+<app-hero-banner
+  eyebrow="Rehab Elite · Tu espacio de bienestar"
+  [title]="greeting()"
+  [message]="bannerMessage()"
+/>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Cargando tu tratamiento" />
+}
+
+@if (unlinked()) {
+  <app-empty-state
+    icon="link_off"
+    title="Tu cuenta aún no está vinculada a un paciente"
+    message="Comunícate con la clínica para que vinculen tu cuenta con tu ficha de paciente."
+  />
+} @else if (treatments(); as list) {
+  @if (list.length === 0) {
+    <app-empty-state
+      icon="self_improvement"
+      title="Aún no tienes un tratamiento registrado"
+      message="Cuando tu fisioterapeuta registre tu tratamiento, aquí verás su avance."
+    />
+  } @else {
+    @if (list.length > 1) {
+      <mat-form-field class="selector" appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Tratamiento</mat-label>
+        <mat-select [value]="selectedId()" (valueChange)="select($event)">
+          @for (treatment of list; track treatment.id) {
+            <mat-option [value]="treatment.id">
+              {{ treatment.diagnosis.description }} · {{ statusLabels[treatment.status] }} · desde
+              {{ treatment.startDate | date: 'dd/MM/yyyy' }}
+            </mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    }
+
+    @if (progress(); as p) {
+      <div class="cards">
+        <app-treatment-progress-card
+          [completed]="p.completedSessions"
+          [planned]="p.plannedSessions"
+          [percentage]="p.percentage"
+        />
+        <app-pain-evolution-card
+          [curve]="p.painCurve"
+          [initialPainScore]="p.initialPainScore"
+          [lastPainScore]="p.lastPainScore"
+          [painReduction]="p.painReduction"
+        />
+      </div>
+    }
+  }
+}
+
+@if (loadError(); as message) {
+  <div class="load-error" role="alert">
+    <mat-icon aria-hidden="true">error_outline</mat-icon>
+    <span>{{ message }}</span>
+    <button mat-stroked-button type="button" (click)="retry()">Reintentar</button>
+  </div>
+}

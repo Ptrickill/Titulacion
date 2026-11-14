@@ -335,7 +335,71 @@ class ClinicalAuditIntegrationTests extends AbstractIntegrationTest {
         assertThat(entriesOf(other)).isEmpty();
     }
 
+    // ----- patient portal: the patient reads the own treatment (HU-12) -----
+
+    @Test
+    void listingTheTreatmentsInThePortalIsAuditedAsReadOfEachTreatment() throws Exception {
+        User patient = createUser(Role.PATIENT);
+        Long recordId = TestTreatments.insertRecord(jdbc, linkedPatientOf(patient));
+        Long finished = TestTreatments.insertFor(jdbc, recordId, "COMPLETED", LocalDate.now().minusDays(90), 8, 10);
+        Long active = TestTreatments.insertFor(jdbc, recordId, "ACTIVE", LocalDate.now().minusDays(30), 7, 12);
+
+        perform(patient, get("/api/portal/treatments")).andExpect(status().isOk());
+
+        assertSingleEntry(patient, "READ", "Treatment", finished);
+        assertSingleEntry(patient, "READ", "Treatment", active);
+        assertThat(entriesOf(patient)).hasSize(2);
+    }
+
+    @Test
+    void readingTheProgressInThePortalIsAuditedAsReadOfTheTreatment() throws Exception {
+        User patient = createUser(Role.PATIENT);
+        Long treatmentId = TestTreatments.insertFor(jdbc, TestTreatments.insertRecord(jdbc, linkedPatientOf(patient)),
+                "ACTIVE", LocalDate.now().minusDays(30), 7, 12);
+
+        perform(patient, get("/api/portal/treatments/{id}/progress", treatmentId)).andExpect(status().isOk());
+
+        assertSingleEntry(patient, "READ", "Treatment", treatmentId);
+        assertThat(entriesOf(patient)).hasSize(1);
+    }
+
+    @Test
+    void aTreatmentOfAnotherPatientInThePortalIsAuditedAsAccessDeniedAndNeverAsRead() throws Exception {
+        User patient = createUser(Role.PATIENT);
+        linkedPatientOf(patient);
+        Long foreign = TestTreatments.insertActive(jdbc);
+
+        perform(patient, get("/api/portal/treatments/{id}/progress", foreign)).andExpect(status().isForbidden());
+        perform(patient, get("/api/portal/treatments/{id}/progress", 999_999_999L)).andExpect(status().isForbidden());
+
+        assertSingleEntry(patient, "ACCESS_DENIED", "portal/treatments", foreign);
+        assertSingleEntry(patient, "ACCESS_DENIED", "portal/treatments", 999_999_999L);
+        assertThat(entriesOf(patient)).hasSize(2);
+    }
+
+    @Test
+    void aPortalAccountWithoutPatientOrWithoutTreatmentsAuditsNothing() throws Exception {
+        User unlinked = createUser(Role.PATIENT);
+        User withoutTreatments = createUser(Role.PATIENT);
+        linkedPatientOf(withoutTreatments);
+
+        perform(unlinked, get("/api/portal/treatments")).andExpect(status().isNotFound());
+        perform(unlinked, get("/api/portal/treatments/{id}/progress", 1L)).andExpect(status().isNotFound());
+        perform(withoutTreatments, get("/api/portal/treatments")).andExpect(status().isOk());
+
+        assertThat(entriesOf(unlinked)).isEmpty();
+        assertThat(entriesOf(withoutTreatments)).isEmpty();
+    }
+
     // ----- helpers -----
+
+    /** A new patient linked to the portal account; returns the patient id. */
+    private Long linkedPatientOf(User account) {
+        Long patientId = TestPatients.insert(jdbc, "Paciente", "Del Portal");
+        jdbc.update("UPDATE patients SET portal_user_id = ? WHERE id = ?", account.getId(), patientId);
+        return patientId;
+    }
+
 
     private Long registerSession(Long treatmentId) throws Exception {
         String body = perform(physio, post("/api/treatments/{id}/therapy-sessions", treatmentId)

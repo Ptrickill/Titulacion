@@ -4,6 +4,7 @@ import jakarta.persistence.LockModeType;
 import jakarta.persistence.criteria.Predicate;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -49,6 +50,16 @@ public interface TherapySessionRepository extends JpaRepository<TherapySession, 
 
     /** Sessions of the treatment with the given status, e.g. the completed ones for the progress of the plan. */
     long countByTreatmentIdAndStatus(Long treatmentId, SessionStatus status);
+
+    /**
+     * Sessions with the given status in each of the treatments, in one statement (HU-12). A treatment without such
+     * sessions has no row.
+     */
+    @Query("""
+            SELECT s.treatmentId AS treatmentId, COUNT(s) AS sessions FROM TherapySession s
+            WHERE s.treatmentId IN :treatmentIds AND s.status = :status
+            GROUP BY s.treatmentId""")
+    List<TreatmentSessionCount> countByTreatmentIdsAndStatus(Collection<Long> treatmentIds, SessionStatus status);
 
     /** Locks the session row until the transaction ends, so two corrections never overwrite each other. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)

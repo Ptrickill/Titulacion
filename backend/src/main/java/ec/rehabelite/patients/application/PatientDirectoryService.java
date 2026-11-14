@@ -27,6 +27,12 @@ class PatientDirectoryService implements PatientDirectory {
 
     @Override
     @Transactional(readOnly = true)
+    public Optional<PatientCard> findByPortalUser(Long userId) {
+        return patientRepository.findByPortalUserId(userId).map(PatientDirectoryService::toCard);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Optional<PatientProfile> findProfile(Long patientId) {
         return patientRepository.findById(patientId).map(PatientDirectoryService::toProfile);
     }

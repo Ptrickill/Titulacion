@@ -36,7 +36,14 @@ class AuditingAccessDeniedHandlerTests {
         "/api/reports/,                      reports,          null",
         "/api/,                              unknown,          null",
         "/actuator/env,                      unknown,          null",
-        "/api/portal/99999999999999999999,   portal,           null"
+        "/api/portal/99999999999999999999,   portal,           null",
+        "/api/portal/treatments,             portal,           null",
+        "/api/portal/treatments/9,           portal/treatments, 9",
+        "/api/portal/treatments/9/progress,  portal/treatments, 9",
+        "/api/portal/treatments/abc/progress, portal,          null",
+        "/api/physio/patients,               physio,           null",
+        "/api/patients/12/clinical-record,   patients,         12",
+        "/api/treatments/3/therapy-sessions/5, treatments,     3"
     })
     void derivesTheAuditedEntityFromThePath(String path, String entityType, Long entityId) {
         assertThat(AuditedResource.of(path)).isEqualTo(new AuditedResource(entityType, entityId));

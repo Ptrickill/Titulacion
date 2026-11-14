@@ -93,6 +93,7 @@ Reglas:
 - APIs públicas disponibles:
   - `ec.rehabelite.auth.CurrentUserProvider`: usuario autenticado (`CurrentUser`: id, email, fullName, `Role`).
   - `ec.rehabelite.audit.AuditLogService`: `record(AuditAction, entityType, entityId)` toma el usuario del token y la IP de la petición. `recordAll(acción, entidad, ids)` (HU-18) registra una entrada por id, por ejemplo los historiales de una lista.
+    - `recordAll` inserta todas las entradas con **un solo `INSERT`** (`AuditLogRepository.insertAll`, SQL nativo con `unnest`), sea cual sea el número de ids. Un `saveAll` haría un `INSERT` por entrada: el id de `audit_logs` es `IDENTITY` y Hibernate no agrupa esos `INSERT` en lote.
   - `audit` no depende de `auth`, para evitar un ciclo: `auth` registra el `LOGIN` con `recordFor(userId, ...)`.
   - `ec.rehabelite.audit.AuditUserDirectory` (HU-18): `fullNames(ids)` y `users()` (`AuditUser`: id y nombre) para la auditoría. La declara `audit` y la implementa `auth` (`AuditUserDirectoryService`), que ya depende de `audit`; así `audit` nunca depende de `auth`.
   - `ec.rehabelite.auth.PortalAccountCreated(userId, patientId)` (HU-02):
@@ -102,7 +103,8 @@ Reglas:
   - `ec.rehabelite.patients.PatientDirectory` (HU-07):
     - `find(id)` y `search(q, pageable)` devuelven `PatientCard` (id, cédula, número de historia, nombres, apellidos, fecha de nacimiento y `ageOn(fecha)`).
     - `findProfile(id)` (HU-09) devuelve `PatientProfile`: además, sexo, contacto, ocupación, instrucción, seguro y fecha de ingreso. Sin etnia ni religión.
-    - Es la única forma en que otros módulos (`clinicalrecords`, `sessions`, ...) consultan pacientes.
+    - `findByPortalUser(userId)` (HU-12) devuelve el `PatientCard` del paciente vinculado a una cuenta de portal (`patients.portal_user_id`), o vacío si la cuenta no tiene paciente.
+    - Es la única forma en que otros módulos (`clinicalrecords`, `sessions`, `portal`, ...) consultan pacientes.
     - `patients` nunca depende de `clinicalrecords`.
   - `ec.rehabelite.auth.StaffDirectory` (HU-08):
     - `findActivePhysiotherapist(id)`, `activePhysiotherapists()` y `fullNames(ids)` devuelven `StaffMember` (id y nombre) o los nombres, también de cuentas desactivadas.
@@ -111,7 +113,14 @@ Reglas:
     - `find(id)` devuelve `TreatmentSummary`: id, paciente, `active`, fecha de inicio y, desde HU-11, el punto de partida (`initialPainScore`, `plannedSessions` y el diagnóstico CIE-10, código y descripción). Nada más del contenido clínico (motivo, enfermedad, objetivo...) y nunca la entidad.
     - `find` usa `TreatmentRepository.findSummaryById` (`@EntityGraph` de historial y diagnóstico): una sola sentencia.
     - `lockForSessionRegistration(id)` devuelve lo mismo, pero bloquea la fila del tratamiento (`PESSIMISTIC_WRITE`) hasta que termina la transacción de quien llama. Exige una transacción abierta (`MANDATORY`).
-    - Es la única forma en que otros módulos (`sessions`, ...) consultan tratamientos; `clinicalrecords` nunca depende de `sessions`.
+    - `findByPatient(patientId)` (HU-12) devuelve los tratamientos del paciente como `PatientTreatment`: id, estado (`status` y `active`), fecha de inicio, EVA inicial, sesiones planificadas, diagnóstico CIE-10 e id del responsable vigente (o `null`). El activo va primero y luego los demás, del más reciente al más antiguo. Son dos sentencias: los tratamientos (`TreatmentRepository.findByPatientId`) y sus responsables vigentes en una consulta `IN`.
+    - Es la única forma en que otros módulos (`sessions`, `portal`, ...) consultan tratamientos; `clinicalrecords` nunca depende de `sessions`.
+  - `ec.rehabelite.sessions.TherapySessionQueryPort` (HU-12):
+    - `chronological(treatmentId)` devuelve las sesiones del tratamiento en orden cronológico (fecha, hora y correlativo) como `SessionSummary`: id, correlativo, fecha, hora, estado, `completed` y EVA.
+    - **`SessionSummary` nunca lleva las observaciones clínicas**, que son una nota interna: así el portal no puede mostrarlas por error. HU-13 le agregará las actividades realizadas y las indicaciones para el paciente.
+    - `completedCounts(treatmentIds)` devuelve las sesiones `COMPLETED` de cada tratamiento en una sola consulta (`GROUP BY`); un tratamiento sin sesiones realizadas trae 0.
+    - Qué cuenta como sesión realizada lo decide `sessions` (`completed`). Las lecturas por este puerto no se auditan aquí: audita quien llama.
+    - Es la única forma en que otros módulos (`portal`, ...) leen sesiones.
   - `ec.rehabelite.audit.EntityVersionHistory` (HU-10): `versionsOf(clase, id)` devuelve las versiones de Envers de una entidad `@Audited`, de la más antigua a la más reciente. Cada `EntityVersion` trae la entidad, la revisión, el tipo (`CREATE`, `UPDATE`, `DELETE`), la fecha y el autor (o `null`). Así ningún módulo usa `AuditRevision` ni Envers directamente.
 - Seguridad: JWT HS256 emitido por `POST /api/auth/login` (claims `sub` = id, `email`, `fullName`, `role`; el rol da la autoridad `ROLE_<rol>`). Públicos solo login, `/actuator/health` y la documentación OpenAPI. El reloj se inyecta como bean `Clock` (`shared.config`).
 - Estado de cuentas (HU-03):
@@ -213,6 +222,24 @@ Reglas:
   - Cada consulta correcta audita `READ Treatment`.
   - **Número fijo de sentencias, sin N+1**: validación del token, tratamiento con historial y diagnóstico, sesiones, conteo de `COMPLETED`, nombres e `INSERT` de auditoría. Son 6, con 1 o con 100 sesiones. Lo comprueba `TherapyTimelinePerformanceIntegrationTests` (100 sesiones de cuatro fisioterapeutas: menos de 2 s, como máximo 6 sentencias y el mismo conteo que con 1 sesión), con Hibernate Statistics como en HU-09.
   - No es paginada: la vista es la historia completa del tratamiento.
+- Portal del paciente (HU-12), módulo `portal` (`PortalService`), solo `PATIENT` y solo lectura:
+  - **Regla de identidad:** el paciente es siempre el vinculado a la cuenta autenticada (`PatientDirectory.findByPortalUser` con el usuario del token). Ningún endpoint del portal recibe `patientId`, ni en la ruta ni en el cuerpo. No añadir uno.
+  - `portal` usa `patients`, `clinicalrecords`, `sessions`, `auth` y `audit` solo por sus interfaces públicas; ninguno de ellos depende de `portal`.
+  - `GET /api/portal/treatments`: los tratamientos del paciente, el activo primero y luego los demás del más reciente al más antiguo. Cada uno trae diagnóstico, estado, fecha de inicio, nombre del responsable vigente (o `null`), sesiones planificadas y sesiones realizadas (solo `COMPLETED`). Sin tratamientos responde `[]`.
+  - `GET /api/portal/treatments/{id}/progress` (`portal.domain.TreatmentProgress`):
+    - sesiones realizadas, planificadas y `percentage` (realizadas sobre planificadas, redondeado hacia abajo y con tope de 100);
+    - `painCurve`, con las mismas reglas que HU-11: empieza en "Evaluación inicial" (EVA inicial y fecha de inicio) y sigue con las sesiones `COMPLETED` en orden cronológico ("Sesión N"). Las `RESCHEDULED` y `NO_SHOW` no cuentan ni aparecen;
+    - `initialPainScore`, `lastPainScore` (EVA de la última sesión realizada) y `painReduction` (inicial menos última: positiva si el dolor bajó, negativa si subió). Los dos últimos son `null` si aún no hay sesiones realizadas.
+  - Las respuestas no llevan `patientId`, ids del personal, observaciones clínicas ni el contenido clínico del tratamiento (motivo, objetivo...).
+  - Errores:
+    - Cuenta sin paciente vinculado: 404 "La cuenta no tiene un paciente vinculado.", sin auditoría.
+    - **Tratamiento de otro paciente o inexistente: el mismo 403** "No tiene acceso a ese tratamiento." (`ForbiddenOperationException`), sin datos del tratamiento y con `ACCESS_DENIED`. El portal no responde 404 por un id que no existe, para no revelar qué ids existen. El resto de la API conserva el 404.
+  - Auditoría: `READ Treatment` por cada tratamiento listado (un solo `INSERT`, `recordAll`) y por cada consulta de avance.
+  - **Número fijo de sentencias, sin N+1**:
+    - Lista: validación del token, paciente de la cuenta, tratamientos con diagnóstico, responsables vigentes, nombres (`StaffDirectory.fullNames`), conteo de realizadas e `INSERT` de auditoría. Son 6 lecturas y 1 `INSERT`, con 1 o con 5 tratamientos.
+    - Avance: validación del token, paciente, tratamiento, sesiones e `INSERT` de auditoría. Son 5, con 1 o con 100 sesiones.
+    - Lo comprueba `PortalPerformanceIntegrationTests` con Hibernate Statistics, como en HU-09 y HU-11.
+  - No hay `POST`, `PUT`, `PATCH` ni `DELETE` en `/api/portal/**` (405).
 - Auditoría de información clínica (HU-18, LOPDP):
   - **Regla:** toda operación sobre datos clínicos registra en `audit_logs` el usuario, la acción, la entidad, su id, la fecha (`occurred_at`) y la IP. Los datos personales del paciente no se auditan al leerlos (sí al crearlos o modificarlos). Las peticiones rechazadas (400, 404, 422) no se auditan; los 403 sí (`ACCESS_DENIED`). Un servicio que lee y audita es `@Transactional` sin `readOnly`, porque la auditoría inserta en la misma transacción.
 
@@ -236,6 +263,8 @@ Reglas:
     | `GET /api/therapy-sessions/{id}`, `GET /api/therapy-sessions/{id}/versions` | `READ TherapySession` |
     | `PUT /api/therapy-sessions/{id}` | `UPDATE TherapySession` (solo si cambia algo); si no es el autor, `ACCESS_DENIED therapy-sessions` |
     | `GET /api/treatments/{id}/timeline` | `READ Treatment` |
+    | `GET /api/portal/treatments` | `READ Treatment` por cada tratamiento listado (`PortalService`, `recordAll`) |
+    | `GET /api/portal/treatments/{id}/progress` | `READ Treatment`; si el tratamiento no es del paciente o no existe, `ACCESS_DENIED portal/treatments` |
 
     Al añadir un endpoint clínico, agregarlo a esta tabla y a `ClinicalAuditIntegrationTests`.
   - **IP del cliente:** `server.forward-headers-strategy: framework`. La IP se toma de `X-Forwarded-For` (`ForwardedHeaderFilter`) **solo porque en producción la aplicación está detrás del proxy de Render**, que pone esa cabecera. El filtro confía en la cabecera de cualquier cliente, así que el backend nunca debe quedar expuesto sin el proxy. Sin la cabecera (desarrollo, pruebas) se usa la dirección de la conexión.
@@ -270,6 +299,7 @@ Reglas:
 - Respuestas de seguridad:
   - `ProblemDetailAuthenticationEntryPoint`: 401 sin auditoría (también para el token de una cuenta inactiva).
   - `AuditingAccessDeniedHandler`: 403 y `ACCESS_DENIED` en `audit_logs`. La entidad se toma de la ruta (`/api/patients/12` → `patients`, 12); nunca se guarda la query string.
+    - En un área que agrupa recursos, el id va después del segundo segmento y la entidad son los dos (`/api/portal/treatments/9/progress` → `portal/treatments`, 9). Sin id, sigue siendo el primer segmento (`/api/portal/treatments` → `portal`).
   - `GlobalExceptionHandler` relanza `AccessDeniedException` y `AuthenticationException`, para que un futuro `@PreAuthorize` también quede auditado.
 
 ### Buenas prácticas backend
@@ -279,7 +309,7 @@ Reglas:
 - DTO siempre como `record`; las entidades **nunca** se exponen en la API (mapear con MapStruct).
 - Errores: lanzar `InvalidRequestException` (400, para lo que Bean Validation no expresa, p. ej. un rango de fechas invertido), `ResourceNotFoundException` (404), `BusinessRuleException` (422) o `ConflictException` (409) de `ec.rehabelite.shared.domain`, con mensaje en español; `GlobalExceptionHandler` los convierte en `ProblemDetail` en español. Nunca lanzar `ResponseStatusException`: su motivo se reemplaza por el detalle genérico de su código.
   - `ConflictException` añade sus propiedades a la respuesta: solo ids o códigos, nunca datos personales.
-  - `ForbiddenOperationException` (`shared.domain`, extiende `AccessDeniedException`) es para un rol que puede usar el endpoint pero no sobre ese recurso (HU-10: corregir la sesión de otro fisioterapeuta). `GlobalExceptionHandler` la relanza y `AuditingAccessDeniedHandler` responde 403 con su mensaje como `detail` y audita `ACCESS_DENIED`. Los demás 403 conservan el detalle genérico.
+  - `ForbiddenOperationException` (`shared.domain`, extiende `AccessDeniedException`) es para un rol que puede usar el endpoint pero no sobre ese recurso (HU-10: corregir la sesión de otro fisioterapeuta; HU-12: el tratamiento de otro paciente en el portal). `GlobalExceptionHandler` la relanza y `AuditingAccessDeniedHandler` responde 403 con su mensaje como `detail` y audita `ACCESS_DENIED`. Los demás 403 conservan el detalle genérico.
   - El locale está fijo en `es-EC`, así que los mensajes de Bean Validation también salen en español.
   - Las excepciones propias de Spring MVC salen con el título y el detalle en español de su código, sin cambiar el código. Son el 405 (conserva la cabecera `Allow`), el 415, el cuerpo ilegible, el parámetro faltante o de tipo inválido (400) y la ruta inexistente (`NoResourceFoundException`, 404). El detalle nunca repite el valor enviado por el cliente. Las excepciones de Spring que extienden `ErrorResponseException` (p. ej. `ResponseStatusException`) tampoco conservan el suyo: solo las excepciones de la aplicación (`shared.domain`) conservan su mensaje. Un parámetro fuera de rango (`@Min`/`@Max`, `HandlerMethodValidationException`) responde 400 "Datos no válidos" con la lista `errors`, igual que la validación del cuerpo. Lo hace `GlobalExceptionHandler.handleExceptionInternal`, que usa el `ErrorResponse` de la excepción cuando Spring no trae cuerpo, y lo comprueba `SpringErrorProblemDetailIntegrationTests`.
 - Fechas de calendario ("hoy", edades, fecha de ingreso): usar `ClinicCalendar.today(clock)` de `shared.domain`, con la zona `America/Guayaquil`. Los instantes se guardan en UTC. Las anotaciones `@Past` y `@PastOrPresent` usan el mismo reloj (`ValidationConfig`).
@@ -303,7 +333,7 @@ Reglas:
   - Toda cédula nueva del seed debe pasar `NationalId` (lo comprueba `DevSeedDataTests`).
   - `spring.flyway.ignore-migration-patterns` incluye `repeatable:missing` para que una base sembrada arranque sin `dev`.
   - Las pruebas de integración nunca activan `dev` sobre el contenedor compartido (`DevSeedIntegrationTests` usa uno propio).
-- Pruebas de integración: extender `ec.rehabelite.AbstractIntegrationTest` (contexto completo, perfil `test`, un único `postgres:16` de Testcontainers compartido). No asumir base vacía: cada prueba crea sus propios datos con valores únicos. Para pacientes de prueba que no son el objeto de la prueba, usar `ec.rehabelite.TestPatients`: los inserta por SQL, sin auditoría, con cédulas sintéticas de dígito verificador válido y el número de historia igual a la cédula.
+- Pruebas de integración: extender `ec.rehabelite.AbstractIntegrationTest` (contexto completo, perfil `test`, un único `postgres:16` de Testcontainers compartido). No asumir base vacía: cada prueba crea sus propios datos con valores únicos. Para pacientes de prueba que no son el objeto de la prueba, usar `ec.rehabelite.TestPatients`: los inserta por SQL, sin auditoría, con cédulas sintéticas de dígito verificador válido y el número de historia igual a la cédula. `TestTreatments` (historial, tratamiento y responsable) y `TestSessions.insert` hacen lo mismo con los tratamientos y las sesiones que la prueba solo necesita leer.
 
 ### Endpoints REST
 
@@ -316,6 +346,7 @@ Excepciones acordadas en HU-07 (fuera del patrón de recurso plural):
 - `GET /api/physio/patients`: vista de pacientes con datos clínicos, separada de `/api/patients`, que no los incluye. `GET /api/physio/physiotherapists` (HU-08) sigue el mismo criterio.
 - HU-08: `PUT /api/treatments/{id}/responsible` y `PATCH /api/treatments/{id}/status` (sub-recursos en singular del tratamiento).
 - HU-10: `POST` y `GET /api/treatments/{treatmentId}/therapy-sessions`, porque una sesión siempre pertenece a un tratamiento. La sesión ya creada se maneja en `/api/therapy-sessions/{id}`.
+- HU-12: `GET /api/portal/treatments` y `GET /api/portal/treatments/{id}/progress`: vista de los tratamientos del propio paciente, separada de `/api/treatments`, que es del fisioterapeuta.
 
 Ejemplos: `GET /api/patients?query=...`, `PATCH /api/treatments/{id}/status`, `POST /api/ai-summaries/{id}/approve`.
 
@@ -365,7 +396,7 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
 ## Frontend (Angular 22 + Material)
 
 - Requiere Node.js `^22.22.3`. `npm start` sirve en `http://localhost:4200` y redirige `/api` a `http://localhost:8080` (`proxy.conf.json`).
-- Carpetas: `src/app/core` (`AuthService` con login y sesión en signals, `authGuard`/`roleGuard`, `authInterceptor`, roles, locale `es-EC`), `src/app/shared/layout` (`AppShell`, `nav-items.ts`, `PlaceholderPage`), `src/app/shared/ui` (componentes reutilizables), `src/app/features/auth`, `features/admin`, `features/physiotherapist`, `features/director`, `features/patient`, `features/dev` (solo desarrollo).
+- Carpetas: `src/app/core` (`AuthService` con login y sesión en signals, `authGuard`/`roleGuard`, `authInterceptor`, roles, locale `es-EC`), `src/app/shared/layout` (`AppShell`, `nav-items.ts`, `PlaceholderPage`), `src/app/shared/ui` (componentes reutilizables), `src/app/shared/clinical` (etiquetas clínicas que comparten varias áreas), `src/app/features/auth`, `features/admin`, `features/physiotherapist`, `features/director`, `features/patient`, `features/dev` (solo desarrollo).
 - Rutas: `/login` y, dentro de `AppShell`, un `*.routes.ts` por rol: `/physio` (`patients`, `clinical-records`, `timeline`, `ai-assistant`), `/admin` (`users`, `patients`, `reports`, `audit`), `/director` (`reports`, `audit`), `/patient`. Cada rol protegido por `authGuard` + `roleGuard(rol)` y cargado de forma diferida. Las secciones sin historia implementada usan `PlaceholderPage` (título y subtítulo en `data`); la historia reemplaza ese `component` por su página real.
 - Componentes de `shared/ui` (standalone, con pruebas): `page-header`, `stat-card` (variante `compact` para filas de cuatro tarjetas), `status-badge`, `data-table` (paginación en cliente, o en servidor con `[totalItems]` y `[(pageIndex)]`; `appDataTableCell` para celdas personalizadas, y `[appDataTableCellOf]="filas"` tipa `let-row`), `form-section`, `empty-state` (admite varias acciones, separadas), `confirm-dialog` (`openConfirmDialog()` devuelve `Observable<boolean>`) y `hero-banner`. Usarlos antes de crear componentes nuevos. Catálogo visual en `/ui-kit` (solo `isDevMode()`).
 - Diseño: seguir `docs/prototype/`. Capturas de comparación por tarea en `docs/screenshots/<tarea>/`.
@@ -390,7 +421,7 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
     - `/physio/patients/:patientId/clinical-record/:recordId/treatments/new`: sin "Hábitos y antecedentes".
   - `Icd10Picker` es un control de formulario (`ControlValueAccessor`) con autocompletado. Su valor es el `Icd10Diagnosis` elegido de la lista, o `null`.
   - `PatientSummaryCard` es la tarjeta del paciente (prototipo 04) de las páginas clínicas. Recibe un `SummaryCardPatient`, que cumplen tanto el paciente de `GET /api/patients/{id}` como el del expediente. Con `[showContact]="true"` añade la fecha de ingreso, el correo, la dirección y el seguro.
-  - `CLINICAL_HISTORY_FIELDS`, `initialsOf()` y `painScoreTone()` viven en `clinical-labels.ts`.
+  - `CLINICAL_HISTORY_FIELDS` e `initialsOf()` viven en `clinical-labels.ts`. `painScoreTone()`, `TreatmentStatus` y las etiquetas y tonos del estado del tratamiento viven en `shared/clinical/treatment-labels.ts`, porque también los usa el portal del paciente; `clinical-labels.ts` los reexporta. Un área (`features/patient`) nunca importa de otra (`features/physiotherapist`): lo compartido va a `shared/`.
 - Plan terapéutico y asignación (HU-08):
   - `/physio/patients/:patientId/treatments/:treatmentId` (`TreatmentPage`): tarjeta del paciente y `TreatmentPlanCard`. Si el tratamiento es de otro paciente, muestra un aviso. La lista enlaza aquí con "Plan y asignación".
   - `TreatmentPlanCard` ("Plan terapéutico y asignación clínica") carga el historial con `rxResource` y tiene las acciones "Cambiar responsable" (solo tratamientos activos) y "Cambiar estado" (solo si hay destinos permitidos). La vista del expediente (HU-09) no la reutiliza: muestra una versión de solo lectura con los datos de su única consulta y enlaza aquí con "Plan y asignación".
@@ -442,11 +473,20 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
     - el estado vacío es "No hay pacientes registrados"; una búsqueda sin resultados muestra "Ningún paciente coincide con la búsqueda.".
   - `PainCurveChart` envuelve `BaseChartDirective` de **ng2-charts 11** (compatible con Angular 22) y **chart.js 4**. Registra solo lo que usa una línea (`provideCharts` en el componente). Es una sola serie: línea de 2 px en `--re-text-teal`, puntos de 8 px, la evaluación inicial hueca, eje EVA fijo de 0 a 10, tooltip con punto, fecha e intensidad, y sin leyenda. Los colores y la fuente se leen de los tokens `--re-*` con `getComputedStyle`, porque el canvas no entiende variables CSS. Una tabla `re-visually-hidden` repite los puntos para lectores de pantalla.
   - En pruebas, `stubCanvas()` de `session-testing.ts` simula el contexto 2D (jsdom no tiene canvas) y `ResizeObserver`, para que Chart.js cree el gráfico de verdad. Devuelve la función que restaura el original.
+- Portal del paciente (HU-12), en `features/patient`:
+  - `/patient` (`PatientDashboard`, prototipo 14) se arma con `PortalApi`: `GET /api/portal/treatments` y, para el tratamiento elegido, `GET /api/portal/treatments/{id}/progress`. Ninguna petición lleva el id del paciente. Muestra:
+    - el banner (`HeroBanner`) con el saludo y el mensaje "Tu tratamiento para {diagnóstico} está a cargo de {fisioterapeuta}."; si el tratamiento no está activo, "finalizó" o "figura como abandonado". El sistema no afirma que el tratamiento "avanza satisfactoriamente", como dice el prototipo;
+    - el selector "Tratamiento" (`mat-select`), solo si hay más de uno; el activo es el primero y queda elegido;
+    - `TreatmentProgressCard` ("Progreso del tratamiento"): anillo SVG con las sesiones realizadas frente a las planificadas y "¡Completado un N% de tu plan!";
+    - `PainEvolutionCard` ("Evolución del dolor (escala EVA)"): una barra por punto de la curva ("Evaluación inicial", "Sesión 01"...), con el color de `painScoreTone`, la etiqueta "Disminución de 7/10 a 4/10" y "Reducción de dolor lograda: N puntos". Si la EVA sube: "Aumento de..." y "El dolor aumentó N puntos respecto a la evaluación inicial."; si no cambia: "Sin cambios respecto a la evaluación inicial."; sin sesiones realizadas: "Aún no hay sesiones realizadas.". Son barras, como en el prototipo, no la curva de Chart.js de HU-11.
+  - Estados: "Aún no tienes un tratamiento registrado" (lista vacía), "Tu cuenta aún no está vinculada a un paciente" (404) y un aviso con "Reintentar" si falla la carga.
+  - **Solo lectura:** la página no tiene enlaces, campos ni botones que cambien datos; solo el selector y "Reintentar". Tampoco notificaciones ni próxima cita (fuera del alcance). La tarjeta de indicaciones y el listado de sesiones del prototipo son de HU-13.
+  - Datos de prueba en `portal-testing.ts` (`fakeTreatment`, `fakeProgress`, `fakeCurve`).
 - Auditoría (HU-18):
   - `features/audit/AuditLogList` se reutiliza en `/admin/audit` y `/director/audit`, con la entrada "Auditoría" en el menú de ambos roles.
   - Tabla paginada en el servidor (20 por página) con fecha y hora de Quito, usuario, acción (badge), entidad con id e IP. Solo metadatos.
   - Filtros por usuario (`GET /api/audit-logs/users`), acción, entidad (`/entity-types`) y rango de fechas. Cada cambio recarga la primera página. Con "Desde" posterior a "Hasta" no busca y solo muestra el aviso.
-  - Etiquetas en `audit-labels.ts`. Un `ACCESS_DENIED` muestra el área de la ruta tal cual (p. ej. `patients`).
+  - Etiquetas en `audit-labels.ts`. Un `ACCESS_DENIED` muestra el área de la ruta tal cual (p. ej. `patients` o `portal/treatments`).
 - Validaciones compartidas en `src/app/shared/validation`. `national-id.ts` aplica las mismas reglas de cédula que el backend: `nationalIdValidator` da `{ nationalId: regla }` y `NATIONAL_ID_MESSAGES` tiene el mensaje de cada regla.
 - Pacientes del administrador (HU-05, HU-06):
   - `/admin/patients` (`PatientRegistry`) busca con espera de 300 ms y muestra una tabla paginada en el servidor con identificación y contacto. Las columnas de sesiones y estado del prototipo son datos clínicos y no se muestran.
@@ -485,14 +525,14 @@ El autor marca esta lista en la descripción del PR (sección "Definición de te
 
 - Presentar un **plan antes de implementar** cada historia de usuario.
 - **Una historia por rama.**
-- Cada historia tiene su issue en GitHub, con la etiqueta de su sección PB y el milestone de su sprint. Las pendientes son HU-12 a HU-17 (#36 a #41); las ya implementadas están cerradas con su PR. El PR de la historia lleva la clave `SCRUM-XX` en el título y `Closes #N` en la descripción.
+- Cada historia tiene su issue en GitHub, con la etiqueta de su sección PB y el milestone de su sprint. Las pendientes son HU-13 a HU-17 (#37 a #41); las ya implementadas están cerradas con su PR. El PR de la historia lleva la clave `SCRUM-XX` en el título y `Closes #N` en la descripción.
 
 ### Plan vigente
 
 | Sprint | Alcance |
 |---|---|
 | 3 | HU-01 a HU-11 y HU-18 (terminadas) |
-| 4 | HU-12 a HU-15 |
+| 4 | HU-12 (terminada) a HU-15 |
 | 5 | HU-16, HU-17 y SonarQube |
 | 6 | TEC-07 (despliegue en Render) y Playwright |
 | 7 | k6, OWASP ZAP, UptimeRobot y compatibilidad |

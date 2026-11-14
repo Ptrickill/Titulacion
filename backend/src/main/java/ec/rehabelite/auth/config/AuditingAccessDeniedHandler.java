@@ -16,8 +16,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * Answers 403 with a Spanish problem response and records ACCESS_DENIED in the audit log, attributed to
- * the authenticated user. The entity is taken from the path ({@code /api/patients/12} → {@code patients}, 12);
- * the query string is never stored because it may contain personal data. The detail is the generic one, or the
+ * the authenticated user. The entity is taken from the path ({@code /api/patients/12} → {@code patients}, 12;
+ * {@code /api/portal/treatments/9/progress} → {@code portal/treatments}, 9); the query string is never stored because it may contain personal data. The detail is the generic one, or the
  * message of a {@link ForbiddenOperationException} raised by a service.
  */
 @Component
@@ -64,7 +64,11 @@ class AuditingAccessDeniedHandler implements AccessDeniedHandler {
                 : uri;
     }
 
-    /** Entity recorded for a denied request: the API resource and, if the next segment is numeric, its id. */
+    /**
+     * Entity recorded for a denied request: the API resource and, if the next segment is numeric, its id. In an area
+     * that groups resources ({@code /api/portal/treatments/9}) the id comes after the second segment, and the entity
+     * is both segments ({@code portal/treatments}).
+     */
     record AuditedResource(String entityType, Long entityId) {
 
         static AuditedResource of(String path) {
@@ -75,10 +79,17 @@ class AuditingAccessDeniedHandler implements AccessDeniedHandler {
             if (segments[0].isBlank()) {
                 return new AuditedResource(UNKNOWN_ENTITY, null);
             }
-            String entityType = segments[0].length() > ENTITY_TYPE_MAX_LENGTH
-                    ? segments[0].substring(0, ENTITY_TYPE_MAX_LENGTH)
-                    : segments[0];
-            return new AuditedResource(entityType, segments.length > 1 ? parseId(segments[1]) : null);
+            Long entityId = segments.length > 1 ? parseId(segments[1]) : null;
+            if (entityId == null && segments.length > 2 && parseId(segments[2]) != null) {
+                return new AuditedResource(truncated(segments[0] + "/" + segments[1]), parseId(segments[2]));
+            }
+            return new AuditedResource(truncated(segments[0]), entityId);
+        }
+
+        private static String truncated(String entityType) {
+            return entityType.length() > ENTITY_TYPE_MAX_LENGTH
+                    ? entityType.substring(0, ENTITY_TYPE_MAX_LENGTH)
+                    : entityType;
         }
 
         private static Long parseId(String segment) {

@@ -10,6 +10,9 @@ public interface PatientRepository extends JpaRepository<Patient, Long>, Patient
 
     Optional<Patient> findByNationalId(String nationalId);
 
+    /** The patient of a portal account; at most one (uq_patients_portal_user_id). */
+    Optional<Patient> findByPortalUserId(Long portalUserId);
+
     /**
      * Patients without a portal account whose name (accent- and case-insensitive, via normalize_text) or
      * national ID prefix matches the query; an empty query matches every patient.
