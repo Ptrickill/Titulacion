@@ -61,6 +61,17 @@ public interface TherapySessionRepository extends JpaRepository<TherapySession, 
             GROUP BY s.treatmentId""")
     List<TreatmentSessionCount> countByTreatmentIdsAndStatus(Collection<Long> treatmentIds, SessionStatus status);
 
+    /**
+     * The most recent session of the treatment (date, time and sequence number) with instructions for the patient,
+     * whatever its status (HU-13). Blank instructions are stored as null, so IS NOT NULL is enough.
+     */
+    @Query("""
+            SELECT s FROM TherapySession s
+            WHERE s.treatmentId = :treatmentId AND s.patientInstructions IS NOT NULL
+            ORDER BY s.sessionDate DESC, s.sessionTime DESC, s.sequenceNumber DESC
+            LIMIT 1""")
+    Optional<TherapySession> findLatestWithPatientInstructions(Long treatmentId);
+
     /** Locks the session row until the transaction ends, so two corrections never overwrite each other. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT s FROM TherapySession s WHERE s.id = :id")

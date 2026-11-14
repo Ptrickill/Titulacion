@@ -364,6 +364,50 @@ class ClinicalAuditIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
+    void readingTheSessionsAndTheInstructionsInThePortalIsAuditedAsReadOfTheTreatment() throws Exception {
+        User sessionsReader = createUser(Role.PATIENT);
+        Long withSessions = TestTreatments.insertFor(jdbc,
+                TestTreatments.insertRecord(jdbc, linkedPatientOf(sessionsReader)), "ACTIVE",
+                LocalDate.now().minusDays(30), 7, 12);
+        TestSessions.insert(jdbc, withSessions, physio.getId(), 1, LocalDate.now().minusDays(5), "09:00", 5,
+                "COMPLETED");
+        // A treatment without sessions has no instructions: the read is audited all the same
+        User instructionsReader = createUser(Role.PATIENT);
+        Long withoutSessions = TestTreatments.insertFor(jdbc,
+                TestTreatments.insertRecord(jdbc, linkedPatientOf(instructionsReader)), "ACTIVE",
+                LocalDate.now().minusDays(30), 7, 12);
+
+        perform(sessionsReader, get("/api/portal/treatments/{id}/sessions", withSessions))
+                .andExpect(status().isOk());
+        perform(instructionsReader, get("/api/portal/treatments/{id}/instructions", withoutSessions))
+                .andExpect(status().isOk());
+
+        assertSingleEntry(sessionsReader, "READ", "Treatment", withSessions);
+        assertThat(entriesOf(sessionsReader)).hasSize(1);
+        assertSingleEntry(instructionsReader, "READ", "Treatment", withoutSessions);
+        assertThat(entriesOf(instructionsReader)).hasSize(1);
+    }
+
+    @Test
+    void theSessionsAndInstructionsOfAnotherPatientInThePortalAreAuditedAsAccessDenied() throws Exception {
+        User sessionsReader = createUser(Role.PATIENT);
+        linkedPatientOf(sessionsReader);
+        User instructionsReader = createUser(Role.PATIENT);
+        linkedPatientOf(instructionsReader);
+        Long foreign = TestTreatments.insertActive(jdbc);
+
+        perform(sessionsReader, get("/api/portal/treatments/{id}/sessions", foreign))
+                .andExpect(status().isForbidden());
+        perform(instructionsReader, get("/api/portal/treatments/{id}/instructions", foreign))
+                .andExpect(status().isForbidden());
+
+        assertSingleEntry(sessionsReader, "ACCESS_DENIED", "portal/treatments", foreign);
+        assertThat(entriesOf(sessionsReader)).hasSize(1);
+        assertSingleEntry(instructionsReader, "ACCESS_DENIED", "portal/treatments", foreign);
+        assertThat(entriesOf(instructionsReader)).hasSize(1);
+    }
+
+    @Test
     void aTreatmentOfAnotherPatientInThePortalIsAuditedAsAccessDeniedAndNeverAsRead() throws Exception {
         User patient = createUser(Role.PATIENT);
         linkedPatientOf(patient);

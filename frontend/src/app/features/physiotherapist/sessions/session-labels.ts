@@ -1,25 +1,19 @@
 import { BadgeTone } from '../../../shared/ui/status-badge';
 import { ProgressStatus, SessionStatus } from './therapy-session-api';
 
-export const SESSION_STATUSES: readonly SessionStatus[] = ['COMPLETED', 'RESCHEDULED', 'NO_SHOW'];
+// Shared with the patient portal (HU-13), which must not import from the physiotherapist area
+export {
+  SESSION_STATUS_LABELS,
+  SESSION_STATUS_TONES,
+} from '../../../shared/clinical/session-labels';
 
-export const SESSION_STATUS_LABELS: Record<SessionStatus, string> = {
-  COMPLETED: 'Realizada',
-  RESCHEDULED: 'Reprogramada',
-  NO_SHOW: 'No asistió',
-};
+export const SESSION_STATUSES: readonly SessionStatus[] = ['COMPLETED', 'RESCHEDULED', 'NO_SHOW'];
 
 /** Longer text of the options of the form (prototype 06). */
 export const SESSION_STATUS_OPTIONS: Record<SessionStatus, string> = {
   COMPLETED: 'Realizada (Sesión completada normalmente)',
   RESCHEDULED: 'Reprogramada (Se cambió la fecha de la sesión)',
   NO_SHOW: 'No asistió (El paciente no se presentó)',
-};
-
-export const SESSION_STATUS_TONES: Record<SessionStatus, BadgeTone> = {
-  COMPLETED: 'success',
-  RESCHEDULED: 'info',
-  NO_SHOW: 'neutral',
 };
 
 export const PROGRESS_STATUSES: readonly ProgressStatus[] = [

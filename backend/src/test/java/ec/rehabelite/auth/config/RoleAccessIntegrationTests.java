@@ -80,7 +80,9 @@ class RoleAccessIntegrationTests extends AbstractIntegrationTest {
             new Area("/api/audit-logs", "audit-logs", null, OPERATIONS_DIRECTOR, ADMINISTRATOR),
             new Area("/api/audit-logs/users", "audit-logs", null, OPERATIONS_DIRECTOR, ADMINISTRATOR),
             new Area("/api/portal/treatments", "portal", null, PATIENT),
-            new Area("/api/portal/treatments/9/progress", "portal/treatments", 9L, PATIENT));
+            new Area("/api/portal/treatments/9/progress", "portal/treatments", 9L, PATIENT),
+            new Area("/api/portal/treatments/9/sessions", "portal/treatments", 9L, PATIENT),
+            new Area("/api/portal/treatments/9/instructions", "portal/treatments", 9L, PATIENT));
 
     @Autowired
     private MockMvc mockMvc;

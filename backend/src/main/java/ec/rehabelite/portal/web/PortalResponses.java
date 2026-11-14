@@ -2,6 +2,7 @@ package ec.rehabelite.portal.web;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 /** Response bodies of the patient portal API. */
@@ -33,6 +34,43 @@ final class PortalResponses {
             LocalDate date,
             @Schema(description = "Escala EVA, 0 a 10") int painScore,
             @Schema(description = "Correlativo de la sesión; null en la evaluación inicial") Integer sequenceNumber) {
+    }
+
+    @Schema(description = "Sesión de un tratamiento del paciente autenticado, sin las observaciones clínicas ni la "
+            + "evolución, que son de uso interno")
+    record PortalSessionResponse(
+            @Schema(description = "Número correlativo de la sesión en el tratamiento") int sequenceNumber,
+            LocalDate sessionDate,
+            @Schema(type = "string", example = "09:30:00") LocalTime sessionTime,
+            String sessionType,
+            @Schema(description = "Fisioterapeuta que registró la sesión; null si la cuenta ya no existe")
+            String responsibleName,
+            @Schema(description = "Escala EVA, 0 a 10") int painScore,
+            String activitiesPerformed,
+            @Schema(allowableValues = {"COMPLETED", "RESCHEDULED", "NO_SHOW"}) String status,
+            @Schema(description = "Indicaciones para el paciente; null si la sesión no tiene")
+            String patientInstructions) {
+
+        @Override
+        public String toString() {
+            return "PortalSessionResponse[sequenceNumber=" + sequenceNumber + "]";
+        }
+
+    }
+
+    @Schema(description = "Última indicación registrada para el paciente")
+    record PortalInstructionResponse(
+            String instructions,
+            @Schema(description = "Fecha de la sesión en que se registró") LocalDate sessionDate,
+            @Schema(description = "Correlativo de esa sesión") int sequenceNumber,
+            @Schema(description = "Fisioterapeuta que la registró; null si la cuenta ya no existe")
+            String responsibleName) {
+
+        @Override
+        public String toString() {
+            return "PortalInstructionResponse[sequenceNumber=" + sequenceNumber + "]";
+        }
+
     }
 
     @Schema(description = "Avance de un tratamiento del paciente autenticado")

@@ -2,7 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { PortalApi } from './portal-api';
-import { fakeProgress, fakeTreatment } from './portal-testing';
+import { fakeInstruction, fakeProgress, fakeSession, fakeTreatment } from './portal-testing';
 
 describe('PortalApi', () => {
   let api: PortalApi;
@@ -34,5 +34,33 @@ describe('PortalApi', () => {
     const call = backend.expectOne('/api/portal/treatments/30/progress');
     expect(call.request.method).toBe('GET');
     call.flush(fakeProgress());
+  });
+
+  it('lists the sessions of one treatment', () => {
+    api
+      .sessions(30)
+      .subscribe((sessions) => expect(sessions.map((s) => s.sequenceNumber)).toEqual([1, 2]));
+
+    const call = backend.expectOne('/api/portal/treatments/30/sessions');
+    expect(call.request.method).toBe('GET');
+    expect(call.request.params.keys()).toEqual([]);
+    call.flush([fakeSession(), fakeSession({ sequenceNumber: 2 })]);
+  });
+
+  it('reads the last instructions of one treatment', () => {
+    api.instructions(30).subscribe((instruction) => expect(instruction?.sequenceNumber).toBe(4));
+
+    const call = backend.expectOne('/api/portal/treatments/30/instructions');
+    expect(call.request.method).toBe('GET');
+    call.flush(fakeInstruction());
+  });
+
+  it('gives null when the treatment has no instructions (200 without a body)', () => {
+    let result: unknown = 'pending';
+    api.instructions(30).subscribe((instruction) => (result = instruction));
+
+    backend.expectOne('/api/portal/treatments/30/instructions').flush(null);
+
+    expect(result).toBeNull();
   });
 });

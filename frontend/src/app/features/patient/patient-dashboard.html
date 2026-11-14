@@ -36,20 +36,23 @@
       </mat-form-field>
     }
 
-    @if (progress(); as p) {
+    @if (detail(); as d) {
       <div class="cards">
         <app-treatment-progress-card
-          [completed]="p.completedSessions"
-          [planned]="p.plannedSessions"
-          [percentage]="p.percentage"
+          [completed]="d.progress.completedSessions"
+          [planned]="d.progress.plannedSessions"
+          [percentage]="d.progress.percentage"
         />
         <app-pain-evolution-card
-          [curve]="p.painCurve"
-          [initialPainScore]="p.initialPainScore"
-          [lastPainScore]="p.lastPainScore"
-          [painReduction]="p.painReduction"
+          [curve]="d.progress.painCurve"
+          [initialPainScore]="d.progress.initialPainScore"
+          [lastPainScore]="d.progress.lastPainScore"
+          [painReduction]="d.progress.painReduction"
         />
+        <app-therapist-instruction-card [instruction]="d.instruction" />
       </div>
+
+      <app-portal-session-list class="sessions" [sessions]="d.sessions" />
     }
   }
 }

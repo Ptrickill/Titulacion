@@ -1,0 +1,42 @@
+<header class="heading">
+  <div>
+    <h2 class="title">Listado de sesiones</h2>
+    <p class="subtitle">Historial de asistencias, evolución del dolor y terapeuta a cargo</p>
+  </div>
+  <app-status-badge class="total" [label]="'Total realizadas: ' + completed()" tone="teal" />
+</header>
+
+<app-data-table
+  [columns]="columns"
+  [rows]="sessions()"
+  caption="Sesiones del tratamiento"
+  itemLabel="sesiones"
+  emptyMessage="Aún no hay sesiones registradas en este tratamiento."
+>
+  <ng-template appDataTableCell="sequenceNumber" [appDataTableCellOf]="sessions()" let-s>
+    <div class="session">{{ sessionName(s) }}</div>
+    <div class="meta when">
+      {{ s.sessionDate | date: 'dd/MM/yyyy' }} · {{ s.sessionTime.slice(0, 5) }}
+    </div>
+    <div class="meta wrap">{{ s.sessionType }}</div>
+  </ng-template>
+
+  <ng-template appDataTableCell="responsibleName" [appDataTableCellOf]="sessions()" let-s>
+    <span class="wrap">{{ s.responsibleName ?? 'No disponible' }}</span>
+  </ng-template>
+
+  <ng-template appDataTableCell="painScore" [appDataTableCellOf]="sessions()" let-s>
+    <app-status-badge [label]="s.painScore + '/10'" [tone]="painTone(s.painScore)" />
+  </ng-template>
+
+  <ng-template appDataTableCell="activitiesPerformed" [appDataTableCellOf]="sessions()" let-s>
+    <div class="activities wrap">{{ s.activitiesPerformed }}</div>
+    @if (s.patientInstructions) {
+      <div class="instruction wrap"><strong>Indicación:</strong> {{ s.patientInstructions }}</div>
+    }
+  </ng-template>
+
+  <ng-template appDataTableCell="status" [appDataTableCellOf]="sessions()" let-s>
+    <app-status-badge [label]="statusLabels[s.status]" [tone]="statusTones[s.status]" />
+  </ng-template>
+</app-data-table>

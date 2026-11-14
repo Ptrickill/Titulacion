@@ -11,11 +11,16 @@ mat-progress-bar {
   margin-bottom: 20px;
 }
 
+// Three cards in a row, as in prototype 14
 .cards {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
   align-items: stretch;
+}
+
+.sessions {
+  margin-top: 24px;
 }
 
 .load-error {
@@ -36,7 +41,17 @@ mat-progress-bar {
   }
 }
 
-// One column on narrow screens
+// Narrower screens: two cards and the instructions below them, then one card per row
+@media (max-width: 1150px) {
+  .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  app-therapist-instruction-card {
+    grid-column: 1 / -1;
+  }
+}
+
 @media (max-width: 760px) {
   .cards {
     grid-template-columns: minmax(0, 1fr);

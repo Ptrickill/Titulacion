@@ -29,9 +29,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * HU-12: the portal answers with a fixed number of SQL statements, without N+1. The list costs the same with one
- * treatment as with five (each with its own responsible and sessions), and the progress the same with one session
- * as with a hundred. Data is inserted with SQL; Hibernate counts the statements it prepares.
+ * HU-12 and HU-13: the portal answers with a fixed number of SQL statements, without N+1. The list costs the same
+ * with one treatment as with five (each with its own responsible and sessions), and the progress, the sessions and
+ * the last instructions the same with one session as with a hundred. Data is inserted with SQL; Hibernate counts the
+ * statements it prepares.
  */
 @AutoConfigureMockMvc
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -49,6 +50,10 @@ class PortalPerformanceIntegrationTests extends AbstractIntegrationTest {
     private static final long LIST_AUDIT_INSERTS = 1;
     /** Token check, patient of the account, treatment, sessions and the READ audit entry. */
     private static final long PROGRESS_STATEMENTS = 5;
+    /** Token check, patient of the account, treatment, sessions, names of the responsibles and the audit entry. */
+    private static final long SESSIONS_STATEMENTS = 6;
+    /** Token check, patient of the account, treatment, one session, the name of its responsible and the audit. */
+    private static final long INSTRUCTIONS_STATEMENTS = 6;
 
     @Autowired
     private MockMvc mockMvc;
@@ -145,6 +150,65 @@ class PortalPerformanceIntegrationTests extends AbstractIntegrationTest {
     @Test
     void theStatementsOfTheProgressDoNotGrowWithTheSessions() throws Exception {
         assertThat(progress(tokenWithFive, treatmentWith100)).isEqualTo(progress(tokenWithOne, treatmentWithOne));
+    }
+
+    @Test
+    void theSessionsOfATreatmentWithOneHundredSessionsNeedSixStatements() throws Exception {
+        Statistics statistics = statistics();
+        read(tokenWithFive, treatmentWith100, "sessions");
+
+        statistics.clear();
+        long start = System.nanoTime();
+        mockMvc.perform(get("/api/portal/treatments/{id}/sessions", treatmentWith100)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenWithFive))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(SESSIONS))
+                .andExpect(jsonPath("$[0].sequenceNumber").value(1))
+                .andExpect(jsonPath("$[99].responsibleName").value("Fisioterapeuta activo"));
+        long elapsed = System.nanoTime() - start;
+
+        assertThat(Duration.ofNanos(elapsed)).isLessThan(MAX_RESPONSE_TIME);
+        assertThat(statistics.getPrepareStatementCount()).isEqualTo(SESSIONS_STATEMENTS);
+    }
+
+    @Test
+    void theStatementsOfTheSessionsDoNotGrowWithTheSessions() throws Exception {
+        assertThat(read(tokenWithFive, treatmentWith100, "sessions"))
+                .isEqualTo(read(tokenWithOne, treatmentWithOne, "sessions"));
+    }
+
+    @Test
+    void theLastInstructionsOfATreatmentWithOneHundredSessionsNeedSixStatements() throws Exception {
+        Statistics statistics = statistics();
+        read(tokenWithFive, treatmentWith100, "instructions");
+
+        statistics.clear();
+        long start = System.nanoTime();
+        mockMvc.perform(get("/api/portal/treatments/{id}/instructions", treatmentWith100)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenWithFive))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sequenceNumber").value(SESSIONS))
+                .andExpect(jsonPath("$.responsibleName").value("Fisioterapeuta activo"));
+        long elapsed = System.nanoTime() - start;
+
+        assertThat(Duration.ofNanos(elapsed)).isLessThan(MAX_RESPONSE_TIME);
+        assertThat(statistics.getPrepareStatementCount()).isEqualTo(INSTRUCTIONS_STATEMENTS);
+    }
+
+    @Test
+    void theStatementsOfTheLastInstructionsDoNotGrowWithTheSessions() throws Exception {
+        assertThat(read(tokenWithFive, treatmentWith100, "instructions"))
+                .isEqualTo(read(tokenWithOne, treatmentWithOne, "instructions"));
+    }
+
+    /** Statements prepared to read the sessions or the instructions of the treatment. */
+    private long read(String token, Long treatmentId, String resource) throws Exception {
+        Statistics statistics = statistics();
+        statistics.clear();
+        mockMvc.perform(get("/api/portal/treatments/{id}/" + resource, treatmentId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk());
+        return statistics.getPrepareStatementCount();
     }
 
     /** Statements prepared to list the treatments of the patient of the token. */

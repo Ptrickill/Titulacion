@@ -32,9 +32,11 @@ Historias del sprint (puntos según [`docs/user-stories.md`](../../user-stories.
 
 ## Pull requests
 
+Fechas de fusión tomadas de GitHub (fusión en `develop`, hora de Ecuador).
+
 | PR | Historia | Descripción | Estado CI | Lista de verificación | Fusionado |
 |---|---|---|---|---|---|
-| [#57](https://github.com/Ptrickill/Titulacion/pull/57) | HU-12 (SCRUM-28) | Portal del paciente: tratamientos, avance de sesiones y evolución del dolor, solo lectura | ⏳ | ⏳ | ⏳ |
+| [#57](https://github.com/Ptrickill/Titulacion/pull/57) | HU-12 (SCRUM-28) | Portal del paciente: tratamientos, avance de sesiones y evolución del dolor, solo lectura | ✅ [ejecución](https://github.com/Ptrickill/Titulacion/actions/runs/43562090680) | Completa | 14/11/2026 00:38 |
 
 ## Resultados de pruebas
 
