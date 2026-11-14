@@ -46,14 +46,21 @@ public final class TestSessions {
      */
     public static Long insert(JdbcTemplate jdbc, Long treatmentId, Long responsibleId, int sequenceNumber,
             LocalDate date, String time, int painScore, String status) {
+        return insert(jdbc, treatmentId, responsibleId, sequenceNumber, date, time, painScore, status,
+                "Calor local 15 minutos");
+    }
+
+    /** The same, with the given instructions for the patient ({@code null} for a session without them). */
+    public static Long insert(JdbcTemplate jdbc, Long treatmentId, Long responsibleId, int sequenceNumber,
+            LocalDate date, String time, int painScore, String status, String patientInstructions) {
         return jdbc.queryForObject("""
                 INSERT INTO therapy_sessions (treatment_id, responsible_id, sequence_number, session_date, session_time,
                                               session_type, activities_performed, clinical_observations,
                                               patient_instructions, pain_score, progress_status, status)
                 VALUES (?, ?, ?, ?, ?, 'Fisioterapia lumbar mecánica', 'Movilización lumbar',
-                        'Observación clínica interna', 'Calor local 15 minutos', ?, 'IMPROVING', ?)
+                        'Observación clínica interna', ?, ?, 'IMPROVING', ?)
                 RETURNING id""", Long.class, treatmentId, responsibleId, sequenceNumber, date, LocalTime.parse(time),
-                painScore, status);
+                patientInstructions, painScore, status);
     }
 
 }

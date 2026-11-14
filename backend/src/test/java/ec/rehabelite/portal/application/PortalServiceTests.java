@@ -18,8 +18,11 @@ import ec.rehabelite.clinicalrecords.TreatmentQueryPort;
 import ec.rehabelite.clinicalrecords.TreatmentSummary;
 import ec.rehabelite.patients.PatientCard;
 import ec.rehabelite.patients.PatientDirectory;
+import ec.rehabelite.portal.application.PortalService.PortalInstruction;
+import ec.rehabelite.portal.application.PortalService.PortalSession;
 import ec.rehabelite.portal.application.PortalService.PortalTreatment;
 import ec.rehabelite.portal.domain.TreatmentProgress;
+import ec.rehabelite.sessions.PatientSessionView;
 import ec.rehabelite.sessions.SessionSummary;
 import ec.rehabelite.sessions.TherapySessionQueryPort;
 import ec.rehabelite.shared.domain.ForbiddenOperationException;
@@ -39,6 +42,7 @@ class PortalServiceTests {
     private static final Long PATIENT_ID = 8L;
     private static final Long OTHER_PATIENT_ID = 9L;
     private static final Long VALERIA = 3L;
+    private static final Long MATEO = 4L;
     private static final LocalDate START = LocalDate.of(2026, 10, 1);
 
     private final CurrentUserProvider currentUserProvider = mock(CurrentUserProvider.class);
@@ -157,6 +161,110 @@ class PortalServiceTests {
                 .hasMessage("No tiene acceso a ese tratamiento.");
 
         verifyNoInteractions(sessionQuery, auditLogService);
+    }
+
+    // ----- HU-13: sessions and instructions -----
+
+    @Test
+    void theSessionsKeepTheirOrderAndCarryTheNameOfTheirPhysiotherapistFromOneCall() {
+        when(treatmentQuery.find(30L)).thenReturn(Optional.of(summary(30L, PATIENT_ID)));
+        when(sessionQuery.patientView(30L)).thenReturn(List.of(
+                view(3, MATEO, "COMPLETED", "Caminata suave diaria"), view(1, VALERIA, "COMPLETED", null),
+                view(2, VALERIA, "NO_SHOW", null)));
+        when(staffDirectory.fullNames(Set.of(VALERIA, MATEO)))
+                .thenReturn(Map.of(VALERIA, "Valeria Andrade Mora", MATEO, "Mateo Ríos Paz"));
+
+        List<PortalSession> sessions = service.sessions(30L);
+
+        assertThat(sessions).extracting(listed -> listed.session().sequenceNumber()).containsExactly(3, 1, 2);
+        assertThat(sessions).extracting(PortalSession::responsibleName)
+                .containsExactly("Mateo Ríos Paz", "Valeria Andrade Mora", "Valeria Andrade Mora");
+        verify(staffDirectory).fullNames(Set.of(VALERIA, MATEO));
+        verify(auditLogService).record(AuditAction.READ, "Treatment", 30L);
+    }
+
+    @Test
+    void aTreatmentWithoutSessionsHasAnEmptyListThatIsAuditedWithoutAskingForNames() {
+        when(treatmentQuery.find(30L)).thenReturn(Optional.of(summary(30L, PATIENT_ID)));
+        when(sessionQuery.patientView(30L)).thenReturn(List.of());
+
+        assertThat(service.sessions(30L)).isEmpty();
+
+        verifyNoInteractions(staffDirectory);
+        verify(auditLogService).record(AuditAction.READ, "Treatment", 30L);
+    }
+
+    @Test
+    void theNameIsNullWhenTheAccountOfThePhysiotherapistNoLongerExists() {
+        when(treatmentQuery.find(30L)).thenReturn(Optional.of(summary(30L, PATIENT_ID)));
+        when(sessionQuery.patientView(30L)).thenReturn(List.of(view(1, VALERIA, "COMPLETED", null)));
+        when(staffDirectory.fullNames(Set.of(VALERIA))).thenReturn(Map.of());
+
+        assertThat(service.sessions(30L)).singleElement()
+                .satisfies(listed -> assertThat(listed.responsibleName()).isNull());
+    }
+
+    @Test
+    void theLastInstructionComesWithItsSessionAndThePhysiotherapistWhoWroteIt() {
+        when(treatmentQuery.find(30L)).thenReturn(Optional.of(summary(30L, PATIENT_ID)));
+        when(sessionQuery.latestPatientInstruction(30L))
+                .thenReturn(Optional.of(view(4, MATEO, "NO_SHOW", "Reagendar la sesión esta semana")));
+        when(staffDirectory.fullNames(Set.of(MATEO))).thenReturn(Map.of(MATEO, "Mateo Ríos Paz"));
+
+        Optional<PortalInstruction> instruction = service.latestInstruction(30L);
+
+        assertThat(instruction).contains(new PortalInstruction("Reagendar la sesión esta semana",
+                START.plusDays(4), 4, "Mateo Ríos Paz"));
+        verify(auditLogService).record(AuditAction.READ, "Treatment", 30L);
+    }
+
+    @Test
+    void aTreatmentWithoutInstructionsHasNoneAndTheReadIsStillAudited() {
+        when(treatmentQuery.find(30L)).thenReturn(Optional.of(summary(30L, PATIENT_ID)));
+        when(sessionQuery.latestPatientInstruction(30L)).thenReturn(Optional.empty());
+
+        assertThat(service.latestInstruction(30L)).isEmpty();
+
+        verifyNoInteractions(staffDirectory);
+        verify(auditLogService).record(AuditAction.READ, "Treatment", 30L);
+    }
+
+    @Test
+    void theSessionsAndInstructionsOfAnotherPatientOrOfAMissingTreatmentAreForbiddenAndNeverRead() {
+        when(treatmentQuery.find(31L)).thenReturn(Optional.of(summary(31L, OTHER_PATIENT_ID)));
+        when(treatmentQuery.find(999L)).thenReturn(Optional.empty());
+
+        for (Long treatmentId : List.of(31L, 999L)) {
+            assertThatThrownBy(() -> service.sessions(treatmentId))
+                    .isInstanceOf(ForbiddenOperationException.class)
+                    .hasMessage("No tiene acceso a ese tratamiento.");
+            assertThatThrownBy(() -> service.latestInstruction(treatmentId))
+                    .isInstanceOf(ForbiddenOperationException.class)
+                    .hasMessage("No tiene acceso a ese tratamiento.");
+        }
+
+        verifyNoInteractions(sessionQuery, staffDirectory, auditLogService);
+    }
+
+    @Test
+    void anAccountWithoutALinkedPatientGets404OnTheSessionsAndTheInstructions() {
+        when(patientDirectory.findByPortalUser(USER_ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.sessions(30L))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("La cuenta no tiene un paciente vinculado.");
+        assertThatThrownBy(() -> service.latestInstruction(30L))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("La cuenta no tiene un paciente vinculado.");
+
+        verifyNoInteractions(treatmentQuery, sessionQuery, auditLogService);
+    }
+
+    /** A session of the day {@code sequenceNumber} of the treatment. */
+    private static PatientSessionView view(int sequenceNumber, Long responsibleId, String status,
+            String instructions) {
+        return new PatientSessionView(sequenceNumber, START.plusDays(sequenceNumber), LocalTime.of(9, 30),
+                "Fisioterapia lumbar mecánica", responsibleId, 5, "Movilización lumbar", status, instructions);
     }
 
     private static PatientTreatment listed(Long id, String status, Long responsibleId) {

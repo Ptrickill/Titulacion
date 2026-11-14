@@ -2,8 +2,9 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Page } from '../../../core/http/page';
+import type { SessionStatus } from '../../../shared/clinical/session-labels';
 
-export type SessionStatus = 'COMPLETED' | 'RESCHEDULED' | 'NO_SHOW';
+export type { SessionStatus };
 export type ProgressStatus = 'STABLE' | 'IMPROVING' | 'NEEDS_ATTENTION';
 
 /**

@@ -4,7 +4,7 @@ Registro de las evidencias del Sprint 3. Guardar los archivos en esta carpeta co
 
 | Fecha de inicio | Fecha de cierre | Objetivo del sprint | Versión |
 |---|---|---|---|
-| 26/10/2026 | 08/11/2026 | Entregar HU-01 a HU-11 y HU-18, según `docs/user-stories.md`: la autenticación y el control de acceso por rol (PB-01: HU-01 a HU-04), la gestión de datos personales de pacientes (PB-02: HU-05 y HU-06), el historial clínico y su auditoría (PB-03: HU-07, HU-08, HU-09 y HU-18), el registro de sesiones (PB-04: HU-10) y la línea de tiempo (PB-05: HU-11). Son 53 puntos en 12 historias | [`v0.4.0`](https://github.com/Ptrickill/Titulacion/releases/tag/v0.4.0) (commit `f52ce9c`, fusión del PR #23 en `main`): HU-01 a HU-09 y HU-18 · `v0.5.0` ⏳ (próxima): HU-10 y HU-11 |
+| 26/10/2026 | 08/11/2026 | Entregar HU-01 a HU-11 y HU-18, según `docs/user-stories.md`: la autenticación y el control de acceso por rol (PB-01: HU-01 a HU-04), la gestión de datos personales de pacientes (PB-02: HU-05 y HU-06), el historial clínico y su auditoría (PB-03: HU-07, HU-08, HU-09 y HU-18), el registro de sesiones (PB-04: HU-10) y la línea de tiempo (PB-05: HU-11). Son 53 puntos en 12 historias | [`v0.4.0`](https://github.com/Ptrickill/Titulacion/releases/tag/v0.4.0) (commit `f52ce9c`, fusión del PR #23 en `main`): HU-01 a HU-09 y HU-18 · [`v0.5.0`](https://github.com/Ptrickill/Titulacion/releases/tag/v0.5.0) (13/11/2026, commit `4ff8863`, fusión del PR #55 en `main`): HU-10 y HU-11 |
 
 El sprint se planificó con PB-01 y PB-02 (21 puntos en 6 historias). Dentro de su ventana se incorporaron dos incrementos planificados originalmente para el sprint 4:
 
@@ -186,6 +186,8 @@ Capturas de la verificación de cada historia (datos sintéticos):
 | Hallazgo | Acción |
 |---|---|
 | La regla "Protección develop y main" exige una aprobación que el proyecto no registra: el desarrollo lo ejecuta un solo integrante y GitHub no permite aprobar un PR propio. Los PR #45 a #51 se fusionaron mediante la omisión de la regla por parte del administrador. | Desde el PR #52, la regla "Protección develop y main" exige PR y los checks Backend y Frontend en verde, sin aprobación ni omisión. Desde el PR #53, el autor completa en la descripción del PR la lista de verificación de la definición de terminado antes de fusionar. |
+
+Observación: El PR #55 (publicación de v0.5.0 en main) se fusionó con la descripción de la plantilla sin completar la lista de verificación.
 
 ### Resultados de pruebas (sesiones y línea de tiempo)
 

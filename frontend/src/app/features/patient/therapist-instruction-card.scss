@@ -1,0 +1,69 @@
+@use './portal-card' as card;
+
+:host {
+  @include card.card;
+}
+
+.title {
+  @include card.title;
+}
+
+.subtitle {
+  @include card.subtitle;
+}
+
+.therapist {
+  color: var(--re-text-teal);
+  font-weight: 600;
+}
+
+.quote {
+  margin: 20px 0;
+  padding: 14px 16px;
+  background: var(--re-teal-50);
+  border: 1px solid var(--re-teal-100);
+  border-radius: var(--re-radius-md);
+}
+
+blockquote {
+  margin: 0;
+  color: var(--re-text);
+  font-size: 14px;
+  font-style: italic;
+  line-height: 1.5;
+  // A long word (e.g. a link) must not widen the card
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+figcaption {
+  margin-top: 10px;
+  color: var(--re-text-muted);
+  font-size: 12px;
+}
+
+.empty {
+  margin: 20px 0 0;
+  color: var(--re-text-muted);
+  font-size: 13px;
+}
+
+.summary {
+  @include card.summary;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--re-text-muted);
+  background: var(--re-gray-50);
+  border-color: var(--re-gray-200);
+  font-size: 12px;
+
+  mat-icon {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    color: var(--re-text-teal);
+    font-size: 20px;
+  }
+}

@@ -6,8 +6,14 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSelectHarness } from '@angular/material/select/testing';
 import { logInForTest } from '../../core/auth/auth-testing';
 import { PatientDashboard } from './patient-dashboard';
-import { PortalTreatment, TreatmentProgress } from './portal-api';
-import { fakeCurve, fakeProgress, fakeTreatment } from './portal-testing';
+import { PortalInstruction, PortalSession, PortalTreatment, TreatmentProgress } from './portal-api';
+import {
+  fakeCurve,
+  fakeInstruction,
+  fakeProgress,
+  fakeSession,
+  fakeTreatment,
+} from './portal-testing';
 
 const ACTIVE = fakeTreatment();
 const FINISHED = fakeTreatment({
@@ -40,6 +46,8 @@ describe('PatientDashboard', () => {
   const emptyTitle = () => text('app-empty-state .title');
   const progressCard = () => element.querySelector('app-treatment-progress-card');
   const painCard = () => element.querySelector('app-pain-evolution-card');
+  const instructionCard = () => element.querySelector('app-therapist-instruction-card');
+  const sessionList = () => element.querySelector('app-portal-session-list');
   const loadingBar = () => element.querySelector('mat-progress-bar');
 
   async function settle(): Promise<void> {
@@ -62,8 +70,17 @@ describe('PatientDashboard', () => {
     await settle();
   }
 
-  async function answerProgress(treatmentId: number, progress: TreatmentProgress): Promise<void> {
-    backend.expectOne(`/api/portal/treatments/${treatmentId}/progress`).flush(progress);
+  /** Answers the three requests of a treatment: its progress, its sessions and its last instructions. */
+  async function answerProgress(
+    treatmentId: number,
+    progress: TreatmentProgress,
+    sessions: PortalSession[] = [],
+    instruction: PortalInstruction | null = null,
+  ): Promise<void> {
+    const base = `/api/portal/treatments/${treatmentId}`;
+    backend.expectOne(`${base}/sessions`).flush(sessions);
+    backend.expectOne(`${base}/instructions`).flush(instruction);
+    backend.expectOne(`${base}/progress`).flush(progress);
     await settle();
   }
 
@@ -199,8 +216,10 @@ describe('PatientDashboard', () => {
     expect(painCard()).toBeNull();
     expect(loadingBar()).toBeNull();
     expect(text('app-hero-banner .message')).toBe(
-      'Aquí puedes consultar el progreso de tu tratamiento y la evolución de tu dolor.',
+      'Aquí puedes consultar el progreso de tu tratamiento, tus sesiones y las indicaciones de tu fisioterapeuta.',
     );
+    expect(instructionCard()).toBeNull();
+    expect(sessionList()).toBeNull();
   });
 
   it('explains that the account has no linked patient (404), without a retry', async () => {
@@ -235,16 +254,23 @@ describe('PatientDashboard', () => {
     expect(progressCard()).not.toBeNull();
   });
 
-  it('shows the error of the progress and asks for it again with "Reintentar"', async () => {
+  it('shows an error if one of the three requests fails and asks for all again with "Reintentar"', async () => {
     await open();
     await answerTreatments([ACTIVE]);
+    backend.expectOne('/api/portal/treatments/30/sessions').flush([fakeSession()]);
+    backend.expectOne('/api/portal/treatments/30/instructions').flush(fakeInstruction());
     backend
       .expectOne('/api/portal/treatments/30/progress')
       .flush(null, { status: 500, statusText: 'Server Error' });
     await settle();
 
-    expect(clean(element.querySelector('.load-error span'))).toBe('No se pudo cargar el avance.');
+    expect(clean(element.querySelector('.load-error span'))).toBe(
+      'No se pudo cargar tu tratamiento.',
+    );
+    // Nothing is shown by halves
     expect(progressCard()).toBeNull();
+    expect(instructionCard()).toBeNull();
+    expect(sessionList()).toBeNull();
 
     element.querySelector<HTMLButtonElement>('.load-error button')!.click();
     await settle();
@@ -254,13 +280,122 @@ describe('PatientDashboard', () => {
     expect(progressCard()).not.toBeNull();
   });
 
-  it('offers no way to edit: no links, no form fields and no buttons besides the selector', async () => {
+  it('offers no way to edit: no links nor form fields, and no buttons besides the pager', async () => {
     await open();
     await answerTreatments([ACTIVE, FINISHED]);
-    await answerProgress(30, fakeProgress());
+    await answerProgress(30, fakeProgress(), [fakeSession()], fakeInstruction());
 
-    expect(element.querySelectorAll('a, input, textarea, button')).toHaveLength(0);
+    expect(element.querySelectorAll('a, input, textarea')).toHaveLength(0);
+    const buttons = Array.from(element.querySelectorAll('button'));
+    expect(buttons.map((button) => button.getAttribute('aria-label'))).toEqual([
+      'Página anterior',
+      'Página siguiente',
+    ]);
     expect(element.textContent).not.toMatch(/Editar|Corregir|Registrar|Eliminar|Guardar/);
+  });
+
+  // ----- HU-13: instructions and sessions -----
+
+  it('asks for the progress, the sessions and the instructions of the treatment, without a patient id', async () => {
+    await open();
+    await answerTreatments([ACTIVE]);
+
+    const calls = backend.match((request) => request.url.startsWith('/api/portal/treatments/30/'));
+    expect(calls.map((call) => call.request.url).sort()).toEqual([
+      '/api/portal/treatments/30/instructions',
+      '/api/portal/treatments/30/progress',
+      '/api/portal/treatments/30/sessions',
+    ]);
+    for (const call of calls) {
+      expect(call.request.method).toBe('GET');
+      expect(call.request.params.keys()).toEqual([]);
+    }
+    for (const call of calls) {
+      const resource = call.request.url.split('/').pop();
+      call.flush(resource === 'progress' ? fakeProgress() : resource === 'sessions' ? [] : null);
+    }
+    await settle();
+
+    expect(progressCard()).not.toBeNull();
+  });
+
+  it('shows the last instructions of the physiotherapist next to the progress and the pain', async () => {
+    await open();
+    await answerTreatments([ACTIVE]);
+    await answerProgress(30, fakeProgress(), [fakeSession()], fakeInstruction());
+
+    const cards = Array.from(element.querySelectorAll('.cards > *')).map((card) => card.tagName);
+    expect(cards).toEqual([
+      'APP-TREATMENT-PROGRESS-CARD',
+      'APP-PAIN-EVOLUTION-CARD',
+      'APP-THERAPIST-INSTRUCTION-CARD',
+    ]);
+    expect(clean(instructionCard()?.querySelector('.therapist'))).toBe(
+      'Fisioterapeuta: Lcda. Valeria Andrade',
+    );
+    expect(clean(instructionCard()?.querySelector('blockquote'))).toBe(
+      '“Continuar la rutina de fortalecimiento domiciliario 3 días por semana.”',
+    );
+  });
+
+  it('lists the sessions of the treatment with the total of those that took place', async () => {
+    await open();
+    await answerTreatments([ACTIVE]);
+    await answerProgress(
+      30,
+      fakeProgress(),
+      [
+        fakeSession(),
+        fakeSession({ sequenceNumber: 2, status: 'NO_SHOW', patientInstructions: null }),
+      ],
+      fakeInstruction(),
+    );
+
+    expect(clean(sessionList()?.querySelector('.title'))).toBe('Listado de sesiones');
+    expect(clean(sessionList()?.querySelector('.total'))).toBe('Total realizadas: 1');
+    expect(sessionList()?.querySelectorAll('tbody tr')).toHaveLength(2);
+    expect(clean(sessionList()?.querySelector('tbody tr:last-child td:last-child'))).toBe(
+      'No asistió',
+    );
+  });
+
+  it('says that there are no instructions nor sessions yet in a treatment that has none', async () => {
+    await open();
+    await answerTreatments([ACTIVE]);
+    await answerProgress(30, fakeProgress({ completedSessions: 0, percentage: 0 }), [], null);
+
+    expect(clean(instructionCard()?.querySelector('.empty'))).toBe(
+      'Tu fisioterapeuta aún no ha registrado indicaciones.',
+    );
+    expect(clean(sessionList()?.querySelector('td.empty'))).toBe(
+      'Aún no hay sesiones registradas en este tratamiento.',
+    );
+  });
+
+  it('loads the sessions and the instructions of the treatment chosen in the selector', async () => {
+    await open();
+    await answerTreatments([ACTIVE, FINISHED]);
+    await answerProgress(30, fakeProgress(), [fakeSession()], fakeInstruction());
+
+    const select = await loader.getHarness(MatSelectHarness);
+    await select.clickOptions({ text: /manguito/ });
+    await answerProgress(
+      20,
+      fakeProgress({ treatmentId: 20 }),
+      [
+        fakeSession({ sequenceNumber: 7, responsibleName: 'Lcdo. Mateo Ríos' }),
+        fakeSession({ sequenceNumber: 8, responsibleName: 'Lcdo. Mateo Ríos' }),
+        fakeSession({ sequenceNumber: 9, responsibleName: 'Lcdo. Mateo Ríos' }),
+      ],
+      fakeInstruction({ instructions: 'Ejercicios pendulares', responsibleName: 'Lcdo. Mateo Ríos' }),
+    );
+
+    expect(sessionList()?.querySelectorAll('tbody tr')).toHaveLength(3);
+    expect(clean(sessionList()?.querySelector('tbody tr .session'))).toBe('Sesión 07');
+    expect(clean(instructionCard()?.querySelector('blockquote'))).toBe('“Ejercicios pendulares”');
+    expect(clean(instructionCard()?.querySelector('.therapist'))).toBe(
+      'Fisioterapeuta: Lcdo. Mateo Ríos',
+    );
   });
 
   it('greets without a name when the session has none', async () => {

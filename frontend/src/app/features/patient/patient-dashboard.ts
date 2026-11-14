@@ -7,24 +7,41 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
-import { catchError, filter, of, switchMap, tap } from 'rxjs';
+import { catchError, filter, forkJoin, of, switchMap, tap } from 'rxjs';
 import { AuthService } from '../../core/auth/auth-service';
 import { problemDetailMessage } from '../../core/http/problem-detail';
 import { TREATMENT_STATUS_LABELS } from '../../shared/clinical/treatment-labels';
 import { EmptyState } from '../../shared/ui/empty-state';
 import { HeroBanner } from '../../shared/ui/hero-banner';
 import { PainEvolutionCard } from './pain-evolution-card';
-import { PortalApi, PortalTreatment, TreatmentProgress } from './portal-api';
+import {
+  PortalApi,
+  PortalInstruction,
+  PortalSession,
+  PortalTreatment,
+  TreatmentProgress,
+} from './portal-api';
+import { PortalSessionList } from './portal-session-list';
+import { TherapistInstructionCard } from './therapist-instruction-card';
 import { TreatmentProgressCard } from './treatment-progress-card';
 
+/** What the portal shows of the treatment chosen: it arrives together, from three requests in parallel. */
+interface TreatmentDetail {
+  progress: TreatmentProgress;
+  sessions: PortalSession[];
+  /** Null when no session has instructions for the patient. */
+  instruction: PortalInstruction | null;
+}
+
 const WELCOME =
-  'Aquí puedes consultar el progreso de tu tratamiento y la evolución de tu dolor.';
+  'Aquí puedes consultar el progreso de tu tratamiento, tus sesiones y las indicaciones de tu fisioterapeuta.';
 
 /**
- * `/patient` (HU-12, prototype 14): the portal of the patient. A banner with the greeting and the diagnosis, the
- * progress of the treatment (sessions that took place against the planned ones) and the evolution of the pain. With
- * more than one treatment, a selector shows the active one by default. Everything is read only: the page has no
- * action that changes data. The server takes the patient from the session and audits each read.
+ * `/patient` (HU-12 and HU-13, prototype 14): the portal of the patient. A banner with the greeting and the
+ * diagnosis; three cards with the progress of the treatment (sessions that took place against the planned ones), the
+ * evolution of the pain and the last instructions of the physiotherapist; and the list of sessions. With more than
+ * one treatment, a selector shows the active one by default. Everything is read only: the page has no action that
+ * changes data. The server takes the patient from the session and audits each read.
  */
 @Component({
   selector: 'app-patient-dashboard',
@@ -39,6 +56,8 @@ const WELCOME =
     EmptyState,
     TreatmentProgressCard,
     PainEvolutionCard,
+    TherapistInstructionCard,
+    PortalSessionList,
   ],
   templateUrl: './patient-dashboard.html',
   styleUrl: './patient-dashboard.scss',
@@ -52,10 +71,10 @@ export class PatientDashboard {
 
   /** Null until the list arrives. */
   protected readonly treatments = signal<PortalTreatment[] | null>(null);
-  /** The treatment whose progress is asked for; a new object on every request, so a retry asks again. */
+  /** The treatment whose detail is asked for; a new object on every request, so a retry asks again. */
   private readonly request = signal<{ treatmentId: number } | null>(null);
   protected readonly selectedId = computed(() => this.request()?.treatmentId ?? null);
-  protected readonly progress = signal<TreatmentProgress | null>(null);
+  protected readonly detail = signal<TreatmentDetail | null>(null);
   protected readonly loading = signal(true);
   protected readonly loadError = signal<string | null>(null);
   /** The account has no linked patient (404): there is nothing to show, and retrying does not help. */
@@ -100,27 +119,31 @@ export class PatientDashboard {
           this.loadError.set(null);
         }),
         switchMap(({ treatmentId }) =>
-          this.api.progress(treatmentId).pipe(
+          forkJoin({
+            progress: this.api.progress(treatmentId),
+            sessions: this.api.sessions(treatmentId),
+            instruction: this.api.instructions(treatmentId),
+          }).pipe(
             catchError((error: HttpErrorResponse) => {
-              this.loadError.set(problemDetailMessage(error, 'No se pudo cargar el avance.'));
+              this.loadError.set(problemDetailMessage(error, 'No se pudo cargar tu tratamiento.'));
               return of(null);
             }),
           ),
         ),
         takeUntilDestroyed(this.destroyRef),
       )
-      .subscribe((progress) => {
-        this.progress.set(progress);
+      .subscribe((detail) => {
+        this.detail.set(detail);
         this.loading.set(false);
       });
   }
 
-  /** Shows the progress of the treatment chosen in the selector. */
+  /** Shows the treatment chosen in the selector. */
   protected select(treatmentId: number): void {
     this.request.set({ treatmentId });
   }
 
-  /** Asks again for what failed: the list of treatments or the progress of the selected one. */
+  /** Asks again for what failed: the list of treatments or the detail of the selected one. */
   protected retry(): void {
     const treatmentId = this.selectedId();
     if (treatmentId === null) {

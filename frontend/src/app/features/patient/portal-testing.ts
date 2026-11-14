@@ -1,4 +1,10 @@
-import { PortalPainPoint, PortalTreatment, TreatmentProgress } from './portal-api';
+import {
+  PortalInstruction,
+  PortalPainPoint,
+  PortalSession,
+  PortalTreatment,
+  TreatmentProgress,
+} from './portal-api';
 
 /** Synthetic data of the patient portal for unit tests. */
 
@@ -40,6 +46,32 @@ export function fakeProgress(overrides: Partial<TreatmentProgress> = {}): Treatm
     lastPainScore: 4,
     painReduction: 3,
     painCurve: fakeCurve(7, 6, 5, 4),
+    ...overrides,
+  };
+}
+
+/** Session 1 of 5 October at 08:30: took place, EVA 7, with instructions for the patient. */
+export function fakeSession(overrides: Partial<PortalSession> = {}): PortalSession {
+  return {
+    sequenceNumber: 1,
+    sessionDate: '2026-10-05',
+    sessionTime: '08:30:00',
+    sessionType: 'Terapia manual',
+    responsibleName: 'Lcda. Valeria Andrade',
+    painScore: 7,
+    activitiesPerformed: 'Movilización lumbar y TENS 15 minutos',
+    status: 'COMPLETED',
+    patientInstructions: 'Calor local 15 minutos',
+    ...overrides,
+  };
+}
+
+export function fakeInstruction(overrides: Partial<PortalInstruction> = {}): PortalInstruction {
+  return {
+    instructions: 'Continuar la rutina de fortalecimiento domiciliario 3 días por semana.',
+    sessionDate: '2026-10-15',
+    sequenceNumber: 4,
+    responsibleName: 'Lcda. Valeria Andrade',
     ...overrides,
   };
 }
