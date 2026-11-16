@@ -14,7 +14,7 @@ Historias del sprint (puntos según [`docs/user-stories.md`](../../user-stories.
 |---|---|---|---|
 | HU-12 Ver el avance del tratamiento en el portal | 5 | [#36](https://github.com/Ptrickill/Titulacion/issues/36) | [#57](https://github.com/Ptrickill/Titulacion/pull/57) |
 | HU-13 Leer indicaciones y sesiones en el portal | 3 | [#37](https://github.com/Ptrickill/Titulacion/issues/37) | [#58](https://github.com/Ptrickill/Titulacion/pull/58) |
-| HU-14 Indicadores de tratamientos y sesiones | 5 | [#38](https://github.com/Ptrickill/Titulacion/issues/38) | ⏳ |
+| HU-14 Indicadores de tratamientos y sesiones | 5 | [#38](https://github.com/Ptrickill/Titulacion/issues/38) | [#59](https://github.com/Ptrickill/Titulacion/pull/59) |
 | HU-15 Filtrar y exportar el reporte a PDF | 5 | [#39](https://github.com/Ptrickill/Titulacion/issues/39) | ⏳ |
 
 ## Evidencias
@@ -37,7 +37,8 @@ Fechas de fusión tomadas de GitHub (fusión en `develop`, hora de Ecuador).
 | PR | Historia | Descripción | Estado CI | Lista de verificación | Fusionado |
 |---|---|---|---|---|---|
 | [#57](https://github.com/Ptrickill/Titulacion/pull/57) | HU-12 (SCRUM-28) | Portal del paciente: tratamientos, avance de sesiones y evolución del dolor, solo lectura | ✅ [ejecución](https://github.com/Ptrickill/Titulacion/actions/runs/43562090680) | Completa | 14/11/2026 00:38 |
-| [#58](https://github.com/Ptrickill/Titulacion/pull/58) | HU-13 (SCRUM-29) | Portal del paciente: listado de sesiones e indicación del terapeuta, sin observaciones clínicas ni evolución | ⏳ | ⏳ | ⏳ |
+| [#58](https://github.com/Ptrickill/Titulacion/pull/58) | HU-13 (SCRUM-29) | Portal del paciente: listado de sesiones e indicación del terapeuta, sin observaciones clínicas ni evolución | ✅ [ejecución](https://github.com/Ptrickill/Titulacion/actions/runs/43565017774) | Completa | 14/11/2026 01:13 |
+| [#59](https://github.com/Ptrickill/Titulacion/pull/59) | HU-14 (SCRUM-30) | Reportes de dirección operativa: indicadores de tratamientos y sesiones, sesiones por fisioterapeuta y lista de tratamientos, solo lectura | ⏳ | ⏳ | ⏳ |
 
 ## Resultados de pruebas
 
@@ -47,6 +48,7 @@ Los totales del cierre del sprint siguen pendientes. Totales parciales, por hist
 |---|---|---|---|
 | HU-12 | 14/11/2026 | 571 pruebas, 0 fallos, 0 errores, 0 omitidas (BUILD SUCCESS) | 277 pruebas en 51 archivos |
 | HU-13 | 14/11/2026 | 621 pruebas, 0 fallos, 0 errores, 0 omitidas (BUILD SUCCESS) | 303 pruebas en 53 archivos |
+| HU-14 | 15/11/2026 | 678 pruebas, 0 fallos, 0 errores, 0 omitidas (BUILD SUCCESS) | 336 pruebas en 57 archivos |
 
 | Comando | Total | Fallos | Errores | Omitidas | Resultado |
 |---|---|---|---|---|---|
@@ -59,7 +61,7 @@ Los totales del cierre del sprint siguen pendientes. Totales parciales, por hist
 |---|---|---|
 | HU-12 | [`hu-12-portal-progress`](../../screenshots/hu-12-portal-progress/) | 10: portal con el tratamiento activo (`01`, `02`), selector de tratamiento (`03`), tratamiento finalizado (`04`), 1366 px (`05`), un solo tratamiento con dolor que sube (`06`), paciente sin tratamientos (`07`), 390 px (`08`, `09`) y auditoría de las consultas y los accesos denegados (`10`) |
 | HU-13 | [`hu-13-portal-sessions`](../../screenshots/hu-13-portal-sessions/) | 11: portal con las tres tarjetas (`01`, `02`), listado de sesiones (`03`), la tabla a 1366 y a 1920 px (`04`), tratamiento finalizado con el paginador (`05`), tratamiento sin indicaciones (`06`), paciente sin tratamientos (`07`), 1024 px (`08`) y 390 px (`09`, `10`) |
-| HU-14 | ⏳ | ⏳ |
+| HU-14 | [`hu-14-director-reports`](../../screenshots/hu-14-director-reports/) | 14: reporte al tamaño del prototipo (`01`) y completo (`02`), sesiones por fisioterapeuta y tratamientos (`03`), segunda página (`04`), filtro por estado (`05`), filtro por fisioterapeuta antes y después de un reemplazo (`06`, `07`), filtros combinados (`08`), 1366 px (`09`), 1024 px (`10`), 390 px (`11`, `12`), menú del administrador sin reportes (`13`) y auditoría de las consultas del reporte (`14`) |
 | HU-15 | ⏳ | ⏳ |
 
 ## Observaciones
@@ -97,3 +99,26 @@ Decisiones tomadas al implementar la historia:
   | 1920 px | 850 px | 850 px | 0 px |
   | 1024 px | 726 px | 726 px | 0 px |
   | 390 px | 356 px | 723 px | 367 px, con desplazamiento dentro de la tarjeta; la página no se desborda |
+
+### HU-14 (reportes de dirección operativa)
+
+Decisiones tomadas al implementar la historia:
+
+- **Acceso:** `/api/reports/**` es solo de la dirección operativa. El administrador no ve datos clínicos (HU-06), así que perdió el acceso a los reportes y la entrada "Reportes Consolidados" de su menú; el prototipo `12-admin-reports.jpg` queda superado. `/api/audit-logs/**` no cambió.
+- **Filtros separados:** los tratamientos (indicadores y lista) se filtran por su estado y su responsable vigente; las sesiones (registradas, por estado, barras y promedio), por quien registró la sesión y por el estado de su tratamiento. Tras un reemplazo, las sesiones del fisioterapeuta anterior siguen contando para él y el tratamiento aparece en la lista del nuevo responsable. Lo comprueba una prueba de integración y se ve en las capturas `06` y `07`.
+- **Promedio:** total de sesiones entre los fisioterapeutas con al menos una, con un decimal.
+- **Minimización de datos (LOPDP):** la lista solo trae el nombre del paciente; nunca la cédula, el número de historia ni otros datos personales. Una prueba comprueba las propiedades exactas de cada fila y que el JSON no contiene la cédula.
+- **Auditoría:** `READ Report` por cada resumen y `READ Treatment` por cada tratamiento listado, en un solo `INSERT`.
+- **Sentencias:** 6 en el resumen y 6 en la lista, con 1 o con 60 tratamientos, con cualquier filtro y también en la última página (`ReportPerformanceIntegrationTests`).
+- **Lista de 5 en 5:** así mide casi lo mismo que la tarjeta de sesiones por fisioterapeuta, como en el prototipo.
+- **Sin exportar:** el botón "Exportar Informe Operativo" del prototipo es de HU-15.
+- **Anchos medidos en Chrome:** sin desborde de la página, de la tabla ni de las etiquetas de los indicadores.
+
+  | Ancho de ventana | Indicadores | Tarjetas de detalle | Tabla (contenedor / tabla) | Desborde |
+  |---|---|---|---|---|
+  | 1920 px | 5 de 161 px | 2 de 416 px | 414 / 414 px | 0 px |
+  | 1568 px | 5 de 161 px | 2 de 416 px | 414 / 414 px | 0 px |
+  | 1366 px | 5 de 161 px | 2 de 416 px | 414 / 414 px | 0 px |
+  | 1024 px | 3 y 2 de 235 px | 1 de 728 px | 726 / 726 px | 0 px |
+  | 390 px | 1 de 358 px | 1 de 358 px | 356 / 356 px | 0 px |
+- **Datos de las capturas:** dos fisioterapeutas más creados por el administrador, y los historiales, tratamientos, sesiones, el reemplazo y los cambios de estado creados por la API en la base desechable de Testcontainers.
