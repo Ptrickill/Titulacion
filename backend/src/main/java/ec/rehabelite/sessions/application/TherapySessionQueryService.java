@@ -1,6 +1,7 @@
 package ec.rehabelite.sessions.application;
 
 import ec.rehabelite.sessions.PatientSessionView;
+import ec.rehabelite.sessions.SessionCount;
 import ec.rehabelite.sessions.SessionSummary;
 import ec.rehabelite.sessions.TherapySessionQueryPort;
 import ec.rehabelite.sessions.domain.SessionStatus;
@@ -55,6 +56,15 @@ class TherapySessionQueryService implements TherapySessionQueryPort {
     public Optional<PatientSessionView> latestPatientInstruction(Long treatmentId) {
         return sessionRepository.findLatestWithPatientInstructions(treatmentId)
                 .map(TherapySessionQueryService::patientViewOf);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SessionCount> countsByResponsibleAndStatus(Collection<Long> treatmentIds, Long responsibleId) {
+        return sessionRepository.countByResponsibleAndStatus(treatmentIds.toArray(Long[]::new), responsibleId)
+                .stream()
+                .map(count -> new SessionCount(count.getResponsibleId(), count.getStatus(), count.getSessions()))
+                .toList();
     }
 
     /** Only what the patient may read: the clinical observations and the progress status stay in the module. */

@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 
-public interface TreatmentRepository extends JpaRepository<Treatment, Long> {
+public interface TreatmentRepository extends JpaRepository<Treatment, Long>, TreatmentReportQueries {
 
     /**
      * The treatment with its clinical record, diagnosis and responsible assignments, ready to be mapped outside a

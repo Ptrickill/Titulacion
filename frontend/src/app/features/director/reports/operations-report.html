@@ -1,0 +1,118 @@
+<app-page-header
+  title="Reportes de Dirección Operativa"
+  subtitle="Métricas de tratamientos, adherencia clínica y distribución por fisioterapeuta"
+/>
+
+<p class="notice" role="note">
+  <mat-icon aria-hidden="true">verified_user</mat-icon>
+  <span>
+    <strong>Modo de Dirección Operativa:</strong> acceso de solo consulta para revisar tratamientos
+    activos, altas, abandonos y productividad de sesiones por especialista.
+  </span>
+</p>
+
+<form class="filters" [formGroup]="filters" aria-label="Filtros operativos" novalidate>
+  <span class="filters-label">
+    <mat-icon aria-hidden="true">filter_alt</mat-icon>
+    Filtros operativos
+  </span>
+
+  <mat-form-field appearance="fill" subscriptSizing="dynamic">
+    <mat-label>Estado del tratamiento</mat-label>
+    <mat-select formControlName="status">
+      <mat-option [value]="ALL">Todos los estados</mat-option>
+      @for (status of statuses; track status) {
+        <mat-option [value]="status">{{ statusLabels[status] }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="fill" subscriptSizing="dynamic">
+    <mat-label>Fisioterapeuta responsable</mat-label>
+    <mat-select formControlName="physiotherapistId">
+      <mat-option [value]="ALL">Todos los fisioterapeutas</mat-option>
+      @for (physiotherapist of physiotherapists(); track physiotherapist.id) {
+        <mat-option [value]="physiotherapist.id">{{ physiotherapist.fullName }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <p class="filters-help">
+    Los tratamientos se filtran por su responsable vigente y las sesiones por el fisioterapeuta que
+    las registró.
+  </p>
+</form>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Cargando reporte" />
+}
+
+@if (loadError(); as message) {
+  <app-empty-state icon="cloud_off" title="No se pudo cargar el reporte" [message]="message">
+    <button mat-stroked-button type="button" (click)="reload()">Reintentar</button>
+  </app-empty-state>
+} @else {
+  @if (summary(); as report) {
+    <section class="indicators" aria-label="Indicadores">
+      <app-stat-card
+        stacked
+        label="Tratamientos activos"
+        [value]="report.treatments.active"
+        hint="En curso clínico"
+        icon="monitor_heart"
+        tone="teal"
+      />
+      <app-stat-card
+        stacked
+        label="Tratamientos finalizados"
+        [value]="report.treatments.completed"
+        hint="Alta alcanzada"
+        icon="how_to_reg"
+        tone="info"
+      />
+      <app-stat-card
+        stacked
+        label="Abandonos"
+        [value]="report.treatments.abandoned"
+        hint="Tratamientos no concluidos"
+        icon="person_remove"
+        tone="danger"
+      />
+      <app-stat-card
+        stacked
+        class="sessions-card"
+        label="Sesiones registradas"
+        [value]="report.sessions.total"
+        [hint]="sessionsByStatus()"
+        icon="assignment_turned_in"
+        tone="info"
+      />
+      <app-stat-card
+        stacked
+        label="Sesiones por fisioterapeuta"
+        [value]="average()"
+        hint="Promedio por profesional"
+        icon="stethoscope"
+        tone="purple"
+      />
+    </section>
+  }
+
+  <div class="details">
+    @if (summary(); as report) {
+      <app-sessions-by-physiotherapist-card
+        [sessions]="report.sessionsByPhysiotherapist"
+        [averageSessions]="report.averageSessionsPerPhysiotherapist"
+      />
+    }
+    @if (treatments(); as page) {
+      <app-report-treatment-list
+        [page]="page"
+        [pageSize]="pageSize"
+        [statusFilter]="statusFilterLabel()"
+        [physiotherapistFilter]="physiotherapistFilterLabel()"
+        (pageChange)="goToPage($event)"
+      />
+    }
+  </div>
+}

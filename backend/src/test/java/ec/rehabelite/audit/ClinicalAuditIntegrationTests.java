@@ -36,8 +36,8 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 /**
- * HU-18: every operation on clinical data of the patients, clinicalrecords and sessions endpoints leaves one audit entry with
- * the user, the action, the entity and its id, the date and the client IP. Personal data reads are not audited, and
+ * HU-18: every operation on clinical data of the patients, clinicalrecords, sessions, portal and reports endpoints
+ * leaves one audit entry with the user, the action, the entity and its id, the date and the client IP. Personal data reads are not audited, and
  * neither are rejected requests.
  */
 @AutoConfigureMockMvc
@@ -433,6 +433,56 @@ class ClinicalAuditIntegrationTests extends AbstractIntegrationTest {
 
         assertThat(entriesOf(unlinked)).isEmpty();
         assertThat(entriesOf(withoutTreatments)).isEmpty();
+    }
+
+    // ----- operations reports (HU-14) -----
+
+    @Test
+    void readingTheReportSummaryIsAuditedAsReadOfTheReportWithoutId() throws Exception {
+        User director = createUser(Role.OPERATIONS_DIRECTOR);
+
+        perform(director, get("/api/reports/summary")).andExpect(status().isOk());
+
+        assertThat(entriesOf(director)).singleElement().satisfies(entry -> assertThat(entry)
+                .containsEntry("action", "READ")
+                .containsEntry("entity_type", "Report")
+                .containsEntry("entity_id", null)
+                .containsEntry("ip_address", LOCAL_IP));
+    }
+
+    @Test
+    void listingTheTreatmentsOfTheReportIsAuditedAsReadOfEachTreatment() throws Exception {
+        User director = createUser(Role.OPERATIONS_DIRECTOR);
+        Long active = TestTreatments.insertActive(jdbc);
+        Long finished = TestTreatments.insert(jdbc, "COMPLETED", LocalDate.now().minusDays(90));
+        TestTreatments.assignResponsible(jdbc, active, physio.getId());
+        TestTreatments.assignResponsible(jdbc, finished, physio.getId());
+
+        perform(director, get("/api/reports/treatments").param("physiotherapistId", physio.getId().toString()))
+                .andExpect(status().isOk());
+
+        assertSingleEntry(director, "READ", "Treatment", active);
+        assertSingleEntry(director, "READ", "Treatment", finished);
+        assertThat(entriesOf(director)).hasSize(2);
+    }
+
+    @Test
+    void theFilterOptionsOfTheReportAreNotAudited() throws Exception {
+        User director = createUser(Role.OPERATIONS_DIRECTOR);
+
+        perform(director, get("/api/reports/physiotherapists")).andExpect(status().isOk());
+
+        assertThat(entriesOf(director)).isEmpty();
+    }
+
+    @Test
+    void theAdministratorAsksForTheReportAndIsAuditedAsAccessDenied() throws Exception {
+        perform(admin, get("/api/reports/summary")).andExpect(status().isForbidden());
+
+        assertThat(entriesOf(admin)).singleElement().satisfies(entry -> assertThat(entry)
+                .containsEntry("action", "ACCESS_DENIED")
+                .containsEntry("entity_type", "reports")
+                .containsEntry("entity_id", null));
     }
 
     // ----- helpers -----

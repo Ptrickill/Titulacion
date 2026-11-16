@@ -38,6 +38,14 @@ class StaffDirectoryService implements StaffDirectory {
 
     @Override
     @Transactional(readOnly = true)
+    public List<StaffMember> physiotherapists() {
+        return userRepository.findByRoleOrderByFullNameAscIdAsc(Role.PHYSIOTHERAPIST).stream()
+                .map(StaffDirectoryService::toMember)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Map<Long, String> fullNames(Collection<Long> userIds) {
         if (userIds.isEmpty()) {
             return Map.of();

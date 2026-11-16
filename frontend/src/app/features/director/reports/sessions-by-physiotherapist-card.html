@@ -1,0 +1,28 @@
+<header class="heading">
+  <div>
+    <h2 class="title">Sesiones por fisioterapeuta</h2>
+    <p class="subtitle">Sesiones registradas por cada profesional</p>
+  </div>
+  <app-status-badge class="average" [label]="'Promedio: ' + average() + ' ses/esp'" tone="purple" />
+</header>
+
+@if (rows().length === 0) {
+  <p class="empty">No hay sesiones registradas con estos filtros.</p>
+} @else {
+  <ul class="list" aria-label="Sesiones registradas por fisioterapeuta">
+    @for (row of rows(); track row.physiotherapistId) {
+      <li class="item">
+        <div class="person">
+          <span class="avatar" aria-hidden="true">{{ row.initials }}</span>
+          <span class="name">{{ row.name }}</span>
+          <span class="count"
+            ><strong>{{ row.sessions }}</strong> {{ row.unit }}</span
+          >
+        </div>
+        <div class="track" aria-hidden="true">
+          <div class="bar" [style.width.%]="row.width"></div>
+        </div>
+      </li>
+    }
+  </ul>
+}

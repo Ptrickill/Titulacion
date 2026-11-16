@@ -22,7 +22,7 @@ export const NAV_ITEMS: Record<Role, readonly NavItem[]> = {
     { label: 'Inicio', icon: 'home', route: '/admin', exact: true },
     { label: 'Gestión de Usuarios', icon: 'shield_person', route: '/admin/users' },
     { label: 'Registro de Pacientes', icon: 'group', route: '/admin/patients' },
-    { label: 'Reportes Consolidados', icon: 'bar_chart', route: '/admin/reports' },
+    // No "Reportes Consolidados" (prototype 12): the reports carry clinical data (HU-06, HU-14)
     { label: 'Auditoría', icon: 'policy', route: '/admin/audit' },
   ],
   OPERATIONS_DIRECTOR: [

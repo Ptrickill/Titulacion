@@ -76,7 +76,10 @@ class RoleAccessIntegrationTests extends AbstractIntegrationTest {
             new Area("/api/therapy-sessions/5", "therapy-sessions", 5L, PHYSIOTHERAPIST),
             new Area("/api/therapy-sessions/5/versions", "therapy-sessions", 5L, PHYSIOTHERAPIST),
             new Area("/api/ai-summaries/9", "ai-summaries", 9L, PHYSIOTHERAPIST),
-            new Area("/api/reports/treatments", "reports", null, OPERATIONS_DIRECTOR, ADMINISTRATOR),
+            // Clinical data: the administrator never sees it (HU-06, HU-14)
+            new Area("/api/reports/summary", "reports", null, OPERATIONS_DIRECTOR),
+            new Area("/api/reports/treatments", "reports", null, OPERATIONS_DIRECTOR),
+            new Area("/api/reports/physiotherapists", "reports", null, OPERATIONS_DIRECTOR),
             new Area("/api/audit-logs", "audit-logs", null, OPERATIONS_DIRECTOR, ADMINISTRATOR),
             new Area("/api/audit-logs/users", "audit-logs", null, OPERATIONS_DIRECTOR, ADMINISTRATOR),
             new Area("/api/portal/treatments", "portal", null, PATIENT),

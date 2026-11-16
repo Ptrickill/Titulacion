@@ -17,6 +17,12 @@ public interface StaffDirectory {
     /** Active physiotherapists ordered by full name. */
     List<StaffMember> activePhysiotherapists();
 
+    /**
+     * Every physiotherapist account, active or not, ordered by full name (HU-14): a deactivated account can still be
+     * the responsible of treatments and the author of sessions.
+     */
+    List<StaffMember> physiotherapists();
+
     /** Full name of each existing account among the ids, active or not (e.g. for history views). */
     Map<Long, String> fullNames(Collection<Long> userIds);
 

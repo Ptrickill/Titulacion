@@ -1,5 +1,7 @@
 package ec.rehabelite.patients;
 
+import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -26,5 +28,11 @@ public interface PatientDirectory {
      * must appear in the name ignoring accents and case; ordered by last name. The pageable's sort is ignored.
      */
     Page<PatientCard> search(String query, Pageable pageable);
+
+    /**
+     * The full name ("first names last names") of each existing patient among the ids, and nothing else of their
+     * personal data (HU-14: data minimization). One statement; none for an empty collection.
+     */
+    Map<Long, String> fullNames(Collection<Long> patientIds);
 
 }

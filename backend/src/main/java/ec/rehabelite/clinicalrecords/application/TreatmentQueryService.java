@@ -3,17 +3,23 @@ package ec.rehabelite.clinicalrecords.application;
 import static java.util.stream.Collectors.toMap;
 
 import ec.rehabelite.clinicalrecords.PatientTreatment;
+import ec.rehabelite.clinicalrecords.TreatmentFilter;
 import ec.rehabelite.clinicalrecords.TreatmentQueryPort;
 import ec.rehabelite.clinicalrecords.TreatmentSummary;
 import ec.rehabelite.clinicalrecords.domain.ResponsibleAssignment;
 import ec.rehabelite.clinicalrecords.domain.ResponsibleAssignmentRepository;
 import ec.rehabelite.clinicalrecords.domain.Treatment;
 import ec.rehabelite.clinicalrecords.domain.TreatmentRepository;
+import ec.rehabelite.clinicalrecords.domain.TreatmentStatus;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -65,6 +71,39 @@ class TreatmentQueryService implements TreatmentQueryPort {
                         treatment.getPlannedSessions(), treatment.getDiagnosis().getCode(),
                         treatment.getDiagnosis().getDescription(), responsibleIds.get(treatment.getId())))
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Long> countByStatus(TreatmentFilter filter) {
+        Map<TreatmentStatus, Long> found = treatmentRepository.countByStatus(statusOf(filter.status()),
+                filter.responsibleId());
+        Map<String, Long> counts = new LinkedHashMap<>();
+        for (TreatmentStatus status : TreatmentStatus.values()) {
+            counts.put(status.name(), found.getOrDefault(status, 0L));
+        }
+        return Collections.unmodifiableMap(counts);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Long> idsWithStatus(String status) {
+        return treatmentRepository.findIdsByStatus(statusOf(status));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PatientTreatment> search(TreatmentFilter filter, Pageable pageable) {
+        return treatmentRepository.findReportPage(statusOf(filter.status()), filter.responsibleId(), pageable)
+                .map(row -> new PatientTreatment(row.id(), row.patientId(), row.status().name(),
+                        row.status() == TreatmentStatus.ACTIVE, row.startDate(), row.initialPainScore(),
+                        row.plannedSessions(), row.diagnosisCode(), row.diagnosisDescription(),
+                        row.responsibleId()));
+    }
+
+    /** Null means every status. */
+    private static TreatmentStatus statusOf(String status) {
+        return status == null ? null : TreatmentStatus.valueOf(status);
     }
 
     private static TreatmentSummary summaryOf(Treatment treatment) {

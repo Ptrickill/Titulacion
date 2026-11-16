@@ -1,5 +1,4 @@
 import { Routes } from '@angular/router';
-import { PlaceholderPage, PlaceholderPageData } from '../../shared/layout/placeholder-page';
 
 export const ADMIN_ROUTES: Routes = [
   {
@@ -27,14 +26,5 @@ export const ADMIN_ROUTES: Routes = [
     title: 'Auditoría | Rehab Elite',
     loadComponent: () => import('../audit/audit-log-list').then((m) => m.AuditLogList),
   },
-  {
-    path: 'reports',
-    title: 'Reportes Consolidados | Rehab Elite',
-    component: PlaceholderPage,
-    data: {
-      heading: 'Reportes Consolidados',
-      subtitle: 'Métricas de tratamientos, adherencia clínica y distribución por fisioterapeuta',
-      icon: 'bar_chart',
-    } satisfies PlaceholderPageData,
-  },
+  // No reports: they carry clinical data, which the administrator never sees (HU-06, HU-14)
 ];

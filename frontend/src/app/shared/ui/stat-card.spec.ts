@@ -38,4 +38,21 @@ describe('StatCard', () => {
     fixture.detectChanges();
     expect(host.classList).toContain('compact');
   });
+
+  it('applies the stacked variant on request, keeping the same content', () => {
+    const fixture = TestBed.createComponent(StatCard);
+    fixture.componentRef.setInput('label', 'Abandonos');
+    fixture.componentRef.setInput('value', 1);
+    fixture.componentRef.setInput('hint', 'Tratamientos no concluidos');
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.classList).not.toContain('stacked');
+
+    fixture.componentRef.setInput('stacked', '');
+    fixture.detectChanges();
+    expect(host.classList).toContain('stacked');
+    expect(host.querySelector('.label')?.textContent).toBe('Abandonos');
+    expect(host.querySelector('.value')?.textContent).toBe('1');
+    expect(host.querySelector('.hint')?.textContent).toBe('Tratamientos no concluidos');
+  });
 });
