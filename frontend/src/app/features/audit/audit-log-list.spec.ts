@@ -101,6 +101,18 @@ describe('AuditLogList', () => {
     expect(change).toContain('Tratamiento #40');
   });
 
+  it('shows the export of a report (HU-15) as "Exportación"', async () => {
+    searchRequest().flush(
+      page([entry(1, { action: 'EXPORT', entityType: 'Report', entityId: null })]),
+    );
+    await settle();
+
+    const [exported] = rows();
+    expect(exported).toContain('Exportación');
+    expect(exported).toContain('Reporte');
+    expect(element.querySelector('tbody app-status-badge')?.className).toContain('badge-teal');
+  });
+
   it('reloads the first page with the chosen filters', async () => {
     searchRequest().flush(page([entry(1)], 45));
     await settle();

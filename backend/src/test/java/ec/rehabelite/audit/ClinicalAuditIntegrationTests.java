@@ -467,6 +467,37 @@ class ClinicalAuditIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
+    void exportingTheReportIsAuditedAsExportOfTheReportAndReadOfEachTreatmentOfThePdf() throws Exception {
+        User director = createUser(Role.OPERATIONS_DIRECTOR);
+        Long active = TestTreatments.insertActive(jdbc);
+        Long finished = TestTreatments.insert(jdbc, "COMPLETED", LocalDate.now().minusDays(90));
+        TestTreatments.assignResponsible(jdbc, active, physio.getId());
+        TestTreatments.assignResponsible(jdbc, finished, physio.getId());
+
+        perform(director, get("/api/reports/summary.pdf").param("physiotherapistId", physio.getId().toString()))
+                .andExpect(status().isOk());
+
+        assertThat(entriesOf(director)).filteredOn(entry -> "EXPORT".equals(entry.get("action")))
+                .singleElement().satisfies(entry -> assertThat(entry)
+                        .containsEntry("entity_type", "Report")
+                        .containsEntry("entity_id", null)
+                        .containsEntry("ip_address", LOCAL_IP));
+        assertSingleEntry(director, "READ", "Treatment", active);
+        assertSingleEntry(director, "READ", "Treatment", finished);
+        assertThat(entriesOf(director)).hasSize(3);
+    }
+
+    @Test
+    void anInvalidRangeOfThePdfIsNotAudited() throws Exception {
+        User director = createUser(Role.OPERATIONS_DIRECTOR);
+
+        perform(director, get("/api/reports/summary.pdf").param("from", "2026-10-31").param("to", "2026-10-01"))
+                .andExpect(status().isBadRequest());
+
+        assertThat(entriesOf(director)).isEmpty();
+    }
+
+    @Test
     void theFilterOptionsOfTheReportAreNotAudited() throws Exception {
         User director = createUser(Role.OPERATIONS_DIRECTOR);
 

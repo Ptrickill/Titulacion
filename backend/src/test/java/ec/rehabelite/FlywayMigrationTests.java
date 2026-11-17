@@ -3,6 +3,7 @@ package ec.rehabelite;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import ec.rehabelite.audit.AuditAction;
 import java.util.Arrays;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationInfo;
@@ -31,9 +32,9 @@ class FlywayMigrationTests extends AbstractIntegrationTest {
     }
 
     @Test
-    void appliesV1ToV3() {
+    void appliesV1ToV4() {
         assertThat(Arrays.stream(flyway.info().applied()).map(MigrationInfo::getVersion).map(Object::toString))
-                .containsExactly("1", "2", "3");
+                .containsExactly("1", "2", "3", "4");
         assertThat(flyway.info().applied()).allMatch(migration -> migration.getState().isApplied());
         assertThat(flyway.info().pending()).isEmpty();
     }
@@ -77,6 +78,22 @@ class FlywayMigrationTests extends AbstractIntegrationTest {
     void normalizeTextIgnoresAccentsAndCase() {
         String normalized = jdbc.queryForObject("SELECT normalize_text('ÁLVAREZ Peña')", String.class);
         assertThat(normalized).isEqualTo("alvarez pena");
+    }
+
+    /** HU-15: V4 adds EXPORT; the constraint allows exactly the values of AuditAction, and nothing else. */
+    @Test
+    void v4AllowsTheExportActionAndTheConstraintMatchesTheEnum() {
+        jdbc.update("INSERT INTO audit_logs (action, entity_type) VALUES ('EXPORT', 'Report')");
+
+        assertThatThrownBy(() -> jdbc.update("INSERT INTO audit_logs (action, entity_type) VALUES ('PRINT', 'Report')"))
+                .rootCause().hasMessageContaining("ck_audit_logs_action");
+        String constraint = jdbc.queryForObject("""
+                SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'ck_audit_logs_action'""",
+                String.class);
+        for (AuditAction action : AuditAction.values()) {
+            assertThat(constraint).contains("'" + action.name() + "'");
+        }
+        assertThat(constraint.split("'::character varying").length - 1).isEqualTo(AuditAction.values().length);
     }
 
     @Test

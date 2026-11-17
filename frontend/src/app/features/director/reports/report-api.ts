@@ -6,14 +6,43 @@ import { TreatmentStatus } from '../../../shared/clinical/treatment-labels';
 
 /**
  * Optional filters of the report. The physiotherapist filters the treatments by their current responsible and the
- * sessions by who registered them; the status filters the treatments and the sessions of the treatments in it.
+ * sessions by who registered them; the status filters the treatments and the sessions of the treatments in it. The
+ * range (HU-15, days of Quito, both included) filters the treatments by their period (in progress some day of it) and
+ * the sessions by their date.
  */
 export interface ReportFilters {
   status: TreatmentStatus | null;
   physiotherapistId: number | null;
+  /** yyyy-MM-dd */
+  from: string | null;
+  /** yyyy-MM-dd */
+  to: string | null;
 }
 
-export const NO_REPORT_FILTERS: ReportFilters = { status: null, physiotherapistId: null };
+export const NO_REPORT_FILTERS: ReportFilters = {
+  status: null,
+  physiotherapistId: null,
+  from: null,
+  to: null,
+};
+
+/** "Del 01/10/2026 al 31/10/2026", "Desde el …", "Hasta el …", or null without a range (as in the PDF). */
+export function periodLabel(filters: Pick<ReportFilters, 'from' | 'to'>): string | null {
+  const { from, to } = filters;
+  if (from && to) {
+    return `Del ${dayOf(from)} al ${dayOf(to)}`;
+  }
+  if (from) {
+    return `Desde el ${dayOf(from)}`;
+  }
+  return to ? `Hasta el ${dayOf(to)}` : null;
+}
+
+/** yyyy-MM-dd as dd/MM/yyyy, without going through Date (no time zone involved). */
+function dayOf(date: string): string {
+  const [year, month, day] = date.split('-');
+  return `${day}/${month}/${year}`;
+}
 
 /** Sessions registered by one physiotherapist, whatever their status. */
 export interface PhysiotherapistSessions {
@@ -51,7 +80,7 @@ export interface PhysiotherapistOption {
   fullName: string;
 }
 
-/** Read-only operations reports (HU-14) for the operations director. The server audits each read. */
+/** Read-only operations reports (HU-14, HU-15) for the operations director. The server audits each read. */
 @Injectable({ providedIn: 'root' })
 export class ReportApi {
   private readonly http = inject(HttpClient);
@@ -72,6 +101,17 @@ export class ReportApi {
   physiotherapists(): Observable<PhysiotherapistOption[]> {
     return this.http.get<PhysiotherapistOption[]>('/api/reports/physiotherapists');
   }
+
+  /**
+   * The PDF of the report with the same filters (HU-15), audited by the server as an export. An error arrives as a
+   * Blob too: read it with `blobProblemDetailMessage`.
+   */
+  exportPdf(filters: ReportFilters): Observable<Blob> {
+    return this.http.get('/api/reports/summary.pdf', {
+      params: paramsOf(filters),
+      responseType: 'blob',
+    });
+  }
 }
 
 /** Only the filters that were chosen. */
@@ -82,6 +122,12 @@ function paramsOf(filters: ReportFilters): HttpParams {
   }
   if (filters.physiotherapistId !== null) {
     params = params.set('physiotherapistId', filters.physiotherapistId);
+  }
+  if (filters.from !== null) {
+    params = params.set('from', filters.from);
+  }
+  if (filters.to !== null) {
+    params = params.set('to', filters.to);
   }
   return params;
 }

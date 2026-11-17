@@ -58,7 +58,7 @@ Los comentarios `# TODO` de `.env` / `.env.example` son instrucciones para el de
 
 ## Stack
 
-- **Backend:** Java 21, Spring Boot 4, Spring Security con JWT HS256 (OAuth2 Resource Server), Spring Data JPA, Flyway, Hibernate Envers (HU-18), Spring Modulith, Bean Validation, MapStruct, springdoc-openapi.
+- **Backend:** Java 21, Spring Boot 4, Spring Security con JWT HS256 (OAuth2 Resource Server), Spring Data JPA, Flyway, Hibernate Envers (HU-18), Spring Modulith, Bean Validation, MapStruct, springdoc-openapi, Apache PDFBox 3.0.8 (HU-15, licencia Apache 2.0).
 - **Frontend:** Angular 22 con Angular Material.
 - **Base de datos:** PostgreSQL 16.
 - **IA:** API de Claude (Sprint 5, módulo `aisummary`).
@@ -116,11 +116,13 @@ Reglas:
     - `find` usa `TreatmentRepository.findSummaryById` (`@EntityGraph` de historial y diagnóstico): una sola sentencia.
     - `lockForSessionRegistration(id)` devuelve lo mismo, pero bloquea la fila del tratamiento (`PESSIMISTIC_WRITE`) hasta que termina la transacción de quien llama. Exige una transacción abierta (`MANDATORY`).
     - `findByPatient(patientId)` (HU-12) devuelve los tratamientos del paciente como `PatientTreatment`: id, estado (`status` y `active`), fecha de inicio, EVA inicial, sesiones planificadas, diagnóstico CIE-10 e id del responsable vigente (o `null`). El activo va primero y luego los demás, del más reciente al más antiguo. Son dos sentencias: los tratamientos (`TreatmentRepository.findByPatientId`) y sus responsables vigentes en una consulta `IN`.
-    - Reportes (HU-14), con `TreatmentFilter(status, responsibleId)` (los dos opcionales; `TreatmentFilter.ALL` no filtra). El responsable es siempre el vigente:
+    - Reportes (HU-14, HU-15), con `TreatmentFilter(status, responsibleId, from, to)` (todos opcionales; `TreatmentFilter.ALL` no filtra; el constructor de dos argumentos no tiene periodo). El responsable es siempre el vigente y el estado, el actual:
+      - **Periodo del tratamiento (HU-15):** con `from` o `to` (días de Quito, incluidos), un tratamiento entra si estuvo en curso algún día del rango: empezó el día `to` o antes y, además, sigue activo, empezó el día `from` o después, o cerró el día `from` o después. Cierra el día (en Quito) de su último cambio de estado (`treatment_status_changes.changed_at`, comparado con el primer instante de `from` en Quito).
       - `countByStatus(filtro)` devuelve los tratamientos por estado, con `ACTIVE`, `COMPLETED` y `ABANDONED` siempre presentes (0 si no hay). Una sentencia (`GROUP BY`).
-      - `idsWithStatus(estado)` devuelve los ids de los tratamientos en ese estado, o de todos si es `null`. Una sentencia.
+      - `idsWithStatus(estado)` devuelve los ids de los tratamientos en ese estado, o de todos si es `null`. Una sentencia, sin periodo.
       - `search(filtro, pageable)` devuelve una página de `PatientTreatment`, de la fecha de inicio más reciente a la más antigua, con el responsable vigente. Siempre dos sentencias, la página y el total, aunque la página no esté llena.
-      - Las tres usan el fragmento `TreatmentReportQueries` (`TreatmentReportQueriesImpl`), que arma el JPQL solo con los criterios enviados, porque PostgreSQL no acepta `:param IS NULL` con un nulo sin tipo. Un estado que no existe lanza `IllegalArgumentException`.
+      - `list(filtro)` (HU-15, el PDF) devuelve todos los tratamientos del filtro, en el orden y con los datos de `search`. Una sentencia.
+      - Todas usan el fragmento `TreatmentReportQueries` (`TreatmentReportQueriesImpl`), que arma el JPQL solo con los criterios enviados, porque PostgreSQL no acepta `:param IS NULL` con un nulo sin tipo. Un estado que no existe lanza `IllegalArgumentException`.
     - Es la única forma en que otros módulos (`sessions`, `portal`, `reports`, ...) consultan tratamientos; `clinicalrecords` nunca depende de `sessions`.
   - `ec.rehabelite.sessions.TherapySessionQueryPort` (HU-12, HU-13):
     - `chronological(treatmentId)` devuelve las sesiones del tratamiento en orden cronológico (fecha, hora y correlativo) como `SessionSummary`: id, correlativo, fecha, hora, estado, `completed` y EVA.
@@ -128,7 +130,7 @@ Reglas:
     - `latestPatientInstruction(treatmentId)` (HU-13) devuelve la sesión más reciente (fecha, hora y correlativo) que tiene indicaciones para el paciente, **sea cual sea su estado**, o vacío si ninguna las tiene. Es una sentencia que lee una sola fila (`TherapySessionRepository.findLatestWithPatientInstructions`).
     - **Ningún tipo público de `sessions` lleva las observaciones clínicas ni la evolución** (`clinicalObservations`, `progressStatus`), que son notas internas: así el portal no puede mostrarlas por error. Lo comprueba `SessionsPublicApiPrivacyTests`, que recorre los tipos del paquete raíz. Si otro módulo necesita un dato nuevo de la sesión, se agrega a un tipo público o se crea otro, nunca se expone la entidad.
     - `completedCounts(treatmentIds)` devuelve las sesiones `COMPLETED` de cada tratamiento en una sola consulta (`GROUP BY`); un tratamiento sin sesiones realizadas trae 0.
-    - `countsByResponsibleAndStatus(treatmentIds, responsibleId)` (HU-14) cuenta las sesiones de esos tratamientos por fisioterapeuta que las registró (`therapy_sessions.responsible_id`) y por estado, como `SessionCount` (responsable, estado y total). Con `responsibleId`, solo las que registró ese fisioterapeuta, sea quien sea el responsable vigente del tratamiento. Es una sentencia nativa: los ids van como un arreglo (`= ANY(CAST(:ids AS bigint[]))`), para no llegar al límite de parámetros de PostgreSQL con muchos tratamientos.
+    - `countsByResponsibleAndStatus(treatmentIds, responsibleId, from, to)` (HU-14, HU-15) cuenta las sesiones de esos tratamientos por fisioterapeuta que las registró (`therapy_sessions.responsible_id`) y por estado, como `SessionCount` (responsable, estado y total). Con `responsibleId`, solo las que registró ese fisioterapeuta, sea quien sea el responsable vigente del tratamiento. Con `from` o `to`, solo las de `session_date` entre esos días, ambos incluidos (ya es la fecha de Quito). Es una sentencia nativa: los ids van como un arreglo (`= ANY(CAST(:ids AS bigint[]))`), para no llegar al límite de parámetros de PostgreSQL con muchos tratamientos, y los nulos con `CAST(:x AS tipo) IS NULL`.
     - Qué cuenta como sesión realizada lo decide `sessions` (`completed`). Las lecturas por este puerto no se auditan aquí: audita quien llama.
     - Es la única forma en que otros módulos (`portal`, `reports`, ...) leen sesiones.
   - `ec.rehabelite.audit.EntityVersionHistory` (HU-10): `versionsOf(clase, id)` devuelve las versiones de Envers de una entidad `@Audited`, de la más antigua a la más reciente. Cada `EntityVersion` trae la entidad, la revisión, el tipo (`CREATE`, `UPDATE`, `DELETE`), la fecha y el autor (o `null`). Así ningún módulo usa `AuditRevision` ni Envers directamente.
@@ -255,24 +257,33 @@ Reglas:
     - Indicaciones: validación del token, paciente, tratamiento, una sesión, el nombre de su fisioterapeuta e `INSERT` de auditoría. Son 6, con 1 o con 100 sesiones.
     - Lo comprueba `PortalPerformanceIntegrationTests` con Hibernate Statistics, como en HU-09 y HU-11.
   - No hay `POST`, `PUT`, `PATCH` ni `DELETE` en `/api/portal/**` (405).
-- Reportes de dirección operativa (HU-14), módulo `reports` (`ReportService`), solo `OPERATIONS_DIRECTOR` y solo lectura:
+- Reportes de dirección operativa (HU-14, HU-15), módulo `reports` (`ReportService`), solo `OPERATIONS_DIRECTOR` y solo lectura:
   - `reports` usa `clinicalrecords`, `sessions`, `patients`, `auth` y `audit` solo por sus interfaces públicas; ninguno depende de `reports`.
-  - **Regla de los filtros:** `status` (estado del tratamiento) y `physiotherapistId` son opcionales y se aplican distinto a cada parte del reporte:
-    - **Tratamientos** (activos, finalizados, abandonados y la lista): por su estado y por su **responsable vigente**.
-    - **Sesiones** (registradas, por estado, por fisioterapeuta y promedio): por **quien registró la sesión** (`therapy_sessions.responsible_id`) y por el estado del tratamiento al que pertenecen.
+  - **Regla de los filtros:** `status` (estado del tratamiento), `physiotherapistId`, `from` y `to` son opcionales y se aplican distinto a cada parte del reporte:
+    - **Tratamientos** (activos, finalizados, abandonados y la lista): por su estado, por su **responsable vigente** y por su **periodo** (HU-15: en curso algún día del rango, ver `TreatmentQueryPort`).
+    - **Sesiones** (registradas, por estado, por fisioterapeuta y promedio): por **quien registró la sesión** (`therapy_sessions.responsible_id`), por el estado del tratamiento al que pertenecen y por **su fecha** (`session_date`).
     - Así, tras un reemplazo, las sesiones que registró el fisioterapeuta anterior siguen contando para él, pero el tratamiento aparece en la lista del nuevo responsable (`ReportSummaryIntegrationTests`).
-  - `GET /api/reports/summary?status=&physiotherapistId=` (`reports.domain.OperationsSummary`):
+  - **Rango de fechas (HU-15):** `from` y `to` (`yyyy-MM-dd`) son días de Quito, ambos incluidos; uno solo también vale. `from` posterior a `to` responde 400 "La fecha inicial no puede ser posterior a la fecha final." antes de leer nada y sin auditar (`ReportFilter` lo comprueba al crearse), en el resumen, la lista y el PDF. `ReportDateRangeIntegrationTests` prueba los bordes, el periodo (también un cierre a las 23:30 de Quito, que en UTC ya es el día siguiente) y los filtros combinados.
+  - **El estado es siempre el actual**, también con un rango: un tratamiento que estuvo en curso en el rango y finalizó después cuenta como finalizado. Con un rango, la vista y el PDF lo dicen: "El estado corresponde al estado actual de cada tratamiento."
+  - `GET /api/reports/summary?status=&physiotherapistId=&from=&to=` (`reports.domain.OperationsSummary`):
     - `treatments`: activos, finalizados y abandonados, desde el estado de cada tratamiento (HU-08);
     - `sessions`: total, `completed`, `rescheduled` y `noShow`;
     - `sessionsByPhysiotherapist`: id, nombre y total de cada fisioterapeuta con al menos una sesión, de más a menos sesiones y luego por nombre;
     - `averageSessionsPerPhysiotherapist`: total de sesiones entre esos fisioterapeutas, con un decimal (redondeo `HALF_UP`); 0.0 sin sesiones.
-  - `GET /api/reports/treatments?status=&physiotherapistId=&page=&size=`: `PageResponse` (`size` 1–50, 10 por defecto) de la fecha de inicio más reciente a la más antigua, con id, `patientName`, diagnóstico CIE-10, `responsibleName` (o `null`), estado y fecha de inicio. **Sin cédula, número de historia, `patientId` ni otros datos personales** (minimización de datos, LOPDP).
+  - `GET /api/reports/treatments?status=&physiotherapistId=&from=&to=&page=&size=`: `PageResponse` (`size` 1–50, 10 por defecto) de la fecha de inicio más reciente a la más antigua, con id, `patientName`, diagnóstico CIE-10, `responsibleName` (o `null`), estado y fecha de inicio. **Sin cédula, número de historia, `patientId` ni otros datos personales** (minimización de datos, LOPDP).
+  - `GET /api/reports/summary.pdf?status=&physiotherapistId=&from=&to=` (HU-15): el informe en PDF, con **las mismas consultas que la vista** (`ReportService.export` usa los mismos métodos que `summary` y `treatments`; la lista trae todos los tratamientos del filtro con `TreatmentQueryPort.list`, no una página, y sin tope de filas).
+    - Contiene el título, los filtros aplicados (estado, fisioterapeuta y periodo: "Del 01/10/2026 al 31/10/2026", "Desde el …", "Hasta el …" o "Todas las fechas"), la nota del estado actual si hay rango, la fecha y hora de generación en Quito y el nombre del usuario (del token), los indicadores con las sesiones por estado, "Sesiones por fisioterapeuta" con el promedio y "Tratamientos (N)" (paciente, diagnóstico, responsable, estado e inicio). Sin cédula. Pie "Página N de M".
+    - `Content-Disposition: attachment; filename="informe-operativo-AAAA-MM-DD.pdf"` (fecha de Quito) y `Cache-Control: no-store`, porque lleva datos clínicos.
+    - Se genera con **Apache PDFBox 3.0.8** (licencia Apache 2.0; se descartaron iText por AGPL y OpenPDF 3 porque trae bibliotecas nativas). `OperationsReportPdf` arma el contenido y `PdfLayout` (`reports.application`) es una maqueta mínima: párrafos con ajuste de línea y tablas cuya fila nunca se parte y cuyo encabezado se repite en cada página. Usa Helvetica (fuente estándar, no se incrusta, cubre el español); un carácter que no puede escribir sale como "?", nunca falla.
+    - El PDF se arma dentro de la transacción: si falla, no queda auditoría.
+    - `ReportPdfIntegrationTests` lee el PDF con PDFBox y compara sus totales, sus sesiones por fisioterapeuta y su número de tratamientos con el JSON de la vista para cada combinación de filtros (criterio de HU-15: el reporte y la exportación reflejan el mismo resultado).
   - `GET /api/reports/physiotherapists`: opciones del filtro, todos los fisioterapeutas (`StaffDirectory.physiotherapists()`). No se audita.
-  - Un `status` que no es un estado del tratamiento responde 400 (enum `TreatmentStatusParam`). Un fisioterapeuta sin datos devuelve ceros y una lista vacía, no 404.
-  - Auditoría: `READ Report` (sin id) por cada resumen, y `READ Treatment` por cada tratamiento de la página en un solo `INSERT` (`recordAll`).
+  - Un `status` que no es un estado del tratamiento, o una fecha mal escrita, responde 400 (enum `TreatmentStatusParam`, `@DateTimeFormat`). Un fisioterapeuta sin datos devuelve ceros y una lista vacía, no 404.
+  - Auditoría: `READ Report` (sin id) por cada resumen, `READ Treatment` por cada tratamiento de la página en un solo `INSERT` (`recordAll`), y por cada PDF `EXPORT Report` (sin id) más `READ Treatment` por cada tratamiento del PDF en un solo `INSERT`.
   - **Número fijo de sentencias, sin N+1:**
-    - Resumen: validación del token, tratamientos por estado, ids de los tratamientos del estado, sesiones por fisioterapeuta y estado, nombres e `INSERT` de auditoría. Son 6, con pocos o muchos tratamientos y con cualquier filtro.
-    - Lista: validación del token, página, total, nombres de los pacientes, nombres de los responsables e `INSERT` de auditoría. Son 6, también en la última página.
+    - Resumen: validación del token, tratamientos por estado, ids de los tratamientos del estado, sesiones por fisioterapeuta y estado, nombres e `INSERT` de auditoría. Son 6, con pocos o muchos tratamientos y con cualquier filtro, también con rango.
+    - Lista: validación del token, página, total, nombres de los pacientes, nombres de los responsables e `INSERT` de auditoría. Son 6, también en la última página y con rango.
+    - PDF: validación del token, tratamientos por estado, ids, sesiones, todos los tratamientos, nombres de los pacientes, nombres del personal (autores, responsables y el del filtro en una llamada) y los dos `INSERT`. Son 9, con 1 o con 60 tratamientos.
     - Lo comprueba `ReportPerformanceIntegrationTests` (1 tratamiento frente a 60 con 300 sesiones) con Hibernate Statistics.
   - No hay `POST`, `PUT`, `PATCH` ni `DELETE` en `/api/reports/**` (405).
   - El administrador no ve reportes: llevan datos clínicos (HU-06). El prototipo `12-admin-reports.jpg` queda superado por esta regla.
@@ -303,6 +314,7 @@ Reglas:
     | `GET /api/portal/treatments/{id}/progress`, `GET /api/portal/treatments/{id}/sessions`, `GET /api/portal/treatments/{id}/instructions` | `READ Treatment`; si el tratamiento no es del paciente o no existe, `ACCESS_DENIED portal/treatments` |
     | `GET /api/reports/summary` | `READ Report` (sin id) |
     | `GET /api/reports/treatments` | `READ Treatment` por cada tratamiento de la página (`ReportService`, `recordAll`) |
+    | `GET /api/reports/summary.pdf` | `EXPORT Report` (sin id) + `READ Treatment` por cada tratamiento del PDF (`recordAll`) |
     | `GET /api/reports/physiotherapists` | ninguna (personal) |
 
     Al añadir un endpoint clínico, agregarlo a esta tabla y a `ClinicalAuditIntegrationTests`.
@@ -388,12 +400,13 @@ Excepciones acordadas en HU-07 (fuera del patrón de recurso plural):
 - HU-10: `POST` y `GET /api/treatments/{treatmentId}/therapy-sessions`, porque una sesión siempre pertenece a un tratamiento. La sesión ya creada se maneja en `/api/therapy-sessions/{id}`.
 - HU-12 y HU-13: `GET /api/portal/treatments` y sus sub-recursos `GET /api/portal/treatments/{id}/progress`, `/sessions` e `/instructions`: vista de los tratamientos del propio paciente, separada de `/api/treatments` y de `/api/therapy-sessions`, que son del fisioterapeuta.
 - HU-14: `GET /api/reports/summary` (singular: los indicadores del reporte), `/api/reports/treatments` y `/api/reports/physiotherapists`: vistas de solo lectura del reporte, separadas de `/api/treatments` y de `/api/physio/physiotherapists`, que son del fisioterapeuta.
+- HU-15: `GET /api/reports/summary.pdf`: el mismo reporte como archivo; la extensión distingue el formato (Spring no hace coincidir sufijos, así que es una ruta propia).
 
 Ejemplos: `GET /api/patients?query=...`, `PATCH /api/treatments/{id}/status`, `POST /api/ai-summaries/{id}/approve`.
 
 ## Modelo de datos
 
-Fuente de verdad: `backend/src/main/resources/db/migration/` (`V1__initial_schema.sql`, `V2__icd10_initial_catalog.sql`, `V3__envers_audit_tables.sql`: `revinfo`, `treatments_aud`, `therapy_sessions_aud` e índice `ix_audit_logs_occurred_at`).
+Fuente de verdad: `backend/src/main/resources/db/migration/` (`V1__initial_schema.sql`, `V2__icd10_initial_catalog.sql`, `V3__envers_audit_tables.sql`: `revinfo`, `treatments_aud`, `therapy_sessions_aud` e índice `ix_audit_logs_occurred_at`; `V4__audit_logs_export_action.sql` (HU-15): agrega `EXPORT` a `ck_audit_logs_action`). `FlywayMigrationTests` comprueba que `ck_audit_logs_action` admite exactamente los valores de `AuditAction`.
 
 - Tablas en inglés, plural, snake_case: `users`, `patients`, `clinical_records`, `icd10_diagnoses`, `treatments`, `responsible_assignments`, `treatment_status_changes`, `therapy_sessions`, `ai_summaries`, `audit_logs`.
 - Prefijos: `pk_`, `fk_`, `uq_`, `ck_`, `ix_`; triggers `trg_`.
@@ -411,7 +424,7 @@ Valores de enums / CHECK:
 | `therapy_sessions.status` | `COMPLETED`, `RESCHEDULED`, `NO_SHOW` |
 | `therapy_sessions.progress_status` | `STABLE`, `IMPROVING`, `NEEDS_ATTENTION` |
 | `ai_summaries.status` | `PENDING_REVIEW`, `APPROVED`, `DISCARDED` |
-| `audit_logs.action` | `CREATE`, `READ`, `UPDATE`, `STATUS_CHANGE`, `ACCESS_DENIED`, `LOGIN` |
+| `audit_logs.action` | `CREATE`, `READ`, `UPDATE`, `STATUS_CHANGE`, `ACCESS_DENIED`, `LOGIN`, `EXPORT` (V4, HU-15) |
 
 ## Reglas de datos y seguridad (no negociables)
 
@@ -449,7 +462,7 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
   - Un 403 de la API lleva a `/access-denied` (`AccessDeniedPage`) sin cerrar la sesión.
   - Las rutas desconocidas van al panel del rol.
 - Sesión: `AuthService` guarda token, expiración y usuario (`sessionStorage`, o `localStorage` con "Recordarme"); el usuario actual se lee con `user()` / `role()`. En pruebas unitarias iniciar sesión con `logInForTest(rol, nombre?, id?)` de `core/auth/auth-testing.ts`.
-- Errores de la API: mostrar el `detail` en español con `problemDetailMessage(error, textoAlternativo)` de `core/http/problem-detail.ts`. Las páginas de resultados usan el tipo `Page<T>` de `core/http/page.ts`.
+- Errores de la API: mostrar el `detail` en español con `problemDetailMessage(error, textoAlternativo)` de `core/http/problem-detail.ts`; en una descarga (`responseType: 'blob'`) el error llega como Blob y se lee con `blobProblemDetailMessage` (asíncrona). Las páginas de resultados usan el tipo `Page<T>` de `core/http/page.ts`. Los archivos de la API se guardan con `FileDownload` (`core/http/file-download.ts`).
 - `AppShell` vuelve al inicio el área de contenido (`mat-sidenav-content`, que es la que se desplaza) en cada navegación.
 - Historial clínico del fisioterapeuta (HU-07):
   - `/physio/patients` (`PhysioPatientList`): tabla paginada en el servidor con el resumen del tratamiento.
@@ -527,15 +540,16 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
   - Estados: "Aún no tienes un tratamiento registrado" (lista vacía), "Tu cuenta aún no está vinculada a un paciente" (404) y un aviso con "Reintentar" si falla la carga.
   - **Solo lectura:** la página no tiene enlaces, campos ni botones que cambien datos; solo el selector, el paginador de la tabla y "Reintentar". Tampoco notificaciones ni próxima cita (fuera del alcance).
   - Datos de prueba en `portal-testing.ts` (`fakeTreatment`, `fakeProgress`, `fakeCurve`, `fakeSession`, `fakeInstruction`).
-- Reportes de dirección operativa (HU-14), en `features/director/reports`:
+- Reportes de dirección operativa (HU-14, HU-15), en `features/director/reports`:
   - `/director/reports` (`OperationsReport`, prototipo 13) se arma con `ReportApi`: `GET /api/reports/summary`, `GET /api/reports/treatments` y, para el filtro, `GET /api/reports/physiotherapists`. Muestra:
-    - el encabezado y el aviso "Modo de Dirección Operativa: acceso de solo consulta…";
-    - "Filtros operativos": "Estado del tratamiento" y "Fisioterapeuta responsable" (`mat-select`), con la nota de que los tratamientos se filtran por su responsable vigente y las sesiones por quien las registró. La opción "Todos" vale `''`, no `null`: `mat-select` no muestra el texto de una opción con valor `null`;
+    - el encabezado con el botón "Exportar informe operativo" (HU-15) y el aviso "Modo de Dirección Operativa: acceso de solo consulta…";
+    - "Filtros operativos": "Estado del tratamiento" y "Fisioterapeuta responsable" (`mat-select`) y, debajo, "Desde" y "Hasta" (`<input type="date">`, HU-15, cada una con un botón para borrarla), con la nota de cómo se filtran los tratamientos y las sesiones. La opción "Todos" vale `''`, no `null`: `mat-select` no muestra el texto de una opción con valor `null`;
     - cinco `stat-card stacked`: tratamientos activos, finalizados, abandonos, sesiones registradas (con "N realizadas · N reprogramadas · N no asistió" al pie) y sesiones por fisioterapeuta (el promedio, con coma decimal de `es-EC`). Las filas de las cinco tarjetas se alinean con `grid-template-rows: subgrid`;
     - `SessionsByPhysiotherapistCard` ("Sesiones por fisioterapeuta"): iniciales, nombre, total y una barra proporcional al que más tiene, con la etiqueta "Promedio: N ses/esp";
-    - `ReportTreatmentList` ("Tratamientos (N)", con los filtros aplicados): `app-data-table` paginado en el servidor, 5 por página para que mida casi lo mismo que la tarjeta de al lado, con paciente, diagnóstico, responsable, estado e inicio. Sin cédula.
-  - Cada cambio de filtro recarga el resumen y la primera página; un cambio de página solo recarga la lista. Si falla el resumen o la lista, se muestra el aviso con "Reintentar"; si falla la lista de fisioterapeutas, el reporte carga igual.
-  - **Solo lectura:** la página no tiene enlaces, campos ni botones que cambien datos; solo los dos filtros, el paginador y "Reintentar". Sin notificaciones. El botón "Exportar Informe Operativo" del prototipo es de HU-15.
+    - `ReportTreatmentList` ("Tratamientos (N)", con los filtros aplicados y, con rango, "• Periodo: …" y la nota "El estado corresponde al estado actual de cada tratamiento."): `app-data-table` paginado en el servidor, 5 por página para que mida casi lo mismo que la tarjeta de al lado, con paciente, diagnóstico, responsable, estado e inicio. Sin cédula.
+  - Cada cambio de filtro recarga el resumen y la primera página; un cambio de página solo recarga la lista. Con "Desde" posterior a "Hasta" no busca: muestra solo el aviso, como la auditoría. Si falla el resumen o la lista, se muestra el aviso con "Reintentar"; si falla la lista de fisioterapeutas, el reporte carga igual.
+  - **Exportar (HU-15):** el botón descarga `GET /api/reports/summary.pdf` con los filtros aplicados, los mismos que muestran los indicadores y la lista (`ReportApi.exportPdf`, `responseType: 'blob'`). Está deshabilitado mientras carga el reporte, mientras exporta ("Exportando…") y con un rango inválido. El archivo se llama `informe-operativo-AAAA-MM-DD.pdf` (fecha de Quito) y se guarda con `FileDownload` (`core/http/file-download.ts`: enlace temporal con `download` y `URL.revokeObjectURL`). Si falla, muestra el `detail` de la API, que llega como Blob y se lee con `blobProblemDetailMessage` (`core/http/problem-detail.ts`).
+  - **Solo lectura:** la página no tiene enlaces ni botones que cambien datos; solo los filtros (dos selects y dos fechas), "Exportar informe operativo", el paginador y "Reintentar". Sin notificaciones.
   - Medido en el navegador: sin desborde de la página, de la tabla ni de las etiquetas de los indicadores a 1366, 1568, 1920, 1024 y 390 px.
   - Datos de prueba en `report-testing.ts` (`fakeSummary`, `fakeReportTreatment`, `fakeTreatmentPage`, `FAKE_PHYSIOTHERAPISTS`).
   - El administrador no tiene "Reportes Consolidados" en su menú ni la ruta `/admin/reports` (HU-06, HU-14): el prototipo 12 queda superado.
@@ -543,8 +557,10 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
   - `features/audit/AuditLogList` se reutiliza en `/admin/audit` y `/director/audit`, con la entrada "Auditoría" en el menú de ambos roles.
   - Tabla paginada en el servidor (20 por página) con fecha y hora de Quito, usuario, acción (badge), entidad con id e IP. Solo metadatos.
   - Filtros por usuario (`GET /api/audit-logs/users`), acción, entidad (`/entity-types`) y rango de fechas. Cada cambio recarga la primera página. Con "Desde" posterior a "Hasta" no busca y solo muestra el aviso.
-  - Etiquetas en `audit-labels.ts` (`Report` → "Reporte"). Un `ACCESS_DENIED` muestra el área de la ruta tal cual (p. ej. `patients` o `portal/treatments`).
-- Validaciones compartidas en `src/app/shared/validation`. `national-id.ts` aplica las mismas reglas de cédula que el backend: `nationalIdValidator` da `{ nationalId: regla }` y `NATIONAL_ID_MESSAGES` tiene el mensaje de cada regla.
+  - Etiquetas en `audit-labels.ts` (`Report` → "Reporte"; la acción `EXPORT` → "Exportación", HU-15). Un `ACCESS_DENIED` muestra el área de la ruta tal cual (p. ej. `patients` o `portal/treatments`).
+- Validaciones compartidas en `src/app/shared/validation`:
+  - `national-id.ts` aplica las mismas reglas de cédula que el backend: `nationalIdValidator` da `{ nationalId: regla }` y `NATIONAL_ID_MESSAGES` tiene el mensaje de cada regla.
+  - `date-range.ts` (HU-15): `dateRangeValidator`, validador de un grupo con `from` y `to` (`yyyy-MM-dd`) que da `{ range: true }` si "Desde" es posterior a "Hasta", y `DATE_RANGE_MESSAGE`, el mismo texto de la API. Lo usan la auditoría y los reportes.
 - Pacientes del administrador (HU-05, HU-06):
   - `/admin/patients` (`PatientRegistry`) busca con espera de 300 ms y muestra una tabla paginada en el servidor con identificación y contacto. Las columnas de sesiones y estado del prototipo son datos clínicos y no se muestran.
   - `PatientFormDialog` (`openPatientFormDialog(dialog, paciente?)`) registra un paciente o, si recibe uno, edita sus datos con la cédula en solo lectura y `PUT`.
@@ -582,14 +598,14 @@ El autor marca esta lista en la descripción del PR (sección "Definición de te
 
 - Presentar un **plan antes de implementar** cada historia de usuario.
 - **Una historia por rama.**
-- Cada historia tiene su issue en GitHub, con la etiqueta de su sección PB y el milestone de su sprint. Las pendientes son HU-15 a HU-17 (#39 a #41); las ya implementadas están cerradas con su PR. El PR de la historia lleva la clave `SCRUM-XX` en el título y `Closes #N` en la descripción.
+- Cada historia tiene su issue en GitHub, con la etiqueta de su sección PB y el milestone de su sprint. Las pendientes son HU-16 y HU-17 (#40 y #41); las ya implementadas están cerradas con su PR. El PR de la historia lleva la clave `SCRUM-XX` en el título y `Closes #N` en la descripción.
 
 ### Plan vigente
 
 | Sprint | Alcance |
 |---|---|
 | 3 | HU-01 a HU-11 y HU-18 (terminadas) |
-| 4 | HU-12, HU-13 y HU-14 (terminadas), HU-15 |
+| 4 | HU-12 a HU-15 (terminadas) |
 | 5 | HU-16, HU-17 y SonarQube |
 | 6 | TEC-07 (despliegue en Render) y Playwright |
 | 7 | k6, OWASP ZAP, UptimeRobot y compatibilidad |

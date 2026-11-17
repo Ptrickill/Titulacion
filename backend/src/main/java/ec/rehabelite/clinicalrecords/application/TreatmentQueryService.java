@@ -9,6 +9,8 @@ import ec.rehabelite.clinicalrecords.TreatmentSummary;
 import ec.rehabelite.clinicalrecords.domain.ResponsibleAssignment;
 import ec.rehabelite.clinicalrecords.domain.ResponsibleAssignmentRepository;
 import ec.rehabelite.clinicalrecords.domain.Treatment;
+import ec.rehabelite.clinicalrecords.domain.TreatmentListRow;
+import ec.rehabelite.clinicalrecords.domain.TreatmentReportQueries.ReportCriteria;
 import ec.rehabelite.clinicalrecords.domain.TreatmentRepository;
 import ec.rehabelite.clinicalrecords.domain.TreatmentStatus;
 import java.util.Collections;
@@ -76,8 +78,7 @@ class TreatmentQueryService implements TreatmentQueryPort {
     @Override
     @Transactional(readOnly = true)
     public Map<String, Long> countByStatus(TreatmentFilter filter) {
-        Map<TreatmentStatus, Long> found = treatmentRepository.countByStatus(statusOf(filter.status()),
-                filter.responsibleId());
+        Map<TreatmentStatus, Long> found = treatmentRepository.countByStatus(criteriaOf(filter));
         Map<String, Long> counts = new LinkedHashMap<>();
         for (TreatmentStatus status : TreatmentStatus.values()) {
             counts.put(status.name(), found.getOrDefault(status, 0L));
@@ -94,11 +95,26 @@ class TreatmentQueryService implements TreatmentQueryPort {
     @Override
     @Transactional(readOnly = true)
     public Page<PatientTreatment> search(TreatmentFilter filter, Pageable pageable) {
-        return treatmentRepository.findReportPage(statusOf(filter.status()), filter.responsibleId(), pageable)
-                .map(row -> new PatientTreatment(row.id(), row.patientId(), row.status().name(),
-                        row.status() == TreatmentStatus.ACTIVE, row.startDate(), row.initialPainScore(),
-                        row.plannedSessions(), row.diagnosisCode(), row.diagnosisDescription(),
-                        row.responsibleId()));
+        return treatmentRepository.findReportPage(criteriaOf(filter), pageable)
+                .map(TreatmentQueryService::patientTreatmentOf);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PatientTreatment> list(TreatmentFilter filter) {
+        return treatmentRepository.findReportRows(criteriaOf(filter)).stream()
+                .map(TreatmentQueryService::patientTreatmentOf)
+                .toList();
+    }
+
+    private static ReportCriteria criteriaOf(TreatmentFilter filter) {
+        return new ReportCriteria(statusOf(filter.status()), filter.responsibleId(), filter.from(), filter.to());
+    }
+
+    private static PatientTreatment patientTreatmentOf(TreatmentListRow row) {
+        return new PatientTreatment(row.id(), row.patientId(), row.status().name(),
+                row.status() == TreatmentStatus.ACTIVE, row.startDate(), row.initialPainScore(),
+                row.plannedSessions(), row.diagnosisCode(), row.diagnosisDescription(), row.responsibleId());
     }
 
     /** Null means every status. */

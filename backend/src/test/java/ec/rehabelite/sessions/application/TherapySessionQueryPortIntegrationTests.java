@@ -140,15 +140,38 @@ class TherapySessionQueryPortIntegrationTests extends AbstractIntegrationTest {
         Long notAskedFor = TestTreatments.insertActive(jdbc);
         TestSessions.insert(jdbc, notAskedFor, physioId, 1, start.plusDays(1), "09:00", 6, "COMPLETED");
 
-        assertThat(sessionQuery.countsByResponsibleAndStatus(List.of(treatmentId, other), null))
+        assertThat(sessionQuery.countsByResponsibleAndStatus(List.of(treatmentId, other), null, null, null))
                 .containsExactlyInAnyOrder(new SessionCount(physioId, "COMPLETED", 3),
                         new SessionCount(physioId, "RESCHEDULED", 1), new SessionCount(physioId, "NO_SHOW", 1),
                         new SessionCount(otherPhysio, "COMPLETED", 1));
         // Only the sessions the physiotherapist registered, in any of the treatments
-        assertThat(sessionQuery.countsByResponsibleAndStatus(List.of(treatmentId, other), otherPhysio))
+        assertThat(sessionQuery.countsByResponsibleAndStatus(List.of(treatmentId, other), otherPhysio, null, null))
                 .containsExactly(new SessionCount(otherPhysio, "COMPLETED", 1));
-        assertThat(sessionQuery.countsByResponsibleAndStatus(List.of(treatmentId), otherPhysio)).isEmpty();
-        assertThat(sessionQuery.countsByResponsibleAndStatus(List.of(), null)).isEmpty();
+        assertThat(sessionQuery.countsByResponsibleAndStatus(List.of(treatmentId), otherPhysio, null, null)).isEmpty();
+        assertThat(sessionQuery.countsByResponsibleAndStatus(List.of(), null, null, null)).isEmpty();
+    }
+
+    /** HU-15: the range bounds the session date, both days included; either bound alone also works. */
+    @Test
+    void theRangeCountsOnlyTheSessionsDatedBetweenBothDaysIncluded() {
+        Long dated = TestTreatments.insertActive(jdbc);
+        LocalDate first = start.plusDays(10);
+        LocalDate last = start.plusDays(12);
+        TestSessions.insert(jdbc, dated, physioId, 1, first.minusDays(1), "09:00", 6, "COMPLETED");
+        TestSessions.insert(jdbc, dated, physioId, 2, first, "09:00", 6, "COMPLETED");
+        TestSessions.insert(jdbc, dated, physioId, 3, start.plusDays(11), "23:30", 6, "NO_SHOW");
+        TestSessions.insert(jdbc, dated, physioId, 4, last, "07:00", 6, "COMPLETED");
+        TestSessions.insert(jdbc, dated, physioId, 5, last.plusDays(1), "09:00", 6, "COMPLETED");
+
+        assertThat(sessionQuery.countsByResponsibleAndStatus(List.of(dated), null, first, last))
+                .containsExactlyInAnyOrder(new SessionCount(physioId, "COMPLETED", 2),
+                        new SessionCount(physioId, "NO_SHOW", 1));
+        assertThat(sessionQuery.countsByResponsibleAndStatus(List.of(dated), null, first, first))
+                .containsExactly(new SessionCount(physioId, "COMPLETED", 1));
+        assertThat(sessionQuery.countsByResponsibleAndStatus(List.of(dated), physioId, last, null))
+                .containsExactly(new SessionCount(physioId, "COMPLETED", 2));
+        assertThat(sessionQuery.countsByResponsibleAndStatus(List.of(dated), null, null, first))
+                .containsExactly(new SessionCount(physioId, "COMPLETED", 2));
     }
 
     private Long insertPhysiotherapist() {

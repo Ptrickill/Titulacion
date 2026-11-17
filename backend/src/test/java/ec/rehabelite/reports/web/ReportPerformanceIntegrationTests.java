@@ -29,10 +29,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 /**
- * HU-14: the reports answer with a fixed number of SQL statements, without N+1. The summary and the list cost the same
- * for a physiotherapist with one treatment and one session as for one with sixty treatments and three hundred
- * sessions, and the summary without filter costs the same over the whole shared database. Data is inserted with SQL;
- * Hibernate counts the statements it prepares.
+ * HU-14, HU-15: the reports answer with a fixed number of SQL statements, without N+1. The summary, the list and the
+ * PDF cost the same for a physiotherapist with one treatment and one session as for one with sixty treatments and three
+ * hundred sessions, with or without a date range, and the summary without filter costs the same over the whole shared
+ * database. Data is inserted with SQL; Hibernate counts the statements it prepares.
  */
 @AutoConfigureMockMvc
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -52,6 +52,12 @@ class ReportPerformanceIntegrationTests extends AbstractIntegrationTest {
      * of every treatment of the page in a single INSERT.
      */
     private static final long LIST_STATEMENTS = 6;
+    /**
+     * HU-15: token check, treatments per status, ids, sessions, every treatment of the filter, names of the patients,
+     * names of the staff (authors, responsibles and the one of the filter in one call), the EXPORT Report entry and the
+     * READ entries of every treatment of the PDF in a single INSERT.
+     */
+    private static final long PDF_STATEMENTS = 9;
 
     @Autowired
     private MockMvc mockMvc;
@@ -143,6 +149,45 @@ class ReportPerformanceIntegrationTests extends AbstractIntegrationTest {
         assertThat(statements(listOf(withMany).param("page", "1"))).isEqualTo(withOneTreatment);
     }
 
+    @Test
+    void aDateRangeDoesNotAddStatements() throws Exception {
+        String from = LocalDate.now().minusDays(40).toString();
+        String to = LocalDate.now().minusDays(15).toString();
+
+        assertThat(statements(summaryOf(withMany).param("from", from).param("to", to))).isEqualTo(SUMMARY_STATEMENTS);
+        assertThat(statements(summaryOf(withMany).param("from", from))).isEqualTo(SUMMARY_STATEMENTS);
+        assertThat(statements(listOf(withMany).param("from", from).param("to", to))).isEqualTo(LIST_STATEMENTS);
+        assertThat(statements(listOf(withMany).param("to", to))).isEqualTo(LIST_STATEMENTS);
+    }
+
+    @Test
+    void thePdfOfSixtyTreatmentsNeedsNineStatementsAndAuditsThemInOneInsert() throws Exception {
+        Statistics statistics = statistics();
+        statements(pdfOf(withMany));
+        long auditEntriesBefore = auditEntries();
+
+        statistics.clear();
+        long start = System.nanoTime();
+        mockMvc.perform(authenticated(pdfOf(withMany))).andExpect(status().isOk());
+        long elapsed = System.nanoTime() - start;
+
+        assertThat(Duration.ofNanos(elapsed)).isLessThan(MAX_RESPONSE_TIME);
+        assertThat(statistics.getPrepareStatementCount()).isEqualTo(PDF_STATEMENTS);
+        // Every treatment of the PDF, not one page, in one statement
+        assertThat(auditEntries() - auditEntriesBefore).isEqualTo(MANY_TREATMENTS);
+    }
+
+    @Test
+    void theStatementsOfThePdfDoNotGrowWithTheTreatmentsNorWithTheFilters() throws Exception {
+        long withOneTreatment = statements(pdfOf(withOne));
+
+        assertThat(withOneTreatment).isEqualTo(PDF_STATEMENTS);
+        assertThat(statements(pdfOf(withMany))).isEqualTo(withOneTreatment);
+        assertThat(statements(pdfOf(withMany).param("status", "ABANDONED")
+                .param("from", LocalDate.now().minusDays(40).toString())
+                .param("to", LocalDate.now().toString()))).isEqualTo(withOneTreatment);
+    }
+
     private long statements(MockHttpServletRequestBuilder request) throws Exception {
         Statistics statistics = statistics();
         statistics.clear();
@@ -152,6 +197,10 @@ class ReportPerformanceIntegrationTests extends AbstractIntegrationTest {
 
     private static MockHttpServletRequestBuilder summaryOf(Long physiotherapistId) {
         return get("/api/reports/summary").param("physiotherapistId", physiotherapistId.toString());
+    }
+
+    private static MockHttpServletRequestBuilder pdfOf(Long physiotherapistId) {
+        return get("/api/reports/summary.pdf").param("physiotherapistId", physiotherapistId.toString());
     }
 
     private static MockHttpServletRequestBuilder listOf(Long physiotherapistId) {

@@ -1,13 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
-import {
-  AbstractControl,
-  FormControl,
-  FormGroup,
-  ReactiveFormsModule,
-  ValidationErrors,
-} from '@angular/forms';
+import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -19,6 +13,7 @@ import { Page } from '../../core/http/page';
 import { problemDetailMessage } from '../../core/http/problem-detail';
 import { DataTable, DataTableColumn } from '../../shared/ui/data-table/data-table';
 import { DataTableCell } from '../../shared/ui/data-table/data-table-cell';
+import { dateRangeValidator } from '../../shared/validation/date-range';
 import { EmptyState } from '../../shared/ui/empty-state';
 import { PageHeader } from '../../shared/ui/page-header';
 import { StatusBadge } from '../../shared/ui/status-badge';
@@ -42,12 +37,6 @@ const PAGE_SIZE = 20;
 interface AuditQuery {
   filters: AuditLogFilters;
   page: number;
-}
-
-/** "Desde" after "Hasta" is an error of the whole group; the dates are yyyy-MM-dd, so they compare as text. */
-function dateRange(group: AbstractControl): ValidationErrors | null {
-  const { from, to } = (group as FormGroup).getRawValue() as AuditLogFilters;
-  return from && to && from > to ? { range: true } : null;
 }
 
 /**
@@ -101,7 +90,7 @@ export class AuditLogList {
       from: new FormControl<string | null>(null),
       to: new FormControl<string | null>(null),
     },
-    { validators: dateRange },
+    { validators: dateRangeValidator },
   );
 
   protected readonly users = signal<AuditUser[]>([]);
