@@ -54,4 +54,12 @@ public interface TreatmentQueryPort {
      */
     Page<PatientTreatment> search(TreatmentFilter filter, Pageable pageable);
 
+    /**
+     * Every treatment of the filter (HU-15: the PDF of the report), in the order of {@link #search}, with the same
+     * data. One statement, whatever the number of treatments.
+     *
+     * @throws IllegalArgumentException if the status of the filter is not a treatment status
+     */
+    List<PatientTreatment> list(TreatmentFilter filter);
+
 }

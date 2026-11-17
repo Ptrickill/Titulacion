@@ -7,6 +7,7 @@ import ec.rehabelite.sessions.TherapySessionQueryPort;
 import ec.rehabelite.sessions.domain.SessionStatus;
 import ec.rehabelite.sessions.domain.TherapySession;
 import ec.rehabelite.sessions.domain.TherapySessionRepository;
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -60,8 +61,9 @@ class TherapySessionQueryService implements TherapySessionQueryPort {
 
     @Override
     @Transactional(readOnly = true)
-    public List<SessionCount> countsByResponsibleAndStatus(Collection<Long> treatmentIds, Long responsibleId) {
-        return sessionRepository.countByResponsibleAndStatus(treatmentIds.toArray(Long[]::new), responsibleId)
+    public List<SessionCount> countsByResponsibleAndStatus(Collection<Long> treatmentIds, Long responsibleId,
+            LocalDate from, LocalDate to) {
+        return sessionRepository.countByResponsibleAndStatus(treatmentIds.toArray(Long[]::new), responsibleId, from, to)
                 .stream()
                 .map(count -> new SessionCount(count.getResponsibleId(), count.getStatus(), count.getSessions()))
                 .toList();

@@ -65,16 +65,19 @@ public interface TherapySessionRepository extends JpaRepository<TherapySession, 
     /**
      * Sessions of the treatments per physiotherapist who registered them and per status, in one statement (HU-14);
      * only the physiotherapist's if {@code responsibleId} is not null. The ids go as one array parameter, so a long
-     * list never reaches the limit of bind parameters of PostgreSQL.
+     * list never reaches the limit of bind parameters of PostgreSQL. With {@code from} or {@code to} (HU-15), only the
+     * sessions dated between them, both included: session_date is already the date in Quito.
      */
     @Query(nativeQuery = true, value = """
             SELECT s.responsible_id AS "responsibleId", s.status AS "status", count(*) AS "sessions"
             FROM therapy_sessions s
             WHERE s.treatment_id = ANY (CAST(:treatmentIds AS bigint[]))
               AND (CAST(:responsibleId AS bigint) IS NULL OR s.responsible_id = CAST(:responsibleId AS bigint))
+              AND (CAST(:from AS date) IS NULL OR s.session_date >= CAST(:from AS date))
+              AND (CAST(:to AS date) IS NULL OR s.session_date <= CAST(:to AS date))
             GROUP BY s.responsible_id, s.status""")
     List<ResponsibleSessionCount> countByResponsibleAndStatus(@Param("treatmentIds") Long[] treatmentIds,
-            @Param("responsibleId") Long responsibleId);
+            @Param("responsibleId") Long responsibleId, @Param("from") LocalDate from, @Param("to") LocalDate to);
 
     /**
      * The most recent session of the treatment (date, time and sequence number) with instructions for the patient,

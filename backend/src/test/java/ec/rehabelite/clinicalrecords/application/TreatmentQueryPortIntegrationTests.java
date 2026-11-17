@@ -9,6 +9,8 @@ import ec.rehabelite.TestTreatments;
 import ec.rehabelite.clinicalrecords.PatientTreatment;
 import ec.rehabelite.clinicalrecords.TreatmentFilter;
 import ec.rehabelite.clinicalrecords.TreatmentQueryPort;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -183,6 +185,92 @@ class TreatmentQueryPortIntegrationTests extends AbstractIntegrationTest {
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> treatmentQuery.idsWithStatus("PAUSED"))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    // ----- the period of the treatment (HU-15) -----
+
+    /**
+     * October 2025, in Quito: a treatment is kept if it started on or before October 31 and, by October 1, it was still
+     * active, had started or closed. It closes on the day, in Quito, of its last status change; its status is the
+     * current one.
+     */
+    @Test
+    void theRangeKeepsTheTreatmentsThatWereInProgressSomeDayOfIt() {
+        Long physio = insertPhysiotherapist();
+        Long startedBeforeStillActive = startedOn(physio, "ACTIVE", "2025-09-01");
+        Long closedBeforeTheRange = startedOn(physio, "COMPLETED", "2025-08-01");
+        closedAt(closedBeforeTheRange, physio, "COMPLETED", "2025-09-30T17:00:00Z");
+        // 23:30 of September 30 in Quito is already October 1 in UTC: it closed the day before the range
+        Long closedLateTheDayBefore = startedOn(physio, "ABANDONED", "2025-08-01");
+        closedAt(closedLateTheDayBefore, physio, "ABANDONED", "2025-10-01T04:30:00Z");
+        // 00:30 of October 1 in Quito: it was in progress the first day of the range
+        Long closedEarlyTheFirstDay = startedOn(physio, "COMPLETED", "2025-08-01");
+        closedAt(closedEarlyTheFirstDay, physio, "COMPLETED", "2025-10-01T05:30:00Z");
+        Long startedTheLastDay = startedOn(physio, "ACTIVE", "2025-10-31");
+        Long startedAfterTheRange = startedOn(physio, "ACTIVE", "2025-11-01");
+        // Closed without a recorded change (inserted data): its start inside the range is enough
+        Long startedInsideWithoutChanges = startedOn(physio, "COMPLETED", "2025-10-15");
+        // Finished after the range: in progress during it, and counted with its current status
+        Long closedAfterTheRange = startedOn(physio, "COMPLETED", "2025-09-01");
+        closedAt(closedAfterTheRange, physio, "COMPLETED", "2025-11-10T15:00:00Z");
+        LocalDate october1 = LocalDate.parse("2025-10-01");
+        LocalDate october31 = LocalDate.parse("2025-10-31");
+        TreatmentFilter october = new TreatmentFilter(null, physio, october1, october31);
+
+        assertThat(treatmentQuery.countByStatus(october))
+                .containsExactly(Map.entry("ACTIVE", 2L), Map.entry("COMPLETED", 3L), Map.entry("ABANDONED", 0L));
+        assertThat(treatmentQuery.list(october)).extracting(PatientTreatment::id).containsExactly(startedTheLastDay,
+                startedInsideWithoutChanges, closedAfterTheRange, startedBeforeStillActive, closedEarlyTheFirstDay);
+        Page<PatientTreatment> firstPage = treatmentQuery.search(october, PageRequest.of(0, 2));
+        assertThat(firstPage.getContent()).extracting(PatientTreatment::id)
+                .containsExactly(startedTheLastDay, startedInsideWithoutChanges);
+        assertThat(firstPage.getTotalElements()).isEqualTo(5);
+
+        // Either bound alone
+        assertThat(treatmentQuery.list(new TreatmentFilter(null, physio, october1, null)))
+                .extracting(PatientTreatment::id).containsExactly(startedAfterTheRange, startedTheLastDay,
+                        startedInsideWithoutChanges, closedAfterTheRange, startedBeforeStillActive,
+                        closedEarlyTheFirstDay);
+        assertThat(treatmentQuery.list(new TreatmentFilter(null, physio, null, october31)))
+                .extracting(PatientTreatment::id).containsExactly(startedTheLastDay, startedInsideWithoutChanges,
+                        closedAfterTheRange, startedBeforeStillActive, closedEarlyTheFirstDay,
+                        closedLateTheDayBefore, closedBeforeTheRange);
+        // With the status
+        assertThat(treatmentQuery.list(new TreatmentFilter("COMPLETED", physio, october1, october31)))
+                .extracting(PatientTreatment::id)
+                .containsExactly(startedInsideWithoutChanges, closedAfterTheRange, closedEarlyTheFirstDay);
+    }
+
+    @Test
+    void theListWithoutRangeHasEveryTreatmentOfTheFilterInTheOrderOfTheSearch() {
+        Long physio = insertPhysiotherapist();
+        Long oldest = assignedTo(physio, "COMPLETED", 300);
+        Long newest = assignedTo(physio, "ACTIVE", 10);
+        Long middle = assignedTo(physio, "ABANDONED", 100);
+
+        List<PatientTreatment> list = treatmentQuery.list(new TreatmentFilter(null, physio));
+
+        assertThat(list).extracting(PatientTreatment::id).containsExactly(newest, middle, oldest);
+        assertThat(list).isEqualTo(treatmentQuery.search(new TreatmentFilter(null, physio), PageRequest.of(0, 50))
+                .getContent());
+        assertThat(treatmentQuery.list(new TreatmentFilter(null, 999_999_999L))).isEmpty();
+        assertThatThrownBy(() -> treatmentQuery.list(new TreatmentFilter("PAUSED", null)))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    private Long startedOn(Long physiotherapistId, String status, String startDate) {
+        Long treatmentId = TestTreatments.insert(jdbc, status, LocalDate.parse(startDate));
+        TestTreatments.assignResponsible(jdbc, treatmentId, physiotherapistId);
+        return treatmentId;
+    }
+
+    /** The status change that closed the treatment, at the given instant. */
+    private void closedAt(Long treatmentId, Long userId, String newStatus, String instant) {
+        jdbc.update("""
+                INSERT INTO treatment_status_changes (treatment_id, user_id, previous_status, new_status, reason,
+                                                      changed_at)
+                VALUES (?, ?, 'ACTIVE', ?, 'Cierre de prueba', ?)""", treatmentId, userId, newStatus,
+                Timestamp.from(Instant.parse(instant)));
     }
 
     /** A treatment of a new patient that started the given days ago, with the physiotherapist as responsible. */

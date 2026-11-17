@@ -57,6 +57,21 @@ describe('ReportTreatmentList', () => {
       'Filtrado por estado: Activo • Especialista: Lcdo. Mateo Ríos',
     );
     expect(clean(element.querySelector('caption'))).toBe('Tratamientos del reporte');
+    // Without a range there is no period nor note
+    expect(element.querySelector('.note')).toBeNull();
+  });
+
+  it('with a range, shows the period and that the status is the current one (HU-15)', () => {
+    render(fakeTreatmentPage(TREATMENTS));
+    fixture.componentRef.setInput('periodFilter', 'Del 01/10/2026 al 31/10/2026');
+    fixture.detectChanges();
+
+    expect(clean(element.querySelector('.subtitle'))).toBe(
+      'Filtrado por estado: Todos • Especialista: Todos • Periodo: Del 01/10/2026 al 31/10/2026',
+    );
+    expect(clean(element.querySelector('.note'))).toBe(
+      'El estado corresponde al estado actual de cada tratamiento.',
+    );
   });
 
   it('shows the patient, the diagnosis, the responsible, the status and the start date', () => {

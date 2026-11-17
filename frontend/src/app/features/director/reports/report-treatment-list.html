@@ -4,7 +4,13 @@
     <p class="subtitle">
       Filtrado por estado: <strong>{{ statusFilter() }}</strong> • Especialista:
       <strong>{{ physiotherapistFilter() }}</strong>
+      @if (periodFilter(); as period) {
+        • Periodo: <strong>{{ period }}</strong>
+      }
     </p>
+    @if (periodFilter()) {
+      <p class="note">El estado corresponde al estado actual de cada tratamiento.</p>
+    }
   </div>
 </header>
 

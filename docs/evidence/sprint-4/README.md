@@ -15,7 +15,7 @@ Historias del sprint (puntos según [`docs/user-stories.md`](../../user-stories.
 | HU-12 Ver el avance del tratamiento en el portal | 5 | [#36](https://github.com/Ptrickill/Titulacion/issues/36) | [#57](https://github.com/Ptrickill/Titulacion/pull/57) |
 | HU-13 Leer indicaciones y sesiones en el portal | 3 | [#37](https://github.com/Ptrickill/Titulacion/issues/37) | [#58](https://github.com/Ptrickill/Titulacion/pull/58) |
 | HU-14 Indicadores de tratamientos y sesiones | 5 | [#38](https://github.com/Ptrickill/Titulacion/issues/38) | [#59](https://github.com/Ptrickill/Titulacion/pull/59) |
-| HU-15 Filtrar y exportar el reporte a PDF | 5 | [#39](https://github.com/Ptrickill/Titulacion/issues/39) | ⏳ |
+| HU-15 Filtrar y exportar el reporte a PDF | 5 | [#39](https://github.com/Ptrickill/Titulacion/issues/39) | [#60](https://github.com/Ptrickill/Titulacion/pull/60) |
 
 ## Evidencias
 
@@ -38,7 +38,8 @@ Fechas de fusión tomadas de GitHub (fusión en `develop`, hora de Ecuador).
 |---|---|---|---|---|---|
 | [#57](https://github.com/Ptrickill/Titulacion/pull/57) | HU-12 (SCRUM-28) | Portal del paciente: tratamientos, avance de sesiones y evolución del dolor, solo lectura | ✅ [ejecución](https://github.com/Ptrickill/Titulacion/actions/runs/43562090680) | Completa | 14/11/2026 00:38 |
 | [#58](https://github.com/Ptrickill/Titulacion/pull/58) | HU-13 (SCRUM-29) | Portal del paciente: listado de sesiones e indicación del terapeuta, sin observaciones clínicas ni evolución | ✅ [ejecución](https://github.com/Ptrickill/Titulacion/actions/runs/43565017774) | Completa | 14/11/2026 01:13 |
-| [#59](https://github.com/Ptrickill/Titulacion/pull/59) | HU-14 (SCRUM-30) | Reportes de dirección operativa: indicadores de tratamientos y sesiones, sesiones por fisioterapeuta y lista de tratamientos, solo lectura | ⏳ | ⏳ | ⏳ |
+| [#59](https://github.com/Ptrickill/Titulacion/pull/59) | HU-14 (SCRUM-30) | Reportes de dirección operativa: indicadores de tratamientos y sesiones, sesiones por fisioterapeuta y lista de tratamientos, solo lectura | ✅ [ejecución](https://github.com/Ptrickill/Titulacion/actions/runs/43794862562) | Completa | 16/11/2026 20:25 |
+| [#60](https://github.com/Ptrickill/Titulacion/pull/60) | HU-15 (SCRUM-31) | Reportes de dirección operativa: rango de fechas y exportación del informe a PDF con los mismos resultados de la vista | ⏳ | ⏳ | ⏳ |
 
 ## Resultados de pruebas
 
@@ -49,6 +50,7 @@ Los totales del cierre del sprint siguen pendientes. Totales parciales, por hist
 | HU-12 | 14/11/2026 | 571 pruebas, 0 fallos, 0 errores, 0 omitidas (BUILD SUCCESS) | 277 pruebas en 51 archivos |
 | HU-13 | 14/11/2026 | 621 pruebas, 0 fallos, 0 errores, 0 omitidas (BUILD SUCCESS) | 303 pruebas en 53 archivos |
 | HU-14 | 15/11/2026 | 678 pruebas, 0 fallos, 0 errores, 0 omitidas (BUILD SUCCESS) | 336 pruebas en 57 archivos |
+| HU-15 | 16/11/2026 | 722 pruebas, 0 fallos, 0 errores, 0 omitidas (BUILD SUCCESS) | 354 pruebas en 59 archivos |
 
 | Comando | Total | Fallos | Errores | Omitidas | Resultado |
 |---|---|---|---|---|---|
@@ -62,7 +64,7 @@ Los totales del cierre del sprint siguen pendientes. Totales parciales, por hist
 | HU-12 | [`hu-12-portal-progress`](../../screenshots/hu-12-portal-progress/) | 10: portal con el tratamiento activo (`01`, `02`), selector de tratamiento (`03`), tratamiento finalizado (`04`), 1366 px (`05`), un solo tratamiento con dolor que sube (`06`), paciente sin tratamientos (`07`), 390 px (`08`, `09`) y auditoría de las consultas y los accesos denegados (`10`) |
 | HU-13 | [`hu-13-portal-sessions`](../../screenshots/hu-13-portal-sessions/) | 11: portal con las tres tarjetas (`01`, `02`), listado de sesiones (`03`), la tabla a 1366 y a 1920 px (`04`), tratamiento finalizado con el paginador (`05`), tratamiento sin indicaciones (`06`), paciente sin tratamientos (`07`), 1024 px (`08`) y 390 px (`09`, `10`) |
 | HU-14 | [`hu-14-director-reports`](../../screenshots/hu-14-director-reports/) | 14: reporte al tamaño del prototipo (`01`) y completo (`02`), sesiones por fisioterapeuta y tratamientos (`03`), segunda página (`04`), filtro por estado (`05`), filtro por fisioterapeuta antes y después de un reemplazo (`06`, `07`), filtros combinados (`08`), 1366 px (`09`), 1024 px (`10`), 390 px (`11`, `12`), menú del administrador sin reportes (`13`) y auditoría de las consultas del reporte (`14`) |
-| HU-15 | ⏳ | ⏳ |
+| HU-15 | [`hu-15-reports-filter-pdf`](../../screenshots/hu-15-reports-filter-pdf/) | 12 y el PDF de ejemplo (`informe-operativo-ejemplo.pdf`, octubre de 2026): botón de exportar y filtros de fecha (`01`), rango de octubre (`02`) con el periodo y la nota del estado actual en la lista (`03`), rango con fisioterapeuta (`04`) y con estado (`05`), rango inválido (`06`), 1366 px (`07`), 1024 px (`08`), 390 px (`09`), las dos páginas del PDF (`10`, `11`) y la exportación en la auditoría (`12`) |
 
 ## Observaciones
 
@@ -122,3 +124,26 @@ Decisiones tomadas al implementar la historia:
   | 1024 px | 3 y 2 de 235 px | 1 de 728 px | 726 / 726 px | 0 px |
   | 390 px | 1 de 358 px | 1 de 358 px | 356 / 356 px | 0 px |
 - **Datos de las capturas:** dos fisioterapeutas más creados por el administrador, y los historiales, tratamientos, sesiones, el reemplazo y los cambios de estado creados por la API en la base desechable de Testcontainers.
+
+### HU-15 (rango de fechas y PDF del reporte)
+
+Decisiones tomadas al implementar la historia:
+
+- **Qué filtra el rango:** los tratamientos (indicadores de estado y lista) por su periodo, y las sesiones (registradas, por estado, barras y promedio) por su fecha. Un tratamiento entra si estuvo en curso algún día del rango: empezó el último día o antes y, además, sigue activo, empezó el primer día o después, o cerró el primer día o después. Cierra el día de su último cambio de estado. Las fechas son días de Quito, ambos incluidos; una prueba cubre un cierre a las 23:30 de Quito, que en UTC ya es el día siguiente.
+- **Estado actual:** con un rango, el estado sigue siendo el actual. Un tratamiento en curso durante el rango que finalizó después cuenta como finalizado. La vista y el PDF lo advierten con la nota "El estado corresponde al estado actual de cada tratamiento.".
+- **Mismo resultado en la vista y en el PDF:** el PDF usa las mismas consultas que la vista, con todos los tratamientos del filtro en lugar de una página. Una prueba de integración lee el PDF y compara sus totales con el JSON de la vista en seis combinaciones de filtros.
+- **Librería:** Apache PDFBox 3.0.8, con licencia Apache 2.0. Se descartaron iText (AGPL) y OpenPDF 3 (trae bibliotecas nativas).
+- **Contenido del PDF:** filtros aplicados, fecha y hora de generación en Quito, nombre del usuario, indicadores, sesiones por fisioterapeuta y la lista de tratamientos. No incluye la cédula.
+- **Auditoría:** `EXPORT Report` por cada PDF, más `READ Treatment` por cada tratamiento del PDF en un solo `INSERT`. La migración V4 agrega `EXPORT` a la restricción de `audit_logs.action`; V1 a V3 no cambiaron.
+- **Sentencias:** el resumen y la lista siguen en 6 con un rango; el PDF usa 9, con 1 o con 60 tratamientos (`ReportPerformanceIntegrationTests`).
+- **Sin tope de filas:** el PDF de ejemplo tiene 2 páginas con 9 tratamientos.
+- **Anchos medidos en Chrome:** sin desborde de los filtros, de la página ni de la tabla.
+
+  | Ancho de ventana | Filtros (ancho / desborde) | Indicadores | Tabla (contenedor / tabla) | Desborde de la página |
+  |---|---|---|---|---|
+  | 1920 px | 852 / 0 px | 5 de 161 px | 414 / 414 px | 0 px |
+  | 1568 px | 852 / 0 px | 5 de 161 px | 414 / 414 px | 0 px |
+  | 1366 px | 852 / 0 px | 5 de 161 px | 414 / 414 px | 0 px |
+  | 1024 px | 728 / 0 px | 3 y 2 de 235 px | 726 / 726 px | 0 px |
+  | 390 px | 358 / 0 px | 1 de 358 px | 356 / 356 px | 0 px |
+- **Datos de las capturas:** los mismos de HU-14, más cierres fechados en septiembre y octubre de 2026, creados en la base desechable de Testcontainers. Con el rango de octubre, el tratamiento que cerró el 28/09 no aparece, y el que cerró el 18/10 cuenta como finalizado.

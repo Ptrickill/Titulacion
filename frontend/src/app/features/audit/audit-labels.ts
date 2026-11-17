@@ -8,6 +8,7 @@ export const AUDIT_ACTIONS: readonly AuditAction[] = [
   'STATUS_CHANGE',
   'ACCESS_DENIED',
   'LOGIN',
+  'EXPORT',
 ];
 
 export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
@@ -17,6 +18,8 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   STATUS_CHANGE: 'Cambio de estado',
   ACCESS_DENIED: 'Acceso denegado',
   LOGIN: 'Inicio de sesión',
+  // HU-15: the PDF of the operations report
+  EXPORT: 'Exportación',
 };
 
 export const AUDIT_ACTION_TONES: Record<AuditAction, BadgeTone> = {
@@ -26,6 +29,7 @@ export const AUDIT_ACTION_TONES: Record<AuditAction, BadgeTone> = {
   STATUS_CHANGE: 'purple',
   ACCESS_DENIED: 'danger',
   LOGIN: 'neutral',
+  EXPORT: 'teal',
 };
 
 /**

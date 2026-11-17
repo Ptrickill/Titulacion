@@ -10,6 +10,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSelectHarness } from '@angular/material/select/testing';
 import { provideRouter } from '@angular/router';
 import { logInForTest } from '../../../core/auth/auth-testing';
+import { FileDownload } from '../../../core/http/file-download';
 import { OperationsReport } from './operations-report';
 import { ReportSummary, ReportTreatment } from './report-api';
 import {
@@ -94,16 +95,36 @@ describe('OperationsReport', () => {
     await settle();
   }
 
+  const exportButton = () => element.querySelector<HTMLButtonElement>('app-page-header .export')!;
+  const dateInput = (name: 'from' | 'to') =>
+    element.querySelector<HTMLInputElement>(`input[formControlName="${name}"]`)!;
+
+  /** Types a date (yyyy-MM-dd) in "Desde" or "Hasta". */
+  async function type(name: 'from' | 'to', date: string): Promise<void> {
+    const input = dateInput(name);
+    input.value = date;
+    input.dispatchEvent(new Event('input'));
+    await settle();
+  }
+
+  let download: { save: ReturnType<typeof vi.fn> };
+
   beforeEach(() => {
+    download = { save: vi.fn() };
     TestBed.configureTestingModule({
-      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: FileDownload, useValue: download },
+      ],
     });
     backend = TestBed.inject(HttpTestingController);
   });
 
   afterEach(() => backend.verify());
 
-  it('has the title of the prototype, the read-only notice and no export button', async () => {
+  it('has the title of the prototype, the read-only notice and the export button', async () => {
     await openAndAnswer();
 
     expect(text('app-page-header .title')).toBe('Reportes de Dirección Operativa');
@@ -115,8 +136,8 @@ describe('OperationsReport', () => {
         'activos, altas, abandonos y productividad de sesiones por especialista.',
     );
     expect(element.querySelector('.notice')?.getAttribute('role')).toBe('note');
-    // Exporting the report is HU-15
-    expect(element.textContent).not.toMatch(/Exportar/);
+    expect(text('app-page-header .export')).toBe('download Exportar informe operativo');
+    expect(exportButton().disabled).toBe(false);
   });
 
   it('asks for the summary and the first page without filters', async () => {
@@ -309,7 +330,7 @@ describe('OperationsReport', () => {
     expect(element.querySelector('mat-progress-bar')).toBeNull();
   });
 
-  it('has no control to edit anything: only the two filters and the pager', async () => {
+  it('has no control to edit anything: only the filters, the export and the pager', async () => {
     open();
     backend.expectOne('/api/reports/physiotherapists').flush(FAKE_PHYSIOTHERAPISTS);
     one(SUMMARY).flush(fakeSummary());
@@ -318,13 +339,205 @@ describe('OperationsReport', () => {
     );
     await settle();
 
-    expect(element.querySelectorAll('a, input, textarea')).toHaveLength(0);
+    expect(element.querySelectorAll('a, textarea')).toHaveLength(0);
     expect(element.querySelectorAll('mat-select')).toHaveLength(2);
+    expect(Array.from(element.querySelectorAll('input')).map((input) => input.type)).toEqual([
+      'date',
+      'date',
+    ]);
     expect(
-      Array.from(element.querySelectorAll('button')).map((button) =>
-        button.getAttribute('aria-label'),
+      Array.from(element.querySelectorAll('button')).map(
+        (button) => button.getAttribute('aria-label') ?? clean(button),
       ),
-    ).toEqual(['Página anterior', 'Página siguiente']);
+    ).toEqual(['download Exportar informe operativo', 'Página anterior', 'Página siguiente']);
     expect(element.textContent).not.toMatch(/Editar|Guardar|Eliminar|Registrar|Notificaci/);
+  });
+
+  // ----- date range (HU-15) -----
+
+  describe('date range', () => {
+    it('asks for the summary and the first page of the range, both days included', async () => {
+      await openAndAnswer();
+
+      await type('from', '2026-10-01');
+      await answer();
+      await type('to', '2026-10-31');
+
+      const requests = reportRequests();
+      expect(requests.summary.request.params.get('from')).toBe('2026-10-01');
+      expect(requests.summary.request.params.get('to')).toBe('2026-10-31');
+      expect(requests.treatments.request.params.get('from')).toBe('2026-10-01');
+      expect(requests.treatments.request.params.get('to')).toBe('2026-10-31');
+      expect(requests.treatments.request.params.get('page')).toBe('0');
+      await reply(requests);
+    });
+
+    it('shows the period and the note of the current status in the list only with a range', async () => {
+      await openAndAnswer();
+      expect(text('app-report-treatment-list .note')).toBeUndefined();
+
+      await type('from', '2026-10-01');
+      await answer();
+      expect(text('app-report-treatment-list .subtitle')).toBe(
+        'Filtrado por estado: Todos • Especialista: Todos • Periodo: Desde el 01/10/2026',
+      );
+      expect(text('app-report-treatment-list .note')).toBe(
+        'El estado corresponde al estado actual de cada tratamiento.',
+      );
+
+      await type('to', '2026-10-31');
+      await answer();
+      expect(text('app-report-treatment-list .subtitle')).toContain(
+        'Periodo: Del 01/10/2026 al 31/10/2026',
+      );
+    });
+
+    it('combines the range with the status and the physiotherapist', async () => {
+      await openAndAnswer();
+
+      await choose('Estado del tratamiento', 'Activo');
+      await answer();
+      await choose('Fisioterapeuta responsable', 'Lcdo. Mateo Ríos');
+      await answer();
+      await type('to', '2026-10-31');
+
+      const { summary, treatments } = reportRequests();
+      expect(summary.request.params.keys().sort()).toEqual(['physiotherapistId', 'status', 'to']);
+      expect(treatments.request.params.get('status')).toBe('ACTIVE');
+      expect(treatments.request.params.get('physiotherapistId')).toBe('4');
+      expect(treatments.request.params.get('to')).toBe('2026-10-31');
+      await reply({ summary, treatments });
+    });
+
+    it('does not search with "Desde" after "Hasta" and says why until it is fixed', async () => {
+      await openAndAnswer();
+      await type('to', '2026-10-01');
+      await answer();
+
+      await type('from', '2026-10-31');
+
+      expect(pending(SUMMARY)).toHaveLength(0);
+      expect(pending(TREATMENTS)).toHaveLength(0);
+      expect(text('.range-error')).toBe(
+        'La fecha inicial no puede ser posterior a la fecha final.',
+      );
+      expect(element.querySelector('.range-error')?.getAttribute('role')).toBe('alert');
+      expect(cards()).toHaveLength(0);
+      expect(exportButton().disabled).toBe(true);
+
+      await type('from', '2026-09-01');
+      const requests = reportRequests();
+      expect(requests.summary.request.params.get('from')).toBe('2026-09-01');
+      await reply(requests);
+      expect(element.querySelector('.range-error')).toBeNull();
+      expect(exportButton().disabled).toBe(false);
+    });
+
+    it('clears a date with its button', async () => {
+      await openAndAnswer();
+      expect(element.querySelector('button[aria-label="Borrar la fecha inicial"]')).toBeNull();
+      await type('from', '2026-10-01');
+      await answer();
+
+      element
+        .querySelector<HTMLButtonElement>('button[aria-label="Borrar la fecha inicial"]')!
+        .click();
+      await settle();
+
+      const requests = reportRequests();
+      expect(requests.summary.request.params.has('from')).toBe(false);
+      await reply(requests);
+      expect(dateInput('from').value).toBe('');
+      expect(text('app-report-treatment-list .note')).toBeUndefined();
+    });
+  });
+
+  // ----- export (HU-15) -----
+
+  describe('export', () => {
+    const PDF = '/api/reports/summary.pdf';
+
+    it('downloads the PDF with the filters the page shows', async () => {
+      await openAndAnswer();
+      await choose('Estado del tratamiento', 'Finalizado');
+      await answer();
+      await type('from', '2026-10-01');
+      await answer();
+
+      exportButton().click();
+      await settle();
+
+      const request = backend.expectOne((candidate) => candidate.url === PDF);
+      expect(request.request.responseType).toBe('blob');
+      expect(request.request.params.keys().sort()).toEqual(['from', 'status']);
+      expect(request.request.params.get('status')).toBe('COMPLETED');
+      expect(request.request.params.get('from')).toBe('2026-10-01');
+      const pdf = new Blob(['%PDF-1.4'], { type: 'application/pdf' });
+      request.flush(pdf);
+      await settle();
+
+      expect(download.save).toHaveBeenCalledOnce();
+      expect(download.save).toHaveBeenCalledWith(
+        pdf,
+        expect.stringMatching(/^informe-operativo-\d{4}-\d{2}-\d{2}\.pdf$/),
+      );
+      expect(element.querySelector('.export-error')).toBeNull();
+    });
+
+    it('is disabled and says "Exportando…" until the PDF arrives', async () => {
+      await openAndAnswer();
+
+      exportButton().click();
+      await settle();
+
+      expect(exportButton().disabled).toBe(true);
+      expect(clean(exportButton())).toBe('download Exportando…');
+      // A second click while exporting asks for nothing
+      exportButton().click();
+      const request = backend.expectOne((candidate) => candidate.url === PDF);
+      request.flush(new Blob(['%PDF'], { type: 'application/pdf' }));
+      await settle();
+
+      expect(exportButton().disabled).toBe(false);
+      expect(clean(exportButton())).toBe('download Exportar informe operativo');
+    });
+
+    it('waits for the report to load before exporting', async () => {
+      open();
+      backend.expectOne('/api/reports/physiotherapists').flush(FAKE_PHYSIOTHERAPISTS);
+      await settle();
+
+      expect(exportButton().disabled).toBe(true);
+      await answer();
+      expect(exportButton().disabled).toBe(false);
+    });
+
+    it('shows the message of the API when the PDF cannot be generated', async () => {
+      await openAndAnswer();
+
+      exportButton().click();
+      await settle();
+      backend
+        .expectOne((candidate) => candidate.url === PDF)
+        .flush(
+          new Blob(
+            [JSON.stringify({ title: 'Error interno', detail: 'Ocurrió un error inesperado.' })],
+            {
+              type: 'application/problem+json',
+            },
+          ),
+          { status: 500, statusText: 'Server Error' },
+        );
+
+      await vi.waitFor(async () => {
+        await settle();
+        expect(text('.export-error span')).toBe('Ocurrió un error inesperado.');
+      });
+      expect(element.querySelector('.export-error')?.getAttribute('role')).toBe('alert');
+      expect(download.save).not.toHaveBeenCalled();
+      expect(exportButton().disabled).toBe(false);
+      // The report itself is still there
+      expect(cards()).toHaveLength(5);
+    });
   });
 });

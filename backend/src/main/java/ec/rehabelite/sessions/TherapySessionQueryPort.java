@@ -1,5 +1,6 @@
 package ec.rehabelite.sessions;
 
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -39,9 +40,11 @@ public interface TherapySessionQueryPort {
     /**
      * The sessions of the treatments, counted per physiotherapist who registered them and per status (HU-14). With a
      * {@code responsibleId}, only the sessions that physiotherapist registered, whoever the current responsible of
-     * the treatment is. A physiotherapist without sessions with a status has no row. One statement, whatever the
-     * number of treatments, even with none.
+     * the treatment is. With {@code from} or {@code to} (HU-15), only the sessions dated between them, both included
+     * (dates in Quito); null does not bound. A physiotherapist without sessions with a status has no row. One
+     * statement, whatever the number of treatments, even with none.
      */
-    List<SessionCount> countsByResponsibleAndStatus(Collection<Long> treatmentIds, Long responsibleId);
+    List<SessionCount> countsByResponsibleAndStatus(Collection<Long> treatmentIds, Long responsibleId,
+            LocalDate from, LocalDate to);
 
 }

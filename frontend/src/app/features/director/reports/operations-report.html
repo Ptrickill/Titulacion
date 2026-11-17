@@ -1,7 +1,26 @@
 <app-page-header
   title="Reportes de Dirección Operativa"
   subtitle="Métricas de tratamientos, adherencia clínica y distribución por fisioterapeuta"
-/>
+>
+  <button
+    actions
+    mat-stroked-button
+    type="button"
+    class="export"
+    [disabled]="!canExport()"
+    (click)="exportReport()"
+  >
+    <mat-icon aria-hidden="true">download</mat-icon>
+    {{ exporting() ? 'Exportando…' : 'Exportar informe operativo' }}
+  </button>
+</app-page-header>
+
+@if (exportError(); as message) {
+  <p class="export-error" role="alert">
+    <mat-icon aria-hidden="true">error_outline</mat-icon>
+    <span>{{ message }}</span>
+  </p>
+}
 
 <p class="notice" role="note">
   <mat-icon aria-hidden="true">verified_user</mat-icon>
@@ -37,9 +56,41 @@
     </mat-select>
   </mat-form-field>
 
+  <mat-form-field appearance="fill" subscriptSizing="dynamic" class="date-from">
+    <mat-label>Desde</mat-label>
+    <input matInput type="date" formControlName="from" />
+    @if (dates().from) {
+      <button
+        matIconSuffix
+        mat-icon-button
+        type="button"
+        aria-label="Borrar la fecha inicial"
+        (click)="clearDate('from')"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+  </mat-form-field>
+
+  <mat-form-field appearance="fill" subscriptSizing="dynamic">
+    <mat-label>Hasta</mat-label>
+    <input matInput type="date" formControlName="to" />
+    @if (dates().to) {
+      <button
+        matIconSuffix
+        mat-icon-button
+        type="button"
+        aria-label="Borrar la fecha final"
+        (click)="clearDate('to')"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+  </mat-form-field>
+
   <p class="filters-help">
-    Los tratamientos se filtran por su responsable vigente y las sesiones por el fisioterapeuta que
-    las registró.
+    Los tratamientos se filtran por su responsable vigente y por su periodo (en curso algún día del
+    rango); las sesiones, por el fisioterapeuta que las registró y por su fecha.
   </p>
 </form>
 
@@ -47,7 +98,10 @@
   <mat-progress-bar mode="indeterminate" aria-label="Cargando reporte" />
 }
 
-@if (loadError(); as message) {
+<!-- With an inverted range nothing is searched, so the previous results are not shown either -->
+@if (invalidRange()) {
+  <p class="range-error" role="alert">{{ rangeMessage }}</p>
+} @else if (loadError(); as message) {
   <app-empty-state icon="cloud_off" title="No se pudo cargar el reporte" [message]="message">
     <button mat-stroked-button type="button" (click)="reload()">Reintentar</button>
   </app-empty-state>
@@ -111,6 +165,7 @@
         [pageSize]="pageSize"
         [statusFilter]="statusFilterLabel()"
         [physiotherapistFilter]="physiotherapistFilterLabel()"
+        [periodFilter]="periodFilterLabel()"
         (pageChange)="goToPage($event)"
       />
     }

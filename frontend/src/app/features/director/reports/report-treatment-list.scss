@@ -21,6 +21,14 @@
   }
 }
 
+// HU-15: with a date range, the status is still the current one
+.note {
+  margin: 4px 0 0;
+  color: var(--re-text-muted);
+  font-size: 12px;
+  font-style: italic;
+}
+
 // The table is already inside this card: no second border
 app-data-table {
   margin: 0 -20px -20px;
