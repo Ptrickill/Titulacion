@@ -1,0 +1,90 @@
+@use 'report-card';
+
+:host {
+  @include report-card.card;
+}
+
+.heading {
+  @include report-card.heading;
+}
+
+.title {
+  @include report-card.title;
+}
+
+.subtitle {
+  @include report-card.subtitle;
+}
+
+.empty {
+  @include report-card.empty;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  padding: 12px 14px;
+  border: 1px solid var(--re-gray-200);
+  border-radius: var(--re-radius-md);
+}
+
+.person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: var(--re-text-teal);
+  background: var(--re-teal-50);
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  color: var(--re-text);
+  font-size: 14px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.count {
+  flex: none;
+  color: var(--re-text-muted);
+  font-size: 12px;
+
+  strong {
+    color: var(--re-text);
+    font-size: 15px;
+    font-weight: 800;
+  }
+}
+
+.track {
+  height: 6px;
+  margin-top: 10px;
+  overflow: hidden;
+  background: var(--re-gray-100);
+  border-radius: var(--re-radius-pill);
+}
+
+.bar {
+  height: 100%;
+  background: var(--re-teal);
+  border-radius: inherit;
+}

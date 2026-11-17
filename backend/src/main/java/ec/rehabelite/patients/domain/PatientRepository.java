@@ -1,5 +1,6 @@
 package ec.rehabelite.patients.domain;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,6 +13,10 @@ public interface PatientRepository extends JpaRepository<Patient, Long>, Patient
 
     /** The patient of a portal account; at most one (uq_patients_portal_user_id). */
     Optional<Patient> findByPortalUserId(Long portalUserId);
+
+    /** Only the names of the patients, in one statement (HU-14). */
+    @Query("SELECT p.id AS id, p.firstName AS firstName, p.lastName AS lastName FROM Patient p WHERE p.id IN :ids")
+    List<PatientName> findNamesByIdIn(@Param("ids") Collection<Long> ids);
 
     /**
      * Patients without a portal account whose name (accent- and case-insensitive, via normalize_text) or

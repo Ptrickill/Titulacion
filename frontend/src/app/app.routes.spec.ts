@@ -97,6 +97,24 @@ describe('app routes', () => {
     expect(snackBarMessages()).toEqual(['No tiene acceso a esa sección.']);
   });
 
+  it('opens the operations report for the operations director (HU-14)', async () => {
+    logInForTest('OPERATIONS_DIRECTOR');
+
+    await harness.navigateByUrl('/director/reports');
+
+    expect(router.url).toBe('/director/reports');
+    expect(harness.routeNativeElement?.querySelector('app-operations-report')).not.toBeNull();
+    expect(snackBarMessages()).toEqual([]);
+  });
+
+  it('has no reports for the administrator: they carry clinical data (HU-06, HU-14)', async () => {
+    logInForTest('ADMINISTRATOR');
+
+    await harness.navigateByUrl('/admin/reports');
+
+    expect(router.url).toBe('/admin');
+  });
+
   it('sends unknown URLs to the role panel', async () => {
     logInForTest('PATIENT');
 

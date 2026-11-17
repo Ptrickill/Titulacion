@@ -7,7 +7,7 @@ export type StatTone = 'teal' | 'info' | 'warning' | 'danger' | 'purple';
 @Component({
   selector: 'app-stat-card',
   imports: [MatIconModule],
-  host: { '[class.compact]': 'compact()' },
+  host: { '[class.compact]': 'compact()', '[class.stacked]': 'stacked()' },
   template: `
     <div class="icon-tile" [class]="'icon-tile tone-' + tone()">
       <mat-icon aria-hidden="true">{{ icon() }}</mat-icon>
@@ -81,6 +81,43 @@ export type StatTone = 'teal' | 'info' | 'warning' | 'danger' | 'purple';
       width: 40px;
       height: 40px;
     }
+    /*
+     * Stacked: the label on the whole width, the value next to a small icon and the hint below (prototype 13).
+     * For rows of five cards in the 900px content area, where a label next to the icon would not fit.
+     */
+    :host(.stacked) {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+      gap: 0 8px;
+      padding: 16px;
+    }
+    :host(.stacked) .body {
+      display: contents;
+    }
+    :host(.stacked) .label,
+    :host(.stacked) .hint {
+      grid-column: 1 / -1;
+    }
+    :host(.stacked) .label {
+      grid-row: 1;
+    }
+    :host(.stacked) .value {
+      grid-row: 2;
+      grid-column: 1;
+      align-self: center;
+      margin-top: 10px;
+    }
+    :host(.stacked) .icon-tile {
+      grid-row: 2;
+      grid-column: 2;
+      width: 36px;
+      height: 36px;
+      margin-top: 10px;
+    }
+    :host(.stacked) .hint {
+      grid-row: 3;
+    }
     .value {
       margin-top: 2px;
       color: var(--re-text);
@@ -103,4 +140,6 @@ export class StatCard {
   readonly tone = input<StatTone>('teal');
   /** Smaller icon and padding, so four cards fit side by side without wrapping their labels. */
   readonly compact = input(false, { transform: booleanAttribute });
+  /** Icon at the top right and the value and hint below, so five cards fit side by side (prototype 13). */
+  readonly stacked = input(false, { transform: booleanAttribute });
 }

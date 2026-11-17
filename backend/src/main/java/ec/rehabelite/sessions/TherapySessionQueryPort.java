@@ -36,4 +36,12 @@ public interface TherapySessionQueryPort {
      */
     Optional<PatientSessionView> latestPatientInstruction(Long treatmentId);
 
+    /**
+     * The sessions of the treatments, counted per physiotherapist who registered them and per status (HU-14). With a
+     * {@code responsibleId}, only the sessions that physiotherapist registered, whoever the current responsible of
+     * the treatment is. A physiotherapist without sessions with a status has no row. One statement, whatever the
+     * number of treatments, even with none.
+     */
+    List<SessionCount> countsByResponsibleAndStatus(Collection<Long> treatmentIds, Long responsibleId);
+
 }

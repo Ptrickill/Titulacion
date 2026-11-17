@@ -64,7 +64,6 @@ describe('AppShell', () => {
       'Inicio',
       'Gestión de Usuarios',
       'Registro de Pacientes',
-      'Reportes Consolidados',
       'Auditoría',
     ]);
     fixture.destroy();

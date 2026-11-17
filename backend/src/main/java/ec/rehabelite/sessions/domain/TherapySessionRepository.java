@@ -15,6 +15,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface TherapySessionRepository extends JpaRepository<TherapySession, Long>,
         JpaSpecificationExecutor<TherapySession> {
@@ -60,6 +61,20 @@ public interface TherapySessionRepository extends JpaRepository<TherapySession, 
             WHERE s.treatmentId IN :treatmentIds AND s.status = :status
             GROUP BY s.treatmentId""")
     List<TreatmentSessionCount> countByTreatmentIdsAndStatus(Collection<Long> treatmentIds, SessionStatus status);
+
+    /**
+     * Sessions of the treatments per physiotherapist who registered them and per status, in one statement (HU-14);
+     * only the physiotherapist's if {@code responsibleId} is not null. The ids go as one array parameter, so a long
+     * list never reaches the limit of bind parameters of PostgreSQL.
+     */
+    @Query(nativeQuery = true, value = """
+            SELECT s.responsible_id AS "responsibleId", s.status AS "status", count(*) AS "sessions"
+            FROM therapy_sessions s
+            WHERE s.treatment_id = ANY (CAST(:treatmentIds AS bigint[]))
+              AND (CAST(:responsibleId AS bigint) IS NULL OR s.responsible_id = CAST(:responsibleId AS bigint))
+            GROUP BY s.responsible_id, s.status""")
+    List<ResponsibleSessionCount> countByResponsibleAndStatus(@Param("treatmentIds") Long[] treatmentIds,
+            @Param("responsibleId") Long responsibleId);
 
     /**
      * The most recent session of the treatment (date, time and sequence number) with instructions for the patient,

@@ -6,6 +6,7 @@ import ec.rehabelite.AbstractIntegrationTest;
 import ec.rehabelite.TestSessions;
 import ec.rehabelite.TestTreatments;
 import ec.rehabelite.sessions.PatientSessionView;
+import ec.rehabelite.sessions.SessionCount;
 import ec.rehabelite.sessions.SessionSummary;
 import ec.rehabelite.sessions.TherapySessionQueryPort;
 import java.time.LocalDate;
@@ -18,7 +19,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-/** HU-12 and HU-13: what the public port of sessions tells other modules about the sessions of a treatment. */
+/**
+ * HU-12, HU-13 and HU-14: what the public port of sessions tells other modules about the sessions of a treatment, and
+ * the counts of the operations reports.
+ */
 class TherapySessionQueryPortIntegrationTests extends AbstractIntegrationTest {
 
     @Autowired
@@ -123,6 +127,35 @@ class TherapySessionQueryPortIntegrationTests extends AbstractIntegrationTest {
 
         assertThat(sessionQuery.latestPatientInstruction(withoutSessions)).isEmpty();
         assertThat(sessionQuery.latestPatientInstruction(withoutInstructions)).isEmpty();
+    }
+
+    // ----- operations reports (HU-14) -----
+
+    @Test
+    void theSessionsAreCountedPerPhysiotherapistWhoRegisteredThemAndPerStatusOnlyInTheTreatmentsAskedFor() {
+        Long otherPhysio = insertPhysiotherapist();
+        Long other = TestTreatments.insertActive(jdbc);
+        TestSessions.insert(jdbc, other, otherPhysio, 1, start.plusDays(1), "09:00", 6, "COMPLETED");
+        TestSessions.insert(jdbc, other, physioId, 2, start.plusDays(2), "09:00", 6, "COMPLETED");
+        Long notAskedFor = TestTreatments.insertActive(jdbc);
+        TestSessions.insert(jdbc, notAskedFor, physioId, 1, start.plusDays(1), "09:00", 6, "COMPLETED");
+
+        assertThat(sessionQuery.countsByResponsibleAndStatus(List.of(treatmentId, other), null))
+                .containsExactlyInAnyOrder(new SessionCount(physioId, "COMPLETED", 3),
+                        new SessionCount(physioId, "RESCHEDULED", 1), new SessionCount(physioId, "NO_SHOW", 1),
+                        new SessionCount(otherPhysio, "COMPLETED", 1));
+        // Only the sessions the physiotherapist registered, in any of the treatments
+        assertThat(sessionQuery.countsByResponsibleAndStatus(List.of(treatmentId, other), otherPhysio))
+                .containsExactly(new SessionCount(otherPhysio, "COMPLETED", 1));
+        assertThat(sessionQuery.countsByResponsibleAndStatus(List.of(treatmentId), otherPhysio)).isEmpty();
+        assertThat(sessionQuery.countsByResponsibleAndStatus(List.of(), null)).isEmpty();
+    }
+
+    private Long insertPhysiotherapist() {
+        return jdbc.queryForObject("""
+                INSERT INTO users (email, password_hash, full_name, role)
+                VALUES (?, 'not-a-real-hash', 'Otro fisioterapeuta', 'PHYSIOTHERAPIST')
+                RETURNING id""", Long.class, "puerto-" + UUID.randomUUID() + "@rehabelite.test");
     }
 
 }

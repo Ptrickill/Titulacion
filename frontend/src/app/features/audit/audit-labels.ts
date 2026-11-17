@@ -38,6 +38,7 @@ const ENTITY_LABELS: Record<string, string> = {
   Treatment: 'Tratamiento',
   TherapySession: 'Sesión terapéutica',
   User: 'Usuario',
+  Report: 'Reporte',
 };
 
 export function entityLabel(entityType: string): string {

@@ -1,0 +1,65 @@
+@use 'report-card';
+
+:host {
+  @include report-card.card;
+}
+
+.heading {
+  @include report-card.heading;
+  margin-bottom: 0;
+}
+
+.title {
+  @include report-card.title;
+}
+
+.subtitle {
+  @include report-card.subtitle;
+
+  strong {
+    color: var(--re-text);
+  }
+}
+
+// The table is already inside this card: no second border
+app-data-table {
+  margin: 0 -20px -20px;
+  border: none;
+  border-radius: 0 0 var(--re-radius-lg) var(--re-radius-lg);
+  box-shadow: none;
+}
+
+.patient {
+  color: var(--re-text);
+  font-weight: 700;
+}
+
+.meta {
+  margin-top: 2px;
+  color: var(--re-text-muted);
+  font-size: 12px;
+}
+
+.responsible {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--re-text-teal);
+
+  mat-icon {
+    flex: none;
+    width: 14px;
+    height: 14px;
+    font-size: 14px;
+  }
+}
+
+.when {
+  margin-top: 6px;
+  white-space: nowrap;
+}
+
+// Long names and diagnoses break into lines instead of widening the table
+.wrap {
+  overflow-wrap: anywhere;
+}

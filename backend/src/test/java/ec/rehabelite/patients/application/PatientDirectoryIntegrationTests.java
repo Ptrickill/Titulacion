@@ -6,12 +6,17 @@ import ec.rehabelite.AbstractIntegrationTest;
 import ec.rehabelite.TestPatients;
 import ec.rehabelite.patients.PatientCard;
 import ec.rehabelite.patients.PatientDirectory;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-/** HU-12: the patient portal finds its patient only by the portal account linked in patients.portal_user_id. */
+/**
+ * HU-12: the patient portal finds its patient only by the portal account linked in patients.portal_user_id. HU-14:
+ * the operations reports only get the names of the patients.
+ */
 class PatientDirectoryIntegrationTests extends AbstractIntegrationTest {
 
     @Autowired
@@ -41,6 +46,16 @@ class PatientDirectoryIntegrationTests extends AbstractIntegrationTest {
     void anAccountWithoutALinkedPatientHasNone() {
         assertThat(patientDirectory.findByPortalUser(insertPortalAccount())).isEmpty();
         assertThat(patientDirectory.findByPortalUser(999_999_999L)).isEmpty();
+    }
+
+    @Test
+    void theFullNamesAreTheFirstNamesAndTheLastNamesOfTheExistingPatientsOnly() {
+        Long rosa = TestPatients.insert(jdbc, "Rosa Elena", "Ortiz Vega");
+        Long luis = TestPatients.insert(jdbc, "Luis Alberto", "Quishpe Tipán");
+
+        assertThat(patientDirectory.fullNames(List.of(rosa, luis, 999_999_999L)))
+                .containsOnly(Map.entry(rosa, "Rosa Elena Ortiz Vega"), Map.entry(luis, "Luis Alberto Quishpe Tipán"));
+        assertThat(patientDirectory.fullNames(List.of())).isEmpty();
     }
 
     private Long insertPortalAccount() {

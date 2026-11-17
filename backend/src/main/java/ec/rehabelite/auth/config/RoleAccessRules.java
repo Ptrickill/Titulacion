@@ -49,8 +49,9 @@ final class RoleAccessRules {
             new Rule("/api/treatments/**", Role.PHYSIOTHERAPIST),
             new Rule("/api/therapy-sessions/**", Role.PHYSIOTHERAPIST),
             new Rule("/api/ai-summaries/**", Role.PHYSIOTHERAPIST),
-            // Consolidated reports and audit log queries (HU-14, HU-18)
-            new Rule("/api/reports/**", Role.OPERATIONS_DIRECTOR, Role.ADMINISTRATOR),
+            // Operations reports carry clinical data, which the administrator never sees (HU-06, HU-14)
+            new Rule("/api/reports/**", Role.OPERATIONS_DIRECTOR),
+            // Audit log queries: metadata only (HU-18)
             new Rule("/api/audit-logs/**", Role.OPERATIONS_DIRECTOR, Role.ADMINISTRATOR),
             // Read-only patient portal
             new Rule("/api/portal/**", Role.PATIENT));
