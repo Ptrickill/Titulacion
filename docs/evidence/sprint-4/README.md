@@ -24,10 +24,10 @@ Historias del sprint (puntos según [`docs/user-stories.md`](../../user-stories.
 | 1 | Tablero al inicio | Captura del tablero con el backlog comprometido | `board-start.png` | ⏳ |
 | 2 | Tablero al cierre | Captura del tablero con las historias terminadas y las que pasan al siguiente sprint | `board-end.png` | ⏳ |
 | 3 | Burndown | Gráfico de puntos restantes por día del sprint | `burndown.png` | ⏳ |
-| 4 | Pull requests | PR fusionados hacia `develop` con su historia, la CI en verde y la lista de verificación completada por el autor | Tabla [Pull requests](#pull-requests) | ⏳ |
-| 5 | Integración continua | Ejecución en verde del workflow **CI** (backend y frontend) del último PR del sprint | `ci-run.png` | ⏳ |
-| 6 | Pruebas | Resultado de `mvnw clean verify` (artefacto `surefire-reports`) y de `ng test` | `tests-backend.png`, `tests-frontend.png` · totales en [Resultados de pruebas](#resultados-de-pruebas) | ⏳ |
-| 7 | Pantallas | Capturas de las funcionalidades entregadas | [`docs/screenshots/`](../../screenshots/) (detalle en [Pantallas](#pantallas)) | ⏳ |
+| 4 | Pull requests | PR fusionados hacia `develop` con su historia, la CI en verde y la lista de verificación completada por el autor | Tabla [Pull requests](#pull-requests) | ✅ |
+| 5 | Integración continua | Ejecución en verde del workflow **CI** (backend y frontend) del último PR del sprint | [Ejecución del PR #60](https://github.com/Ptrickill/Titulacion/actions/runs/44004774422) y [en `develop` tras su fusión](https://github.com/Ptrickill/Titulacion/actions/runs/44005074553) | ✅ |
+| 6 | Pruebas | Resultado de `mvnw clean verify` (artefacto `surefire-reports`) y de `ng test` | Totales finales en [Resultados de pruebas](#resultados-de-pruebas) | ✅ |
+| 7 | Pantallas | Capturas de las funcionalidades entregadas | [`docs/screenshots/`](../../screenshots/) (detalle en [Pantallas](#pantallas)) | ✅ |
 | 8 | Acta | Acta de la revisión y retrospectiva (asistentes, acuerdos, acciones de mejora) | `sprint-review-minutes.pdf` | ⏳ |
 
 ## Pull requests
@@ -39,11 +39,11 @@ Fechas de fusión tomadas de GitHub (fusión en `develop`, hora de Ecuador).
 | [#57](https://github.com/Ptrickill/Titulacion/pull/57) | HU-12 (SCRUM-28) | Portal del paciente: tratamientos, avance de sesiones y evolución del dolor, solo lectura | ✅ [ejecución](https://github.com/Ptrickill/Titulacion/actions/runs/43562090680) | Completa | 14/11/2026 00:38 |
 | [#58](https://github.com/Ptrickill/Titulacion/pull/58) | HU-13 (SCRUM-29) | Portal del paciente: listado de sesiones e indicación del terapeuta, sin observaciones clínicas ni evolución | ✅ [ejecución](https://github.com/Ptrickill/Titulacion/actions/runs/43565017774) | Completa | 14/11/2026 01:13 |
 | [#59](https://github.com/Ptrickill/Titulacion/pull/59) | HU-14 (SCRUM-30) | Reportes de dirección operativa: indicadores de tratamientos y sesiones, sesiones por fisioterapeuta y lista de tratamientos, solo lectura | ✅ [ejecución](https://github.com/Ptrickill/Titulacion/actions/runs/43794862562) | Completa | 16/11/2026 20:25 |
-| [#60](https://github.com/Ptrickill/Titulacion/pull/60) | HU-15 (SCRUM-31) | Reportes de dirección operativa: rango de fechas y exportación del informe a PDF con los mismos resultados de la vista | ⏳ | ⏳ | ⏳ |
+| [#60](https://github.com/Ptrickill/Titulacion/pull/60) | HU-15 (SCRUM-31) | Reportes de dirección operativa: rango de fechas y exportación del informe a PDF con los mismos resultados de la vista | ✅ [ejecución](https://github.com/Ptrickill/Titulacion/actions/runs/44004774422) | Completa | 16/11/2026 21:43 |
 
 ## Resultados de pruebas
 
-Los totales del cierre del sprint siguen pendientes. Totales parciales, por historia:
+Totales parciales, por historia:
 
 | Historia | Fecha | `.\mvnw.cmd clean verify` (en `backend/`) | `npx ng test --watch=false` (en `frontend/`) |
 |---|---|---|---|
@@ -52,10 +52,12 @@ Los totales del cierre del sprint siguen pendientes. Totales parciales, por hist
 | HU-14 | 15/11/2026 | 678 pruebas, 0 fallos, 0 errores, 0 omitidas (BUILD SUCCESS) | 336 pruebas en 57 archivos |
 | HU-15 | 16/11/2026 | 722 pruebas, 0 fallos, 0 errores, 0 omitidas (BUILD SUCCESS) | 354 pruebas en 59 archivos |
 
+Totales finales del sprint, el 20/11/2026 sobre `develop` (commit `e8a8508`, fusión del PR #60):
+
 | Comando | Total | Fallos | Errores | Omitidas | Resultado |
 |---|---|---|---|---|---|
-| `.\mvnw.cmd clean verify` (en `backend/`) | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
-| `npx ng test --watch=false` (en `frontend/`) | ⏳ | ⏳ | ⏳ | ⏳ | ⏳ |
+| `.\mvnw.cmd clean verify` (en `backend/`) | 722 | 0 | 0 | 0 | BUILD SUCCESS |
+| `npx ng test --watch=false` (en `frontend/`) | 354 (59 archivos) | 0 | 0 | 0 | Todas en verde |
 
 ## Pantallas
 
@@ -67,6 +69,10 @@ Los totales del cierre del sprint siguen pendientes. Totales parciales, por hist
 | HU-15 | [`hu-15-reports-filter-pdf`](../../screenshots/hu-15-reports-filter-pdf/) | 12 y el PDF de ejemplo (`informe-operativo-ejemplo.pdf`, octubre de 2026): botón de exportar y filtros de fecha (`01`), rango de octubre (`02`) con el periodo y la nota del estado actual en la lista (`03`), rango con fisioterapeuta (`04`) y con estado (`05`), rango inválido (`06`), 1366 px (`07`), 1024 px (`08`), 390 px (`09`), las dos páginas del PDF (`10`, `11`) y la exportación en la auditoría (`12`) |
 
 ## Observaciones
+
+### Cierre del sprint
+
+- Los PR [#58](https://github.com/Ptrickill/Titulacion/pull/58) y [#60](https://github.com/Ptrickill/Titulacion/pull/60) se fusionaron antes de la revisión del plan de cierre. Su contenido se revisó después de la fusión, sin hallazgos.
 
 ### HU-12 (portal del paciente)
 
