@@ -40,7 +40,7 @@ Closes #<!-- número del issue de la historia, p. ej. Closes #8 -->
 - [ ] Sin datos personales ni clínicos en logs
 - [ ] Sin secretos en el código; variables nuevas agregadas a `.env.example`
 - [ ] Cambios de esquema en una migración Flyway **nueva** (no se editaron migraciones aplicadas)
-- [ ] Commits con Conventional Commits y la clave `SCRUM-XX`
+- [ ] Commits con Conventional Commits y la clave de Jira `RHE-XX`
 
 ## Definición de terminado
 

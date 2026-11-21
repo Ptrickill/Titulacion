@@ -6,7 +6,7 @@ La evidencia de HU-07, HU-08, HU-09, HU-18 y TEC-06, que antes estaba en este do
 
 | Fecha de inicio | Fecha de cierre | Objetivo del sprint | Versión entregada |
 |---|---|---|---|
-| 09/11/2026 | 22/11/2026 | Entregar el portal del paciente (PB-06: HU-12 y HU-13) y los reportes para la dirección operativa (PB-07: HU-14 y HU-15), según `docs/user-stories.md`: 18 puntos en 4 historias | ⏳ |
+| 09/11/2026 | 22/11/2026 | Entregar el portal del paciente (PB-06: HU-12 y HU-13) y los reportes para la dirección operativa (PB-07: HU-14 y HU-15), según `docs/user-stories.md`: 18 puntos en 4 historias | [v0.6.0](https://github.com/Ptrickill/Titulacion/releases/tag/v0.6.0) (20/11/2026) |
 
 Historias del sprint (puntos según [`docs/user-stories.md`](../../user-stories.md)):
 

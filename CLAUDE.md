@@ -570,16 +570,17 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
 
 ## Convenciones de repositorio
 
-- **Clave de Jira:** cada tarea tiene una clave `SCRUM-XX`, que va en la rama, en los commits y en el título del PR.
-- Commits en inglés con Conventional Commits y la clave de Jira después del tipo: `fix(physio): SCRUM-51 keep the patient table inside its card`.
-- Ramas, creadas siempre desde `develop`: `feature/SCRUM-XX-short-description` (historias y tareas técnicas), `fix/SCRUM-XX-...` (correcciones) y `chore/SCRUM-XX-...` (mantenimiento y documentación). Ejemplo: `fix/SCRUM-51-physio-patients-table-overflow`.
+- **Clave de Jira:** cada tarea tiene una clave `RHE-XX`, que va en la rama, en los commits y en el título del PR.
+- Commits en inglés con Conventional Commits y la clave de Jira después del tipo: `fix(physio): RHE-51 keep the patient table inside its card`.
+- Ramas, creadas siempre desde `develop`: `feature/RHE-XX-short-description` (historias y tareas técnicas), `fix/RHE-XX-...` (correcciones) y `chore/RHE-XX-...` (mantenimiento y documentación). Ejemplo: `fix/RHE-51-physio-patients-table-overflow`.
+- Las ramas y los commits anteriores al 17/11/2026 usan la clave `SCRUM-XX` y no se reescriben. Jira resuelve las claves antiguas.
 - Las ramas y los commits anteriores a SCRUM-51 usan `feature/HU-XX-...`, `feature/TEC-XX-...` o `chore/...` y el número de issue (`#8`). No se reescriben.
 - Flujo de ramas: los PR de `feature/*`, `fix/*` y `chore/*` van **siempre hacia `develop`**, nunca hacia `main`. `develop` se fusiona en `main` **solo al cierre de cada sprint**, mediante un PR `develop → main`. Antes de crear un PR, comprobar que la rama base sea `develop` (GitHub propone `main` por defecto).
 - **Regla de fusión** (ruleset "Protección develop y main"): PR obligatorio y los checks Backend y Frontend en verde, sin aprobación ni omisión de la regla. El desarrollo lo ejecuta un solo integrante y GitHub no permite aprobar un PR propio, así que no hay revisor: el autor completa la lista de verificación de la definición de terminado en la descripción del PR antes de fusionar.
 - **Claude Code no fusiona PR**: nunca `gh pr merge` ni fusiones locales hacia `develop` o `main`. Daniel fusiona cada PR. Claude Code llega hasta crear o actualizar el PR y reportar su CI; si una tarea depende de un PR abierto, pide que lo fusionen y luego actualiza `develop` con `git pull`.
 - `.editorconfig`: UTF-8, LF, 4 espacios en Java/XML, 2 en TypeScript, HTML, SCSS, YAML y JSON.
 - `README.md` en inglés; documentación funcional en español en `docs/` (`docs/user-stories.md`, evidencias por sprint en `docs/evidence/sprint-N/`).
-- Cada historia es un issue con la plantilla **Historia de usuario** (Como/quiero/para + Dado/Cuando/Entonces); cada PR usa `.github/pull_request_template.md`, lleva la clave `SCRUM-XX` en el título e incluye en la descripción `Closes #N`, cuando cierra un issue de GitHub, y la lista de verificación de la definición de terminado.
+- Cada historia es un issue con la plantilla **Historia de usuario** (Como/quiero/para + Dado/Cuando/Entonces); cada PR usa `.github/pull_request_template.md`, lleva la clave `RHE-XX` en el título e incluye en la descripción `Closes #N`, cuando cierra un issue de GitHub, y la lista de verificación de la definición de terminado.
 - CI (`.github/workflows/ci.yml`) corre en push y PR hacia `main` y `develop`: backend `./mvnw -B verify`, frontend `npm ci` + `ng test` + `ng build`. No fusionar con CI en rojo. `backend/mvnw` debe conservar el modo ejecutable en Git (`git update-index --chmod=+x backend/mvnw`).
 
 ## Definición de terminado
@@ -598,7 +599,7 @@ El autor marca esta lista en la descripción del PR (sección "Definición de te
 
 - Presentar un **plan antes de implementar** cada historia de usuario.
 - **Una historia por rama.**
-- Cada historia tiene su issue en GitHub, con la etiqueta de su sección PB y el milestone de su sprint. Las pendientes son HU-16 y HU-17 (#40 y #41); las ya implementadas están cerradas con su PR. El PR de la historia lleva la clave `SCRUM-XX` en el título y `Closes #N` en la descripción.
+- Cada historia tiene su issue en GitHub, con la etiqueta de su sección PB y el milestone de su sprint. Las pendientes son HU-16 y HU-17 (#40 y #41); las ya implementadas están cerradas con su PR. El PR de la historia lleva la clave `RHE-XX` en el título y `Closes #N` en la descripción.
 
 ### Plan vigente
 
