@@ -2,11 +2,12 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Page } from '../../../core/http/page';
+import type { TreatmentStatus } from '../../../shared/clinical/treatment-labels';
 import { Sex } from '../../admin/patients/patient-api';
 import type { ResponsiblePeriod } from './treatment-api';
 
+export type { TreatmentStatus };
 export type Severity = 'MILD' | 'MODERATE' | 'SEVERE';
-export type TreatmentStatus = 'ACTIVE' | 'COMPLETED' | 'ABANDONED';
 
 /** ICD-10 catalog entry (GET /api/icd10-diagnoses). */
 export interface Icd10Diagnosis {

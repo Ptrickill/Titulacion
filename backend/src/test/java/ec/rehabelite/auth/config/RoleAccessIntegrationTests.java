@@ -38,9 +38,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * HU-04: every API area is called with each role and without a token. Allowed roles get past security (the
- * areas have no controllers yet, so they answer 404 until their stories add them); other roles get 403 and an
- * ACCESS_DENIED audit entry; anonymous calls get 401 and are not audited.
+ * HU-04: every API area is called with each role and without a token. Allowed roles get past security (an area
+ * without a controller yet answers 404, and so does the portal for an account without a linked patient); other roles
+ * get 403 and an ACCESS_DENIED audit entry; anonymous calls get 401 and are not audited.
  */
 @AutoConfigureMockMvc
 class RoleAccessIntegrationTests extends AbstractIntegrationTest {
@@ -76,10 +76,17 @@ class RoleAccessIntegrationTests extends AbstractIntegrationTest {
             new Area("/api/therapy-sessions/5", "therapy-sessions", 5L, PHYSIOTHERAPIST),
             new Area("/api/therapy-sessions/5/versions", "therapy-sessions", 5L, PHYSIOTHERAPIST),
             new Area("/api/ai-summaries/9", "ai-summaries", 9L, PHYSIOTHERAPIST),
-            new Area("/api/reports/treatments", "reports", null, OPERATIONS_DIRECTOR, ADMINISTRATOR),
+            // Clinical data: the administrator never sees it (HU-06, HU-14)
+            new Area("/api/reports/summary", "reports", null, OPERATIONS_DIRECTOR),
+            new Area("/api/reports/treatments", "reports", null, OPERATIONS_DIRECTOR),
+            new Area("/api/reports/physiotherapists", "reports", null, OPERATIONS_DIRECTOR),
+            new Area("/api/reports/summary.pdf", "reports", null, OPERATIONS_DIRECTOR),
             new Area("/api/audit-logs", "audit-logs", null, OPERATIONS_DIRECTOR, ADMINISTRATOR),
             new Area("/api/audit-logs/users", "audit-logs", null, OPERATIONS_DIRECTOR, ADMINISTRATOR),
-            new Area("/api/portal/treatment", "portal", null, PATIENT));
+            new Area("/api/portal/treatments", "portal", null, PATIENT),
+            new Area("/api/portal/treatments/9/progress", "portal/treatments", 9L, PATIENT),
+            new Area("/api/portal/treatments/9/sessions", "portal/treatments", 9L, PATIENT),
+            new Area("/api/portal/treatments/9/instructions", "portal/treatments", 9L, PATIENT));
 
     @Autowired
     private MockMvc mockMvc;

@@ -1,0 +1,44 @@
+// Shared look of the cards of the operations report (prototype 13).
+
+@mixin card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 20px;
+  background: var(--re-card);
+  border: 1px solid var(--re-gray-200);
+  border-radius: var(--re-radius-lg);
+  box-shadow: var(--re-shadow-sm);
+}
+
+@mixin heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--re-gray-100);
+}
+
+@mixin title {
+  margin: 0;
+  color: var(--re-text);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+@mixin subtitle {
+  margin: 2px 0 0;
+  color: var(--re-text-muted);
+  font-size: 13px;
+}
+
+@mixin empty {
+  margin: 0;
+  padding: 24px 0;
+  color: var(--re-text-muted);
+  font-size: 13px;
+  text-align: center;
+}

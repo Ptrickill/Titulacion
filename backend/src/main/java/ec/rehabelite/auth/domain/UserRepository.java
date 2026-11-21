@@ -24,4 +24,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findByRoleAndActiveTrueOrderByFullNameAsc(Role role);
 
+    List<User> findByRoleOrderByFullNameAscIdAsc(Role role);
+
 }

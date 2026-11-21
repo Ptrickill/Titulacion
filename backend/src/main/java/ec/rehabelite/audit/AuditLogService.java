@@ -19,8 +19,8 @@ public interface AuditLogService {
     void record(AuditAction action, String entityType, Long entityId);
 
     /**
-     * Records the same action on several entities, one entry each (e.g. the clinical records shown in a list).
-     * Nothing is recorded for an empty collection.
+     * Records the same action on several entities, one entry each (e.g. the clinical records shown in a list), with
+     * a single INSERT whatever their number. Nothing is recorded for an empty collection.
      */
     void recordAll(AuditAction action, String entityType, Collection<Long> entityIds);
 

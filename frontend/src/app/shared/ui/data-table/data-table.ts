@@ -9,6 +9,8 @@ export interface DataTableColumn<T> {
   key: keyof T & string;
   header: string;
   align?: 'start' | 'center' | 'end';
+  /** Lets a long header break into lines, so the column can be narrower than its title. */
+  wrapHeader?: boolean;
 }
 
 /**
@@ -36,7 +38,11 @@ ows is the
         <thead>
           <tr>
             @for (column of columns(); track column.key) {
-              <th scope="col" [class]="'align-' + (column.align ?? 'start')">
+              <th
+                scope="col"
+                [class]="'align-' + (column.align ?? 'start')"
+                [class.wrap]="column.wrapHeader"
+              >
                 {{ column.header }}
               </th>
             }
@@ -124,6 +130,9 @@ ows is the
       letter-spacing: 0.05em;
       text-transform: uppercase;
       white-space: nowrap;
+    }
+    th.wrap {
+      white-space: normal;
     }
     td {
       padding: 14px 20px;

@@ -1,0 +1,82 @@
+@use './portal-card' as card;
+
+:host {
+  @include card.card;
+}
+
+.title {
+  @include card.title;
+}
+
+.subtitle {
+  @include card.subtitle;
+}
+
+.ring {
+  position: relative;
+  width: 148px;
+  height: 148px;
+  margin: 24px auto;
+}
+
+svg {
+  width: 100%;
+  height: 100%;
+  // The ring starts at 12 o'clock
+  transform: rotate(-90deg);
+}
+
+circle {
+  fill: none;
+  stroke-width: 10;
+}
+
+.track {
+  stroke: var(--re-gray-100);
+}
+
+.value {
+  stroke: var(--re-teal-600);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.4s ease;
+}
+
+.count {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.completed {
+  color: var(--re-text);
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.planned {
+  color: var(--re-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.summary {
+  @include card.summary;
+
+  text-align: center;
+
+  strong {
+    color: var(--re-text-teal);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .value {
+    transition: none;
+  }
+}

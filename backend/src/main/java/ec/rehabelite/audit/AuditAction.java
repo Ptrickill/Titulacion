@@ -9,5 +9,7 @@ public enum AuditAction {
     UPDATE,
     STATUS_CHANGE,
     ACCESS_DENIED,
-    LOGIN
+    LOGIN,
+    /** A report exported to a file (HU-15: the PDF of the operations report). Added by V4. */
+    EXPORT
 }

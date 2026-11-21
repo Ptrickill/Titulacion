@@ -1,0 +1,41 @@
+<header class="heading">
+  <div>
+    <h2 class="title">Tratamientos ({{ page().totalElements }})</h2>
+    <p class="subtitle">
+      Filtrado por estado: <strong>{{ statusFilter() }}</strong> • Especialista:
+      <strong>{{ physiotherapistFilter() }}</strong>
+      @if (periodFilter(); as period) {
+        • Periodo: <strong>{{ period }}</strong>
+      }
+    </p>
+    @if (periodFilter()) {
+      <p class="note">El estado corresponde al estado actual de cada tratamiento.</p>
+    }
+  </div>
+</header>
+
+<app-data-table
+  [columns]="columns"
+  [rows]="page().content"
+  [totalItems]="page().totalElements"
+  [pageSize]="pageSize()"
+  [pageIndex]="page().page"
+  (pageIndexChange)="pageChange.emit($event)"
+  caption="Tratamientos del reporte"
+  itemLabel="tratamientos"
+  emptyMessage="No hay tratamientos que coincidan con los filtros."
+>
+  <ng-template appDataTableCell="patientName" [appDataTableCellOf]="page().content" let-t>
+    <div class="patient wrap">{{ t.patientName }}</div>
+    <div class="meta wrap">{{ t.diagnosis.code }} · {{ t.diagnosis.description }}</div>
+    <div class="meta responsible wrap">
+      <mat-icon aria-hidden="true">person</mat-icon>
+      <span>{{ t.responsibleName ?? 'Sin responsable' }}</span>
+    </div>
+  </ng-template>
+
+  <ng-template appDataTableCell="status" [appDataTableCellOf]="page().content" let-t>
+    <app-status-badge [label]="statusLabels[t.status]" [tone]="statusTones[t.status]" />
+    <div class="meta when">Inicio: {{ t.startDate | date: 'dd/MM/yyyy' }}</div>
+  </ng-template>
+</app-data-table>

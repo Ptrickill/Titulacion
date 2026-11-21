@@ -21,7 +21,7 @@ interface Row {
 class Host {
   readonly columns: DataTableColumn<Row>[] = [
     { key: 'name', header: 'Paciente' },
-    { key: 'status', header: 'Estado', align: 'center' },
+    { key: 'status', header: 'Estado', align: 'center', wrapHeader: true },
   ];
   readonly rows = signal<Row[]>(
     ['A', 'B', 'C', 'D', 'E'].map((letter) => ({ name: `Paciente ${letter}`, status: 'Activo' })),
@@ -54,6 +54,14 @@ describe('DataTable', () => {
     expect(cellTexts()).toEqual(['Paciente A', 'Paciente B']);
     expect(range()).toBe('Mostrando 1–2 de 5 pacientes');
     expect(button('Página anterior').disabled).toBe(true);
+  });
+
+  it('lets only the headers that ask for it break into lines', () => {
+    const [name, status] = Array.from(element.querySelectorAll('thead th'));
+
+    expect(name.classList).not.toContain('wrap');
+    expect(status.classList).toContain('wrap');
+    expect(status.classList).toContain('align-center');
   });
 
   it('uses the custom cell template for its column', () => {

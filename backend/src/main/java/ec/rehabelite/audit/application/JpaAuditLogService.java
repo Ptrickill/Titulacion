@@ -7,9 +7,7 @@ import ec.rehabelite.audit.domain.AuditLogRepository;
 import ec.rehabelite.audit.domain.AuthenticatedUser;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.Clock;
-import java.time.Instant;
 import java.util.Collection;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,14 +43,10 @@ class JpaAuditLogService implements AuditLogService {
         if (entityIds.isEmpty()) {
             return;
         }
-        Long userId = AuthenticatedUser.currentId();
-        Instant now = clock.instant();
-        String ip = clientIp();
-        List<AuditLog> entries = entityIds.stream()
-                .map(entityId -> new AuditLog(userId, action, entityType, entityId, now, ip))
-                .toList();
-        auditLogRepository.saveAll(entries);
-        log.debug("Audit entries recorded count={} action={} entityType={}", entries.size(), action, entityType);
+        // A single INSERT, whatever the number of entities: the cost of auditing a list does not grow with it
+        int entries = auditLogRepository.insertAll(AuthenticatedUser.currentId(), action.name(), entityType,
+                entityIds.toArray(Long[]::new), clock.instant(), clientIp());
+        log.debug("Audit entries recorded count={} action={} entityType={}", entries, action, entityType);
     }
 
     @Override

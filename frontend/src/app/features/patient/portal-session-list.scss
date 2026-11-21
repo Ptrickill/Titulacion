@@ -1,0 +1,62 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 12px;
+}
+
+.title {
+  margin: 0;
+  color: var(--re-text);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.subtitle {
+  margin: 2px 0 0;
+  color: var(--re-text-muted);
+  font-size: 13px;
+}
+
+.session {
+  color: var(--re-text);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.meta {
+  color: var(--re-text-muted);
+  font-size: 12px;
+}
+
+.when {
+  white-space: nowrap;
+}
+
+// Long texts break into lines instead of widening the table; a word without spaces breaks too
+.wrap {
+  overflow-wrap: anywhere;
+}
+
+.activities {
+  // Enough room to read the text even when the other columns are wide
+  min-width: 130px;
+}
+
+.instruction {
+  margin-top: 6px;
+  color: var(--re-text-muted);
+  font-size: 12px;
+
+  strong {
+    color: var(--re-text-teal);
+    font-weight: 700;
+  }
+}

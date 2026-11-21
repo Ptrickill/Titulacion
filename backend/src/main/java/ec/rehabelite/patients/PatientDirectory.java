@@ -1,5 +1,7 @@
 package ec.rehabelite.patients;
 
+import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,6 +14,12 @@ public interface PatientDirectory {
 
     Optional<PatientCard> find(Long patientId);
 
+    /**
+     * The patient linked to a portal account ({@code patients.portal_user_id}); empty when the account has none.
+     * The patient portal (HU-12) identifies its patient only this way, never by an id sent by the client.
+     */
+    Optional<PatientCard> findByPortalUser(Long userId);
+
     /** Personal and contact data, for the full clinical record view (HU-09). */
     Optional<PatientProfile> findProfile(Long patientId);
 
@@ -20,5 +28,11 @@ public interface PatientDirectory {
      * must appear in the name ignoring accents and case; ordered by last name. The pageable's sort is ignored.
      */
     Page<PatientCard> search(String query, Pageable pageable);
+
+    /**
+     * The full name ("first names last names") of each existing patient among the ids, and nothing else of their
+     * personal data (HU-14: data minimization). One statement; none for an empty collection.
+     */
+    Map<Long, String> fullNames(Collection<Long> patientIds);
 
 }

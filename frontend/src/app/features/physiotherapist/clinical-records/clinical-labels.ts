@@ -1,5 +1,12 @@
 import { BadgeTone } from '../../../shared/ui/status-badge';
-import { ClinicalHistoryRequest, Severity, TreatmentStatus } from './clinical-record-api';
+import { ClinicalHistoryRequest, Severity } from './clinical-record-api';
+
+// Shared with the patient portal (HU-12), which must not import from the physiotherapist area
+export {
+  painScoreTone,
+  TREATMENT_STATUS_LABELS,
+  TREATMENT_STATUS_TONES,
+} from '../../../shared/clinical/treatment-labels';
 
 /** Habits and medical history of the clinical record, in the order of the form and the record view. */
 export const CLINICAL_HISTORY_FIELDS: readonly {
@@ -29,14 +36,6 @@ export function patientInitials(patient: { firstName: string; lastName: string }
   return `${patient.firstName.charAt(0)}${patient.lastName.charAt(0)}`.toUpperCase();
 }
 
-/** Tone of the initial EVA: 7 or more is severe pain, 4 to 6 moderate. */
-export function painScoreTone(painScore: number): BadgeTone {
-  if (painScore >= 7) {
-    return 'danger';
-  }
-  return painScore >= 4 ? 'warning' : 'success';
-}
-
 export const SEVERITIES: readonly Severity[] = ['MILD', 'MODERATE', 'SEVERE'];
 
 export const SEVERITY_LABELS: Record<Severity, string> = {
@@ -52,14 +51,3 @@ export const SEVERITY_TONES: Record<Severity, BadgeTone> = {
   SEVERE: 'danger',
 };
 
-export const TREATMENT_STATUS_LABELS: Record<TreatmentStatus, string> = {
-  ACTIVE: 'Activo',
-  COMPLETED: 'Finalizado',
-  ABANDONED: 'Abandonado',
-};
-
-export const TREATMENT_STATUS_TONES: Record<TreatmentStatus, BadgeTone> = {
-  ACTIVE: 'success',
-  COMPLETED: 'info',
-  ABANDONED: 'neutral',
-};
