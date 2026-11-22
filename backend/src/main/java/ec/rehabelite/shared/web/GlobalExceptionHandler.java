@@ -2,6 +2,7 @@ package ec.rehabelite.shared.web;
 
 import ec.rehabelite.shared.domain.BusinessRuleException;
 import ec.rehabelite.shared.domain.ConflictException;
+import ec.rehabelite.shared.domain.ExternalServiceException;
 import ec.rehabelite.shared.domain.InvalidRequestException;
 import ec.rehabelite.shared.domain.ResourceNotFoundException;
 import java.util.List;
@@ -84,6 +85,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         ProblemDetail problem = problem(HttpStatus.CONFLICT, ex.getMessage());
         ex.getProperties().forEach(problem::setProperty);
         return problem;
+    }
+
+    @ExceptionHandler(ExternalServiceException.class)
+    ProblemDetail handleExternalService(ExternalServiceException ex) {
+        // The cause (e.g. an SMTP error) may name addresses: only its type is logged
+        log.warn("External service failure: cause={}",
+                ex.getCause() == null ? "none" : ex.getCause().getClass().getName());
+        return problem(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)

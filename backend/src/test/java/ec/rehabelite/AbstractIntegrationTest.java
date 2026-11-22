@@ -1,6 +1,7 @@
 package ec.rehabelite;
 
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -13,9 +14,12 @@ import org.testcontainers.utility.DockerImageName;
  * The container is a JVM-wide singleton: it starts once, is shared by all subclasses (which also share
  * the cached Spring context) and is removed by Testcontainers when the test run ends. Tests must therefore
  * not rely on an empty database; create the data they need with unique values.
+ * <p>
+ * Emails are never sent: {@link RecordingMailSender} keeps them in memory (MEJ-01).
  */
 @SpringBootTest
 @ActiveProfiles("test")
+@Import(RecordingMailSender.class)
 public abstract class AbstractIntegrationTest {
 
     /** Same major version as production and as docker-compose.yml. */

@@ -99,7 +99,7 @@ class ClinicalAuditIntegrationTests extends AbstractIntegrationTest {
 
         perform(admin, post("/api/users").contentType(MediaType.APPLICATION_JSON).content("""
                 {"email":"portal-%s@rehabelite.test","fullName":"Luis Alberto Quishpe Tipán","role":"PATIENT",
-                 "password":"Clave.Segura2026","patientId":%d}""".formatted(UUID.randomUUID(), patientId)))
+                 "patientId":%d}""".formatted(UUID.randomUUID(), patientId)))
                 .andExpect(status().isCreated());
 
         assertSingleEntry(admin, "UPDATE", "Patient", patientId);

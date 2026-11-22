@@ -3,6 +3,8 @@ package ec.rehabelite.auth.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -14,9 +16,12 @@ import ec.rehabelite.audit.AuditLogService;
 import ec.rehabelite.auth.CurrentUserProvider;
 import ec.rehabelite.auth.PortalAccountCreated;
 import ec.rehabelite.auth.Role;
+import ec.rehabelite.auth.domain.AccountStatus;
+import ec.rehabelite.auth.domain.AccountTokenPurpose;
 import ec.rehabelite.auth.domain.User;
 import ec.rehabelite.auth.domain.UserRepository;
 import ec.rehabelite.shared.domain.BusinessRuleException;
+import ec.rehabelite.shared.domain.ExternalServiceException;
 import ec.rehabelite.shared.domain.ResourceNotFoundException;
 import java.time.Clock;
 import java.time.Instant;
@@ -24,9 +29,9 @@ import java.time.ZoneOffset;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.mail.MailSendException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class UserManagementServiceTests {
@@ -34,15 +39,16 @@ class UserManagementServiceTests {
     private static final Long ADMIN_ID = 1L;
     private static final Long NEW_USER_ID = 40L;
     private static final Instant NOW = Instant.parse("2026-10-29T14:00:00Z");
-    private static final String PASSWORD = "Clave.Inicial2026";
+    private static final String TOKEN = "raw-activation-token";
 
     private final UserRepository userRepository = mock(UserRepository.class);
-    private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(4);
+    private final AccountTokenService tokenService = mock(AccountTokenService.class);
+    private final AccountMailer mailer = mock(AccountMailer.class);
     private final CurrentUserProvider currentUserProvider = mock(CurrentUserProvider.class);
     private final AuditLogService auditLogService = mock(AuditLogService.class);
     private final ApplicationEventPublisher events = mock(ApplicationEventPublisher.class);
 
-    private final UserManagementService service = new UserManagementService(userRepository, passwordEncoder,
+    private final UserManagementService service = new UserManagementService(userRepository, tokenService, mailer,
             currentUserProvider, auditLogService, events, Clock.fixed(NOW, ZoneOffset.UTC));
 
     @BeforeEach
@@ -53,23 +59,40 @@ class UserManagementServiceTests {
             ReflectionTestUtils.setField(user, "id", NEW_USER_ID);
             return user;
         });
+        when(tokenService.issue(any(), any(), any())).thenReturn(TOKEN);
     }
 
     @Test
-    void createsAnActiveAccountWithABcryptPasswordAndAuditsIt() {
+    void createsAnAccountPendingActivationWithoutPasswordAndEmailsTheLink() {
         User user = service.create(new CreateUserCommand(" Lucia.Mora@RehabElite.test ", " Lucía Mora ",
-                Role.PHYSIOTHERAPIST, PASSWORD, null));
+                Role.PHYSIOTHERAPIST, null));
 
         assertThat(user.getEmail()).isEqualTo("lucia.mora@rehabelite.test");
         assertThat(user.getFullName()).isEqualTo("Lucía Mora");
         assertThat(user.isActive()).isTrue();
+        assertThat(user.getPasswordHash()).isNull();
+        assertThat(user.getEmailVerifiedAt()).isNull();
+        assertThat(user.status()).isEqualTo(AccountStatus.PENDING_ACTIVATION);
         assertThat(user.getFailedAttempts()).isZero();
         assertThat(user.getCreatedBy()).isEqualTo(ADMIN_ID);
         assertThat(user.getCreatedAt()).isEqualTo(NOW);
-        assertThat(user.getPasswordHash()).startsWith("$2").isNotEqualTo(PASSWORD);
-        assertThat(passwordEncoder.matches(PASSWORD, user.getPasswordHash())).isTrue();
-        verify(auditLogService).record(AuditAction.CREATE, UserManagementService.AUDITED_ENTITY, NEW_USER_ID);
+        InOrder order = inOrder(auditLogService, tokenService, mailer);
+        order.verify(auditLogService).record(AuditAction.CREATE, UserManagementService.AUDITED_ENTITY, NEW_USER_ID);
+        order.verify(auditLogService)
+                .record(AuditAction.INVITATION_SENT, UserManagementService.AUDITED_ENTITY, NEW_USER_ID);
+        order.verify(tokenService).issue(NEW_USER_ID, AccountTokenPurpose.ACTIVATION, NOW);
+        order.verify(mailer).sendActivation(user, TOKEN);
         verifyNoInteractions(events);
+    }
+
+    @Test
+    void aMailFailureCancelsTheCreation() {
+        doThrow(new MailSendException("down")).when(mailer).sendActivation(any(), any());
+
+        assertThatThrownBy(() -> service.create(
+                new CreateUserCommand("ana@rehabelite.test", "Ana", Role.ADMINISTRATOR, null)))
+                .isInstanceOf(ExternalServiceException.class)
+                .hasMessage(UserManagementService.MAIL_FAILED);
     }
 
     @Test
@@ -77,17 +100,17 @@ class UserManagementServiceTests {
         when(userRepository.existsByEmail("ana@rehabelite.test")).thenReturn(true);
 
         assertThatThrownBy(() -> service.create(
-                new CreateUserCommand("ANA@rehabelite.test", "Ana", Role.ADMINISTRATOR, PASSWORD, null)))
+                new CreateUserCommand("ANA@rehabelite.test", "Ana", Role.ADMINISTRATOR, null)))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage(UserManagementService.DUPLICATE_EMAIL);
         verify(userRepository, never()).save(any());
-        verifyNoInteractions(auditLogService);
+        verifyNoInteractions(auditLogService, tokenService, mailer);
     }
 
     @Test
     void patientAccountRequiresAPatient() {
         assertThatThrownBy(() -> service.create(
-                new CreateUserCommand("rosa@rehabelite.test", "Rosa", Role.PATIENT, PASSWORD, null)))
+                new CreateUserCommand("rosa@rehabelite.test", "Rosa", Role.PATIENT, null)))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage(UserManagementService.PATIENT_REQUIRED);
         verify(userRepository, never()).save(any());
@@ -96,29 +119,55 @@ class UserManagementServiceTests {
     @Test
     void onlyPatientAccountsCanBeLinkedToAPatient() {
         assertThatThrownBy(() -> service.create(
-                new CreateUserCommand("rosa@rehabelite.test", "Rosa", Role.PHYSIOTHERAPIST, PASSWORD, 15L)))
+                new CreateUserCommand("rosa@rehabelite.test", "Rosa", Role.PHYSIOTHERAPIST, 15L)))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage(UserManagementService.PATIENT_NOT_ALLOWED);
     }
 
     @Test
     void patientAccountAsksThePatientsModuleToLinkIt() {
-        User user = service.create(new CreateUserCommand("rosa@rehabelite.test", "Rosa Ortiz", Role.PATIENT,
-                PASSWORD, 15L));
+        User user = service.create(new CreateUserCommand("rosa@rehabelite.test", "Rosa Ortiz", Role.PATIENT, 15L));
 
         assertThat(user.getRole()).isEqualTo(Role.PATIENT);
         verify(events).publishEvent(new PortalAccountCreated(NEW_USER_ID, 15L));
         verify(auditLogService).record(AuditAction.CREATE, UserManagementService.AUDITED_ENTITY, NEW_USER_ID);
+        verify(mailer).sendActivation(user, TOKEN);
     }
 
     @Test
-    void rejectsPasswordsLongerThanBcryptAllows() {
-        String longPassword = "ñ".repeat(37) + "1"; // 75 bytes in UTF-8 but only 38 characters
+    void resendsTheInvitationOfAPendingAccount() {
+        User pending = pendingUser(NEW_USER_ID);
 
-        assertThatThrownBy(() -> service.create(
-                new CreateUserCommand("ana@rehabelite.test", "Ana", Role.ADMINISTRATOR, longPassword, null)))
+        service.resendInvitation(NEW_USER_ID);
+
+        verify(auditLogService)
+                .record(AuditAction.INVITATION_RESENT, UserManagementService.AUDITED_ENTITY, NEW_USER_ID);
+        verify(tokenService).issue(NEW_USER_ID, AccountTokenPurpose.ACTIVATION, NOW);
+        verify(mailer).sendActivation(pending, TOKEN);
+    }
+
+    @Test
+    void onlyAnEnabledPendingAccountGetsTheInvitationAgain() {
+        existingUser(NEW_USER_ID, Role.PHYSIOTHERAPIST);
+        User deactivated = pendingUser(41L);
+        deactivated.deactivate(ADMIN_ID, NOW);
+
+        assertThatThrownBy(() -> service.resendInvitation(NEW_USER_ID))
                 .isInstanceOf(BusinessRuleException.class)
-                .hasMessage(UserManagementService.PASSWORD_TOO_LONG);
+                .hasMessage(UserManagementService.NOT_PENDING);
+        assertThatThrownBy(() -> service.resendInvitation(41L))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage(UserManagementService.NOT_PENDING);
+        verifyNoInteractions(auditLogService, tokenService, mailer);
+    }
+
+    @Test
+    void resendingToAnUnknownAccountIsNotFound() {
+        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.resendInvitation(99L))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage(UserManagementService.USER_NOT_FOUND);
     }
 
     @Test
@@ -181,6 +230,14 @@ class UserManagementServiceTests {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage(UserManagementService.USER_NOT_FOUND);
         verifyNoInteractions(auditLogService);
+    }
+
+    private User pendingUser(Long id) {
+        User user = User.invite("pendiente" + id + "@rehabelite.test", "Pendiente " + id, Role.PHYSIOTHERAPIST,
+                ADMIN_ID, NOW.minusSeconds(3600));
+        ReflectionTestUtils.setField(user, "id", id);
+        when(userRepository.findById(id)).thenReturn(Optional.of(user));
+        return user;
     }
 
     private User existingUser(Long id, Role role) {

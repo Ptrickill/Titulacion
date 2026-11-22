@@ -9,6 +9,11 @@ export const AUDIT_ACTIONS: readonly AuditAction[] = [
   'ACCESS_DENIED',
   'LOGIN',
   'EXPORT',
+  'INVITATION_SENT',
+  'INVITATION_RESENT',
+  'ACTIVATION',
+  'RESET_REQUEST',
+  'PASSWORD_RESET',
 ];
 
 export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
@@ -20,6 +25,12 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   LOGIN: 'Inicio de sesión',
   // HU-15: the PDF of the operations report
   EXPORT: 'Exportación',
+  // MEJ-01: account activation and password reset
+  INVITATION_SENT: 'Invitación enviada',
+  INVITATION_RESENT: 'Invitación reenviada',
+  ACTIVATION: 'Activación de cuenta',
+  RESET_REQUEST: 'Solicitud de restablecimiento',
+  PASSWORD_RESET: 'Restablecimiento de contraseña',
 };
 
 export const AUDIT_ACTION_TONES: Record<AuditAction, BadgeTone> = {
@@ -30,6 +41,11 @@ export const AUDIT_ACTION_TONES: Record<AuditAction, BadgeTone> = {
   ACCESS_DENIED: 'danger',
   LOGIN: 'neutral',
   EXPORT: 'teal',
+  INVITATION_SENT: 'info',
+  INVITATION_RESENT: 'info',
+  ACTIVATION: 'success',
+  RESET_REQUEST: 'warning',
+  PASSWORD_RESET: 'purple',
 };
 
 /**

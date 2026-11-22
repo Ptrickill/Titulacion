@@ -20,8 +20,6 @@ describe('CreateUserDialog', () => {
       role,
       email: 'lucia.mora@rehabelite.test',
       fullName: 'Lucía Fernanda Mora',
-      password: 'Clave.Inicial2026',
-      passwordConfirmation: 'Clave.Inicial2026',
     });
   }
 
@@ -48,7 +46,7 @@ describe('CreateUserDialog', () => {
   afterEach(() => backend.verify());
 
   it('validates the form in Spanish without calling the backend', async () => {
-    form().patchValue({ email: 'no-es-correo', password: 'corta', passwordConfirmation: 'otra' });
+    form().patchValue({ email: 'no-es-correo' });
     await submit();
 
     expect(errors()).toEqual(
@@ -56,20 +54,19 @@ describe('CreateUserDialog', () => {
         'Seleccione un rol.',
         'Ingrese un correo electrónico válido.',
         'Ingrese los nombres y apellidos.',
-        'Debe tener al menos 8 caracteres.',
-        'Las contraseñas no coinciden.',
       ]),
     );
     backend.expectNone('/api/users');
     expect(dialogRef.close).not.toHaveBeenCalled();
   });
 
-  it('requires a letter and a number in the password', async () => {
-    fillAccount('PHYSIOTHERAPIST');
-    form().patchValue({ password: 'soloLetras', passwordConfirmation: 'soloLetras' });
-    await submit();
-
-    expect(errors()).toContain('Debe contener al menos una letra y un número.');
+  it('asks for no password and explains the activation link (MEJ-01)', () => {
+    expect(element.querySelector('input[type=password]')).toBeNull();
+    expect(element.textContent).not.toContain('Contraseña inicial');
+    expect(Object.keys(form().controls)).not.toContain('password');
+    expect(element.querySelector('.activation-note')?.textContent).toContain(
+      'enviaremos al correo un enlace para activarla, válido por 48 horas',
+    );
   });
 
   it('creates a physiotherapist and closes with the new account', async () => {
@@ -82,13 +79,35 @@ describe('CreateUserDialog', () => {
       fullName: 'Lucía Fernanda Mora',
       email: 'lucia.mora@rehabelite.test',
       role: 'PHYSIOTHERAPIST',
-      password: 'Clave.Inicial2026',
       patientId: null,
     });
-    const created = fakeUser(7, 'Lucía Fernanda Mora', 'PHYSIOTHERAPIST');
+    const created = fakeUser(7, 'Lucía Fernanda Mora', 'PHYSIOTHERAPIST', {
+      status: 'PENDING_ACTIVATION',
+    });
     request.flush(created);
 
     expect(dialogRef.close).toHaveBeenCalledWith(created);
+  });
+
+  it('shows why the account could not be created when the email cannot be sent', async () => {
+    fillAccount('PHYSIOTHERAPIST');
+    await submit();
+
+    backend
+      .expectOne('/api/users')
+      .flush(
+        {
+          status: 503,
+          detail: 'No se pudo enviar el correo de activación. Intente nuevamente en unos minutos.',
+        },
+        { status: 503, statusText: 'Service Unavailable' },
+      );
+    await fixture.whenStable();
+
+    expect(element.querySelector('.error')?.textContent).toContain(
+      'No se pudo enviar el correo de activación.',
+    );
+    expect(dialogRef.close).not.toHaveBeenCalled();
   });
 
   it('shows the duplicate email error next to the email field', async () => {

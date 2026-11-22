@@ -17,6 +17,30 @@ export const routes: Routes = [
     title: 'Iniciar sesión | Rehab Elite',
     loadComponent: () => import('./features/auth/login/login').then((m) => m.Login),
   },
+  // MEJ-01: public pages of the emailed account links. Their paths are in Spanish because they appear in the
+  // emails (agreed exception to the English route rule, see CLAUDE.md)
+  {
+    path: 'activar-cuenta',
+    title: 'Activar cuenta | Rehab Elite',
+    data: { mode: 'activate' },
+    loadComponent: () =>
+      import('./features/auth/set-password/set-password-page').then((m) => m.SetPasswordPage),
+  },
+  {
+    path: 'restablecer-contrasena',
+    title: 'Restablecer contraseña | Rehab Elite',
+    data: { mode: 'reset' },
+    loadComponent: () =>
+      import('./features/auth/set-password/set-password-page').then((m) => m.SetPasswordPage),
+  },
+  {
+    path: 'olvide-contrasena',
+    title: 'Recuperar contraseña | Rehab Elite',
+    loadComponent: () =>
+      import('./features/auth/forgot-password/forgot-password-page').then(
+        (m) => m.ForgotPasswordPage,
+      ),
+  },
   {
     path: '',
     loadComponent: () => import('./shared/layout/app-shell').then((m) => m.AppShell),

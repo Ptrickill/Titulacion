@@ -1,14 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import {
-  AbstractControl,
-  NonNullableFormBuilder,
-  ReactiveFormsModule,
-  ValidationErrors,
-  ValidatorFn,
-  Validators,
-} from '@angular/forms';
+import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { ErrorStateMatcher } from '@angular/material/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -35,24 +28,10 @@ import { FormSection } from '../../../shared/ui/form-section';
 import { PortalCandidate, UserAccount, UserApi } from './user-api';
 import { USER_ROLE_LABELS } from './user-roles';
 
-/** At least one letter (any alphabet, including ñ and accents) and one digit, as the backend requires. */
-const PASSWORD_PATTERN = /^(?=.*\p{L})(?=.*\d).+$/u;
-
-const passwordsMatch: ValidatorFn = (group: AbstractControl): ValidationErrors | null => {
-  const password = group.get('password')?.value as string;
-  const confirmation = group.get('passwordConfirmation');
-  if (confirmation && confirmation.value && confirmation.value !== password) {
-    confirmation.setErrors({ ...confirmation.errors, mismatch: true });
-  } else if (confirmation?.hasError('mismatch')) {
-    const { mismatch: _, ...others } = confirmation.errors ?? {};
-    confirmation.setErrors(Object.keys(others).length ? others : null);
-  }
-  return null;
-};
-
 /**
- * "Crear usuario" form (HU-02): account data, role and initial password. A PATIENT account must be linked
- * to a registered patient without a portal account, chosen with a search field.
+ * "Crear usuario" form (HU-02): account data and role. A PATIENT account must be linked to a registered patient
+ * without a portal account, chosen with a search field. There is no password (MEJ-01): the account is created
+ * pending activation and its owner sets the password with the link sent by email.
  */
 @Component({
   selector: 'app-create-user-dialog',
@@ -78,32 +57,18 @@ export class CreateUserDialog {
   protected readonly roles = ROLES;
   protected readonly roleLabels = USER_ROLE_LABELS;
 
-  protected readonly form = inject(NonNullableFormBuilder).group(
-    {
-      fullName: ['', [Validators.required, Validators.maxLength(150)]],
-      email: ['', [Validators.required, Validators.email, Validators.maxLength(254)]],
-      role: [null as Role | null, Validators.required],
-      patient: [null as PortalCandidate | null],
-      patientSearch: [''],
-      password: [
-        '',
-        [
-          Validators.required,
-          Validators.minLength(8),
-          Validators.maxLength(72),
-          Validators.pattern(PASSWORD_PATTERN),
-        ],
-      ],
-      passwordConfirmation: ['', Validators.required],
-    },
-    { validators: passwordsMatch },
-  );
+  protected readonly form = inject(NonNullableFormBuilder).group({
+    fullName: ['', [Validators.required, Validators.maxLength(150)]],
+    email: ['', [Validators.required, Validators.email, Validators.maxLength(254)]],
+    role: [null as Role | null, Validators.required],
+    patient: [null as PortalCandidate | null],
+    patientSearch: [''],
+  });
 
   protected readonly candidates = signal<PortalCandidate[]>([]);
   protected readonly searchingCandidates = signal(false);
   protected readonly submitting = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
-  protected readonly hidePassword = signal(true);
 
   /**
    * The search input shows the error of the chosen patient (a separate control), so the message appears
@@ -188,7 +153,6 @@ export class CreateUserDialog {
         fullName: value.fullName.trim(),
         email: value.email.trim(),
         role: value.role as Role,
-        password: value.password,
         patientId: value.role === 'PATIENT' ? (value.patient?.id ?? null) : null,
       })
       .subscribe({

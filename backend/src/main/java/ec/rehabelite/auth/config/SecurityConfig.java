@@ -34,14 +34,19 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 /**
- * Stateless security: every request needs a valid HS256 JWT (issued by POST /api/auth/login) except login,
- * health and the OpenAPI documentation. The token's "role" claim becomes the ROLE_&lt;role&gt; authority and
+ * Stateless security: every request needs a valid HS256 JWT (issued by POST /api/auth/login) except login, the
+ * account links (activate, forgot-password, reset-password), health and the OpenAPI documentation. The token's "role" claim becomes the ROLE_&lt;role&gt; authority and
  * {@link RoleAccessRules} decides which roles may use each API area. Failures answer a Spanish problem
  * response: 401 without a valid token (or with the token of an inactive account), 403 (audited as
  * ACCESS_DENIED) for a role outside the area.
  */
 @Configuration(proxyBeanMethods = false)
 class SecurityConfig {
+
+    /** Login and the emailed account links (MEJ-01), which are used without a session. */
+    private static final String[] PUBLIC_AUTH_ENDPOINTS = {
+        "/api/auth/login", "/api/auth/activate", "/api/auth/forgot-password", "/api/auth/reset-password"
+    };
 
     private static final String[] PUBLIC_DOCUMENTATION = {
         "/v3/api-docs", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**"
@@ -56,7 +61,7 @@ class SecurityConfig {
                 .cors(withDefaults())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(a -> {
-                    a.requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                    a.requestMatchers(HttpMethod.POST, PUBLIC_AUTH_ENDPOINTS).permitAll()
                             .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                             .requestMatchers(PUBLIC_DOCUMENTATION).permitAll()
                             .requestMatchers("/error").permitAll();

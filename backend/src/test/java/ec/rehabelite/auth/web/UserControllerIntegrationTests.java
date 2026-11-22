@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.jayway.jsonpath.JsonPath;
 import ec.rehabelite.AbstractIntegrationTest;
+import ec.rehabelite.RecordingMailSender;
 import ec.rehabelite.TestPatients;
 import ec.rehabelite.auth.Role;
 import ec.rehabelite.auth.application.JwtTokenService;
@@ -28,12 +29,12 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
 /**
- * HU-02 end to end: the administrator creates accounts with a role through /api/users.
+ * HU-02 end to end: the administrator creates accounts with a role through /api/users. Since MEJ-01 an account is
+ * created without a password, pending activation, and its owner receives the activation link by email.
  */
 @AutoConfigureMockMvc
 class UserControllerIntegrationTests extends AbstractIntegrationTest {
@@ -41,13 +42,13 @@ class UserControllerIntegrationTests extends AbstractIntegrationTest {
     private static final String PASSWORD = "Clave.Inicial2026";
 
     @Autowired
+    private RecordingMailSender mailSender;
+
+    @Autowired
     private MockMvc mockMvc;
 
     @Autowired
     private UserRepository userRepository;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
 
     @Autowired
     private JwtTokenService tokenService;
@@ -66,7 +67,7 @@ class UserControllerIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
-    void createsAnActiveAccountWithABcryptPasswordThatCanLogIn() throws Exception {
+    void createsAnAccountPendingActivationWithoutPasswordAndEmailsTheActivationLink() throws Exception {
         String email = uniqueEmail("fisio");
 
         String body = create(email.toUpperCase(), "Lucía Fernanda Mora", "PHYSIOTHERAPIST", null)
@@ -76,6 +77,7 @@ class UserControllerIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.fullName").value("Lucía Fernanda Mora"))
                 .andExpect(jsonPath("$.role").value("PHYSIOTHERAPIST"))
                 .andExpect(jsonPath("$.active").value(true))
+                .andExpect(jsonPath("$.status").value("PENDING_ACTIVATION"))
                 .andExpect(jsonPath("$.lastLoginAt").doesNotExist())
                 .andExpect(jsonPath("$.password").doesNotExist())
                 .andExpect(jsonPath("$.passwordHash").doesNotExist())
@@ -83,17 +85,50 @@ class UserControllerIntegrationTests extends AbstractIntegrationTest {
         Long id = ((Number) JsonPath.read(body, "$.id")).longValue();
 
         User created = userRepository.findById(id).orElseThrow();
-        assertThat(created.getPasswordHash()).startsWith("$2").isNotEqualTo(PASSWORD);
-        assertThat(passwordEncoder.matches(PASSWORD, created.getPasswordHash())).isTrue();
+        assertThat(created.getPasswordHash()).isNull();
+        assertThat(created.getEmailVerifiedAt()).isNull();
         assertThat(created.isActive()).isTrue();
         assertThat(created.getCreatedBy()).isEqualTo(admin.getId());
         assertThat(auditEntries("CREATE", "User", id)).singleElement()
                 .satisfies(entry -> assertThat(entry).containsEntry("user_id", admin.getId()));
+        assertThat(auditEntries("INVITATION_SENT", "User", id)).singleElement()
+                .satisfies(entry -> assertThat(entry).containsEntry("user_id", admin.getId()));
 
+        assertThat(mailSender.messagesTo(email)).singleElement().satisfies(message -> {
+            assertThat(RecordingMailSender.subjectOf(message)).isEqualTo("Active su cuenta de Rehab Elite");
+            assertThat(RecordingMailSender.plainText(message))
+                    .contains("Lucía Fernanda Mora")
+                    .contains("http://localhost:4200/activar-cuenta?token=" + RecordingMailSender.tokenOf(message))
+                    .contains("48 horas");
+            assertThat(RecordingMailSender.html(message)).contains("Activar mi cuenta");
+        });
+        assertThat(jdbc.queryForObject("""
+                SELECT count(*) FROM account_tokens
+                WHERE user_id = ? AND purpose = 'ACTIVATION' AND used_at IS NULL
+                  AND expires_at = created_at + interval '48 hours'""", Integer.class, id)).isEqualTo(1);
+
+        // Pending: it cannot log in, with any password
         mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"%s\",\"password\":\"%s\"}".formatted(email, PASSWORD)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.user.role").value("PHYSIOTHERAPIST"));
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void aMailFailureAnswers503AndCreatesNothing() throws Exception {
+        String email = uniqueEmail("sin-correo");
+        mailSender.failFor(email);
+        try {
+            create(email, "Sin Correo", "PHYSIOTHERAPIST", null)
+                    .andExpect(status().isServiceUnavailable())
+                    .andExpect(jsonPath("$.title").value("Servicio no disponible"))
+                    .andExpect(jsonPath("$.detail")
+                            .value("No se pudo enviar el correo de activación. Intente nuevamente en unos minutos."));
+        } finally {
+            mailSender.stopFailingFor(email);
+        }
+
+        assertThat(userRepository.findByEmail(email)).isEmpty();
+        assertThat(mailSender.messagesTo(email)).isEmpty();
     }
 
     @Test
@@ -162,15 +197,25 @@ class UserControllerIntegrationTests extends AbstractIntegrationTest {
     void invalidDataIsRejectedWithFieldErrorsInSpanish() throws Exception {
         mockMvc.perform(post("/api/users").header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"no-es-correo\",\"fullName\":\"\",\"role\":null,\"password\":\"corta\"}"))
+                        .content("{\"email\":\"no-es-correo\",\"fullName\":\"\",\"role\":null}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Datos no válidos"))
-                .andExpect(jsonPath("$.errors[*].field").value(containsInAnyOrder(
-                        "email", "fullName", "role", "password", "password")));
+                .andExpect(jsonPath("$.errors[*].field").value(containsInAnyOrder("email", "fullName", "role")));
+    }
 
-        create(uniqueEmail("x"), "Sin Numeros", "PHYSIOTHERAPIST", null, "SoloLetrasLargas")
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors[0].message").value("debe contener al menos una letra y un número"));
+    @Test
+    void aPasswordSentByAnOldClientIsIgnored() throws Exception {
+        String email = uniqueEmail("cliente-antiguo");
+
+        mockMvc.perform(post("/api/users").header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"%s","fullName":"Cliente Antiguo","role":"PHYSIOTHERAPIST","password":"%s"}"""
+                                .formatted(email, PASSWORD)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("PENDING_ACTIVATION"));
+
+        assertThat(userRepository.findByEmail(email)).get().extracting(User::getPasswordHash).isNull();
     }
 
     @Test
@@ -197,26 +242,21 @@ class UserControllerIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(status().isForbidden());
         mockMvc.perform(post("/api/users").header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(json(uniqueEmail("x"), "X", "ADMINISTRATOR", null, PASSWORD)))
+                        .content(json(uniqueEmail("x"), "X", "ADMINISTRATOR", null)))
                 .andExpect(status().isForbidden());
         mockMvc.perform(get("/api/users")).andExpect(status().isUnauthorized());
     }
 
     private ResultActions create(String email, String fullName, String role, Long patientId) throws Exception {
-        return create(email, fullName, role, patientId, PASSWORD);
-    }
-
-    private ResultActions create(String email, String fullName, String role, Long patientId, String password)
-            throws Exception {
         return mockMvc.perform(post("/api/users").header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(json(email, fullName, role, patientId, password)));
+                .content(json(email, fullName, role, patientId)));
     }
 
-    private static String json(String email, String fullName, String role, Long patientId, String password) {
+    private static String json(String email, String fullName, String role, Long patientId) {
         return """
-                {"email":"%s","fullName":"%s","role":"%s","password":"%s","patientId":%s}"""
-                .formatted(email, fullName, role, password, patientId);
+                {"email":"%s","fullName":"%s","role":"%s","patientId":%s}"""
+                .formatted(email, fullName, role, patientId);
     }
 
     private List<Map<String, Object>> auditEntries(String action, String entityType, Long entityId) {

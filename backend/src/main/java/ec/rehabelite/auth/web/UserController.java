@@ -42,9 +42,11 @@ class UserController {
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Crear usuario",
-            description = "Crea una cuenta activa con el rol indicado y la contraseña cifrada con BCrypt. "
-                    + "Una cuenta con rol PATIENT debe vincularse a un paciente registrado que aún no tenga cuenta.")
-    @ApiResponse(responseCode = "201", description = "Usuario creado")
+            description = "Crea la cuenta sin contraseña, pendiente de activación, y envía al correo el enlace "
+                    + "\"Active su cuenta de Rehab Elite\" (vence en 48 horas). Su titular define la contraseña al "
+                    + "activarla. Una cuenta con rol PATIENT debe vincularse a un paciente registrado que aún no tenga "
+                    + "cuenta. Queda auditado como CREATE e INVITATION_SENT.")
+    @ApiResponse(responseCode = "201", description = "Usuario creado y enlace de activación enviado")
     @ApiResponse(responseCode = "400", description = "Datos con formato no válido", content = @Content(
             mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = ProblemDetail.class)))
     @ApiResponse(responseCode = "404", description = "El paciente indicado no existe", content = @Content(
@@ -53,9 +55,31 @@ class UserController {
             description = "Correo ya registrado, rol Paciente sin paciente vinculado o paciente con cuenta",
             content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                     schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "503", description = "No se pudo enviar el correo de activación; la cuenta no se creó",
+            content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                    schema = @Schema(implementation = ProblemDetail.class)))
     ResponseEntity<UserResponse> create(@Valid @RequestBody CreateUserRequest request) {
         User user = userManagementService.create(request.toCommand());
         return ResponseEntity.created(URI.create("/api/users/" + user.getId())).body(mapper.toResponse(user));
+    }
+
+    @PostMapping("/{id}/resend-invitation")
+    @Operation(summary = "Reenviar la invitación",
+            description = "Envía un enlace de activación nuevo a una cuenta habilitada pendiente de activación; los "
+                    + "enlaces anteriores dejan de servir. Queda auditado como INVITATION_RESENT.")
+    @ApiResponse(responseCode = "200", description = "Enlace reenviado")
+    @ApiResponse(responseCode = "403", description = "El rol no es administrador", content = @Content(
+            mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "404", description = "El usuario no existe", content = @Content(
+            mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "422", description = "La cuenta ya está activada o está desactivada",
+            content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                    schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "503", description = "No se pudo enviar el correo; los enlaces anteriores siguen vigentes",
+            content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                    schema = @Schema(implementation = ProblemDetail.class)))
+    UserResponse resendInvitation(@PathVariable Long id) {
+        return mapper.toResponse(userManagementService.resendInvitation(id));
     }
 
     @PatchMapping(path = "/{id}/status", consumes = MediaType.APPLICATION_JSON_VALUE)

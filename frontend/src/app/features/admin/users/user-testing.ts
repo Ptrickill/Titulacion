@@ -14,6 +14,7 @@ export function fakeUser(
     fullName,
     role,
     active: true,
+    status: 'ACTIVE',
     lastLoginAt: null,
     createdAt: '2026-10-01T15:00:00Z',
     ...overrides,

@@ -62,7 +62,7 @@ class DevSeedPasswordInitializer implements ApplicationRunner {
 
     /** The seed marker is not BCrypt; checking it would only log a warning from the encoder. */
     private boolean isBcryptOf(String password, String hash) {
-        return hash.startsWith("$2") && passwordEncoder.matches(password, hash);
+        return hash != null && hash.startsWith("$2") && passwordEncoder.matches(password, hash);
     }
 
 }
