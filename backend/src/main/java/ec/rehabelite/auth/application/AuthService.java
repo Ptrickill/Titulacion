@@ -46,13 +46,16 @@ public class AuthService {
     /**
      * Failed attempts are committed even though the method ends with an exception.
      *
-     * @throws InvalidCredentialsException for an unknown email, a wrong password, or a locked or inactive account
+     * @throws InvalidCredentialsException for an unknown email, a wrong password, or a locked, inactive or pending
+     *         (MEJ-01) account
      */
     @Transactional(noRollbackFor = InvalidCredentialsException.class)
     public LoginResult login(String email, String password) {
         Instant now = clock.instant();
         Optional<User> found = userRepository.findByEmail(User.normalizeEmail(email));
-        boolean passwordMatches = passwordMatches(password, found.map(User::getPasswordHash).orElse(dummyPasswordHash));
+        // A pending account has no password yet: compare with the dummy hash too, so the timing is the same
+        boolean passwordMatches = passwordMatches(password,
+                found.map(User::getPasswordHash).orElse(dummyPasswordHash));
 
         if (found.isEmpty()) {
             log.info("Login rejected: unknown account");
@@ -63,13 +66,21 @@ public class AuthService {
             log.info("Login rejected: inactive account userId={}", user.getId());
             throw new InvalidCredentialsException();
         }
+        if (user.isPendingActivation()) {
+            log.info("Login rejected: account pending activation userId={}", user.getId());
+            throw new InvalidCredentialsException();
+        }
         if (user.isLocked(now)) {
             log.info("Login rejected: locked account userId={}", user.getId());
             throw new InvalidCredentialsException();
         }
         if (!passwordMatches) {
             user.registerFailedAttempt(now);
-            if (user.isLocked(now)) {
+            if (user.isPendingActivation()) {
+            log.info("Login rejected: account pending activation userId={}", user.getId());
+            throw new InvalidCredentialsException();
+        }
+        if (user.isLocked(now)) {
                 log.warn("Account locked after {} failed attempts userId={}", User.MAX_FAILED_ATTEMPTS, user.getId());
             } else {
                 log.info("Login rejected: wrong password userId={} failedAttempts={}", user.getId(),
@@ -85,6 +96,10 @@ public class AuthService {
     }
 
     private boolean passwordMatches(String rawPassword, String passwordHash) {
+        if (passwordHash == null) {
+            passwordEncoder.matches(rawPassword, dummyPasswordHash);
+            return false;
+        }
         try {
             return passwordEncoder.matches(rawPassword, passwordHash);
         } catch (IllegalArgumentException ex) {

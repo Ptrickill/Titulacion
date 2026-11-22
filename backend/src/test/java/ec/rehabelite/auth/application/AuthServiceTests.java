@@ -97,6 +97,20 @@ class AuthServiceTests {
     }
 
     @Test
+    void accountPendingActivationGetsTheSameGenericErrorWithoutCountingAnAttempt() {
+        User pending = User.invite("pendiente@rehabelite.test", "Pendiente", Role.PHYSIOTHERAPIST, 1L,
+                clock.instant());
+        ReflectionTestUtils.setField(pending, "id", 43L);
+        when(userRepository.findByEmail("pendiente@rehabelite.test")).thenReturn(Optional.of(pending));
+
+        assertThatThrownBy(() -> authService.login("pendiente@rehabelite.test", PASSWORD))
+                .isInstanceOf(InvalidCredentialsException.class)
+                .hasMessage(InvalidCredentialsException.USER_MESSAGE);
+        assertThat(pending.getFailedAttempts()).isZero();
+        verifyNoLoginRecorded();
+    }
+
+    @Test
     void sixthAttemptIsRejectedEvenWithTheRightPassword() {
         for (int attempt = 0; attempt < User.MAX_FAILED_ATTEMPTS; attempt++) {
             assertThatThrownBy(() -> authService.login(EMAIL, "Clave.Incorrecta"))

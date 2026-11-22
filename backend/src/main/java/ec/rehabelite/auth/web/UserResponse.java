@@ -1,6 +1,7 @@
 package ec.rehabelite.auth.web;
 
 import ec.rehabelite.auth.Role;
+import ec.rehabelite.auth.domain.AccountStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 
@@ -10,7 +11,10 @@ record UserResponse(
         @Schema(example = "lucia.mora@rehabelite.ec") String email,
         @Schema(example = "Lucía Fernanda Mora Paz") String fullName,
         Role role,
-        @Schema(description = "Estado de la cuenta", example = "true") boolean active,
+        @Schema(description = "Cuenta habilitada (no desactivada por el administrador)", example = "true")
+        boolean active,
+        @Schema(description = "Estado de la cuenta: pendiente de activación, activa o inactiva",
+                example = "PENDING_ACTIVATION") AccountStatus status,
         @Schema(description = "Último inicio de sesión (UTC); nulo si nunca ingresó") Instant lastLoginAt,
         @Schema(description = "Fecha de creación (UTC)") Instant createdAt) {
 }

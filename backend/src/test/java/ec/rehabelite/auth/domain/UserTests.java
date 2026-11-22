@@ -91,4 +91,49 @@ class UserTests {
         assertThat(user.getUpdatedAt()).isEqualTo(later);
     }
 
+    @Test
+    void anInvitedAccountIsPendingWithoutPasswordUntilItIsActivated() {
+        User invited = User.invite(" Nuevo@RehabElite.test ", "Nuevo", Role.PATIENT, 1L, NOW);
+
+        assertThat(invited.getEmail()).isEqualTo("nuevo@rehabelite.test");
+        assertThat(invited.getPasswordHash()).isNull();
+        assertThat(invited.isPendingActivation()).isTrue();
+        assertThat(invited.status()).isEqualTo(AccountStatus.PENDING_ACTIVATION);
+
+        invited.completeActivation("bcrypt-hash", NOW.plusSeconds(60));
+
+        assertThat(invited.getPasswordHash()).isEqualTo("bcrypt-hash");
+        assertThat(invited.getEmailVerifiedAt()).isEqualTo(NOW.plusSeconds(60));
+        assertThat(invited.status()).isEqualTo(AccountStatus.ACTIVE);
+    }
+
+    @Test
+    void aCreatedAccountIsAlreadyVerifiedAndADeactivatedOneIsInactive() {
+        assertThat(user.getEmailVerifiedAt()).isEqualTo(NOW);
+        assertThat(user.status()).isEqualTo(AccountStatus.ACTIVE);
+
+        user.deactivate(1L, NOW);
+        assertThat(user.status()).isEqualTo(AccountStatus.INACTIVE);
+
+        User pending = User.invite("p@rehabelite.test", "P", Role.PATIENT, 1L, NOW);
+        pending.deactivate(1L, NOW);
+        assertThat(pending.status()).isEqualTo(AccountStatus.INACTIVE);
+    }
+
+    @Test
+    void aPasswordResetClearsTheLockAndMovesTheSessionVersion() {
+        for (int attempt = 0; attempt < User.MAX_FAILED_ATTEMPTS; attempt++) {
+            user.registerFailedAttempt(NOW);
+        }
+        assertThat(user.getSessionVersion()).isZero();
+
+        user.resetPassword("new-hash", NOW.plusSeconds(10));
+
+        assertThat(user.getPasswordHash()).isEqualTo("new-hash");
+        assertThat(user.getFailedAttempts()).isZero();
+        assertThat(user.isLocked(NOW.plusSeconds(10))).isFalse();
+        assertThat(user.getSessionVersion()).isEqualTo(1);
+        assertThat(user.getUpdatedAt()).isEqualTo(NOW.plusSeconds(10));
+    }
+
 }

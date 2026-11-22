@@ -27,3 +27,6 @@ app:
     allowed-origins: http://localhost:4200
   ai:
     anthropic-api-key: ""
+  frontend-url: http://localhost:4200
+  mail:
+    from: no-reply@rehabelite.test

@@ -13,7 +13,8 @@ import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
 
 /**
- * Issues HS256 access tokens whose claims identify the user: id (subject), email, full name and role.
+ * Issues HS256 access tokens whose claims identify the user: id (subject), email, full name, role and the session
+ * version (MEJ-01).
  */
 @Service
 @RequiredArgsConstructor
@@ -32,6 +33,7 @@ public class JwtTokenService {
                 .claim(JwtClaims.EMAIL, user.getEmail())
                 .claim(JwtClaims.FULL_NAME, user.getFullName())
                 .claim(JwtClaims.ROLE, user.getRole().name())
+                .claim(JwtClaims.SESSION_VERSION, user.getSessionVersion())
                 .build();
         JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
         String token = jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();

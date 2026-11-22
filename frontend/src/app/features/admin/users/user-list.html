@@ -96,16 +96,26 @@
     <ng-template appDataTableCell="lastLoginAt" [appDataTableCellOf]="filteredUsers()" let-user>
       <span class="last-access">{{ formatLastAccess(user.lastLoginAt) }}</span>
     </ng-template>
-    <ng-template appDataTableCell="active" [appDataTableCellOf]="filteredUsers()" let-user>
-      @if (user.active) {
-        <app-status-badge label="Activo" tone="success" />
-      } @else {
-        <app-status-badge label="Inactivo" tone="neutral" />
-      }
+    <ng-template appDataTableCell="status" [appDataTableCellOf]="filteredUsers()" let-user>
+      @let badge = statusBadges[user.status];
+      <app-status-badge [label]="badge.label" [tone]="badge.tone" />
     </ng-template>
     <ng-template appDataTableCell="id" [appDataTableCellOf]="filteredUsers()" let-user>
       @let ownAccount = isOwnAccount(user);
       @let action = user.active ? 'Desactivar cuenta' : 'Activar cuenta';
+      @if (user.status === 'PENDING_ACTIVATION') {
+        <button
+          mat-icon-button
+          type="button"
+          class="resend-action"
+          [disabled]="pendingIds().has(user.id)"
+          matTooltip="Reenviar invitación"
+          [attr.aria-label]="'Reenviar invitación a ' + user.fullName"
+          (click)="resendInvitation(user)"
+        >
+          <mat-icon aria-hidden="true">forward_to_inbox</mat-icon>
+        </button>
+      }
       <button
         mat-icon-button
         type="button"

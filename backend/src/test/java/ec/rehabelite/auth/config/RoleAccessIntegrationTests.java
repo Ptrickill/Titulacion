@@ -277,6 +277,31 @@ class RoleAccessIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.title").value("Inicio de sesión fallido"));
     }
 
+    @Test
+    void theEmailedAccountLinksArePublic() throws Exception {
+        // MEJ-01: used without a session. Wrong data gets 400 or 202, never 401
+        String link = """
+                {"token":"no-existe","password":"Clave.Nueva2026","passwordConfirmation":"Clave.Nueva2026"}""";
+        for (String path : List.of("/api/auth/activate", "/api/auth/reset-password")) {
+            mockMvc.perform(post(path).contentType(MediaType.APPLICATION_JSON).content(link))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.detail").value("El enlace no es válido o ya venció. Solicite uno nuevo."));
+        }
+        mockMvc.perform(post("/api/auth/forgot-password").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"nadie-" + UUID.randomUUID() + "@rehabelite.test\"}"))
+                .andExpect(status().isAccepted());
+    }
+
+    @Test
+    void resendingAnInvitationIsForTheAdministratorOnly() throws Exception {
+        for (Role role : List.of(PHYSIOTHERAPIST, PATIENT, OPERATIONS_DIRECTOR)) {
+            String token = tokenService.issue(createUser(role), Instant.now()).token();
+            mockMvc.perform(post("/api/users/5/resend-invitation")
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
     private User createUser(Role role) {
         // Tokens are issued directly, so the password hash is never checked
         return userRepository.save(User.create("rol-" + UUID.randomUUID() + "@rehabelite.test", "not-a-real-hash",

@@ -74,6 +74,29 @@ app-form-section {
   }
 }
 
+.activation-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  color: var(--re-gray-700);
+  background: var(--re-teal-50);
+  border: 1px solid var(--re-gray-200);
+  border-left: 4px solid var(--re-teal);
+  border-radius: var(--re-radius-sm);
+  font-size: 13px;
+  line-height: 1.45;
+
+  mat-icon {
+    flex-shrink: 0;
+    color: var(--re-text-teal);
+  }
+
+  p {
+    margin: 0;
+  }
+}
+
 .error {
   display: flex;
   align-items: center;

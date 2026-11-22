@@ -21,7 +21,7 @@ describe('UserList', () => {
     }),
     fakeUser(2, 'José Montaño', 'PHYSIOTHERAPIST'),
     fakeUser(3, 'Administrador Rehab', 'ADMINISTRATOR'),
-    fakeUser(4, 'Director General', 'OPERATIONS_DIRECTOR', { active: false }),
+    fakeUser(4, 'Director General', 'OPERATIONS_DIRECTOR', { active: false, status: 'INACTIVE' }),
     fakeUser(5, 'Rosa Ortiz', 'PATIENT'),
   ];
 
@@ -110,9 +110,11 @@ describe('UserList', () => {
     backend.expectOne('/api/users').flush([...users, created]);
     await fixture.whenStable();
 
-    expect(notice).toHaveBeenCalledWith('Usuario Lucía Mora creado correctamente.', 'Cerrar', {
-      duration: 5000,
-    });
+    expect(notice).toHaveBeenCalledWith(
+      'Enviamos un enlace de activación a usuario6@rehabelite.test',
+      'Cerrar',
+      { duration: 6000 },
+    );
     expect(rowNames()).toContain('Lucía Mora');
   });
 
@@ -180,7 +182,7 @@ describe('UserList', () => {
       await fixture.whenStable();
       expect(actionOf('Ricardo Salinas').getAttribute('aria-disabled')).toBe('true');
 
-      request.flush({ ...users[0], active: false });
+      request.flush({ ...users[0], active: false, status: 'INACTIVE' });
       await fixture.whenStable();
 
       expect(rowOf('Ricardo Salinas').textContent).toContain('Inactivo');
@@ -201,7 +203,7 @@ describe('UserList', () => {
       });
       const request = backend.expectOne('/api/users/4/status');
       expect(request.request.body).toEqual({ active: true });
-      request.flush({ ...users[3], active: true });
+      request.flush({ ...users[3], active: true, status: 'ACTIVE' });
       await fixture.whenStable();
 
       expect(rowOf('Director General').textContent).toContain('Activo');
@@ -240,6 +242,84 @@ describe('UserList', () => {
       });
       expect(rowOf('José Montaño').textContent).toContain('Activo');
       expect(actionOf('José Montaño').getAttribute('aria-disabled')).toBeNull();
+    });
+  });
+
+  describe('pending activation (MEJ-01)', () => {
+    let notice: MockInstance<MatSnackBar['open']>;
+    const pending = fakeUser(6, 'Lucía Mora', 'PHYSIOTHERAPIST', { status: 'PENDING_ACTIVATION' });
+
+    const rowOf = (name: string) =>
+      Array.from(element.querySelectorAll('tbody tr')).find((row) =>
+        row.textContent?.includes(name),
+      ) as HTMLTableRowElement;
+    const resendOf = (name: string) =>
+      rowOf(name).querySelector<HTMLButtonElement>('button.resend-action');
+
+    async function renderWithPending(): Promise<void> {
+      fixture = TestBed.createComponent(UserList);
+      element = fixture.nativeElement as HTMLElement;
+      await fixture.whenStable();
+      backend.expectOne('/api/users').flush([...users, pending]);
+      await fixture.whenStable();
+    }
+
+    beforeEach(() => {
+      notice = vi.spyOn(TestBed.inject(MatSnackBar), 'open');
+      logInForTest('ADMINISTRATOR', 'Administrador Rehab', 3);
+    });
+
+    it('shows the pending status, offers "Reenviar invitación" only to it and does not count it as active', async () => {
+      await renderWithPending();
+
+      expect(rowOf('Lucía Mora').textContent).toContain('Pendiente de activación');
+      expect(resendOf('Lucía Mora')?.getAttribute('aria-label')).toBe(
+        'Reenviar invitación a Lucía Mora',
+      );
+      expect(resendOf('Ricardo Salinas')).toBeNull();
+      expect(resendOf('Director General')).toBeNull();
+      expect(statValues()[0]).toContain('4');
+    });
+
+    it('resends the invitation and confirms where the link went', async () => {
+      await renderWithPending();
+
+      resendOf('Lucía Mora')!.click();
+      const request = backend.expectOne('/api/users/6/resend-invitation');
+      expect(request.request.method).toBe('POST');
+      await fixture.whenStable();
+      expect(resendOf('Lucía Mora')!.disabled).toBe(true);
+      request.flush(pending);
+      await fixture.whenStable();
+
+      expect(notice).toHaveBeenCalledWith(
+        'Enviamos un nuevo enlace de activación a usuario6@rehabelite.test',
+        'Cerrar',
+        { duration: 6000 },
+      );
+      expect(resendOf('Lucía Mora')!.disabled).toBe(false);
+    });
+
+    it('shows the server message when the invitation cannot be resent', async () => {
+      await renderWithPending();
+
+      resendOf('Lucía Mora')!.click();
+      backend
+        .expectOne('/api/users/6/resend-invitation')
+        .flush(
+          {
+            detail:
+              'No se pudo enviar el correo de activación. Intente nuevamente en unos minutos.',
+          },
+          { status: 503, statusText: 'Service Unavailable' },
+        );
+      await fixture.whenStable();
+
+      expect(notice).toHaveBeenCalledWith(
+        'No se pudo enviar el correo de activación. Intente nuevamente en unos minutos.',
+        'Cerrar',
+        { duration: 6000 },
+      );
     });
   });
 

@@ -7,7 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth-service';
 import { ROLE_HOME } from '../../../core/auth/role';
 
@@ -25,6 +25,7 @@ export const INVALID_CREDENTIALS_MESSAGE =
     MatCheckboxModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    RouterLink,
   ],
   templateUrl: './login.html',
   styleUrl: './login.scss',

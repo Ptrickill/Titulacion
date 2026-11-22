@@ -25,13 +25,19 @@ describe('UserApi', () => {
       email: 'a@rehabelite.test',
       fullName: 'A',
       role: 'ADMINISTRATOR' as const,
-      password: 'Clave.2026',
       patientId: null,
     };
     api.create(body).subscribe();
     const create = backend.expectOne('/api/users');
     expect(create.request.method).toBe('POST');
     expect(create.request.body).toEqual(body);
+  });
+
+  it('resends the invitation of a pending account (MEJ-01)', () => {
+    api.resendInvitation(6).subscribe();
+
+    const request = backend.expectOne('/api/users/6/resend-invitation');
+    expect(request.request.method).toBe('POST');
   });
 
   it('searches patients without portal account', () => {

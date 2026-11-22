@@ -16,7 +16,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findAllByOrderByFullNameAsc();
 
-    boolean existsByIdAndActiveTrue(Long id);
+    /** Active account whose session version matches the token's (HU-03 and MEJ-01). */
+    boolean existsByIdAndActiveTrueAndSessionVersion(Long id, int sessionVersion);
 
     List<User> findByEmailEndingWith(String suffix);
 

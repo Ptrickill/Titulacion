@@ -23,6 +23,8 @@ Facturación, pagos, agenda médica, telemedicina, app móvil, integración con 
 
 **En inglés:** carpetas, paquetes, clases, interfaces, métodos, variables, constantes, enums, tablas, columnas, índices, constraints, endpoints REST, rutas y componentes de Angular, nombres de archivos, variables de entorno, logs, comentarios de código/Javadoc y mensajes de commit.
 
+**Excepción acordada (MEJ-01):** las rutas públicas de Angular de los enlaces que llegan por correo van en español, porque el usuario las ve en el correo y en la barra: `/activar-cuenta`, `/restablecer-contrasena` y `/olvide-contrasena`. Sus componentes y su código siguen en inglés (`SetPasswordPage`, `ForgotPasswordPage`). No crear otras rutas en español.
+
 **En español:** textos visibles para el usuario (etiquetas, botones, mensajes de la interfaz, `title`/`detail` de `ProblemDetail`, mensajes de Bean Validation), datos de catálogo mostrados al usuario (descripciones CIE-10) y los documentos de `docs/`.
 
 Los comentarios `# TODO` de `.env` / `.env.example` son instrucciones para el desarrollador y se mantienen en español.
@@ -58,7 +60,7 @@ Los comentarios `# TODO` de `.env` / `.env.example` son instrucciones para el de
 
 ## Stack
 
-- **Backend:** Java 21, Spring Boot 4, Spring Security con JWT HS256 (OAuth2 Resource Server), Spring Data JPA, Flyway, Hibernate Envers (HU-18), Spring Modulith, Bean Validation, MapStruct, springdoc-openapi, Apache PDFBox 3.0.8 (HU-15, licencia Apache 2.0).
+- **Backend:** Java 21, Spring Boot 4, Spring Security con JWT HS256 (OAuth2 Resource Server), Spring Data JPA, Flyway, Hibernate Envers (HU-18), Spring Modulith, Bean Validation, MapStruct, springdoc-openapi, Apache PDFBox 3.0.8 (HU-15, licencia Apache 2.0), Spring Mail (MEJ-01, correos de las cuentas).
 - **Frontend:** Angular 22 con Angular Material.
 - **Base de datos:** PostgreSQL 16.
 - **IA:** API de Claude (Sprint 5, módulo `aisummary`).
@@ -134,14 +136,27 @@ Reglas:
     - Qué cuenta como sesión realizada lo decide `sessions` (`completed`). Las lecturas por este puerto no se auditan aquí: audita quien llama.
     - Es la única forma en que otros módulos (`portal`, `reports`, ...) leen sesiones.
   - `ec.rehabelite.audit.EntityVersionHistory` (HU-10): `versionsOf(clase, id)` devuelve las versiones de Envers de una entidad `@Audited`, de la más antigua a la más reciente. Cada `EntityVersion` trae la entidad, la revisión, el tipo (`CREATE`, `UPDATE`, `DELETE`), la fecha y el autor (o `null`). Así ningún módulo usa `AuditRevision` ni Envers directamente.
-- Seguridad: JWT HS256 emitido por `POST /api/auth/login` (claims `sub` = id, `email`, `fullName`, `role`; el rol da la autoridad `ROLE_<rol>`). Públicos solo login, `/actuator/health` y la documentación OpenAPI. El reloj se inyecta como bean `Clock` (`shared.config`).
+- Seguridad: JWT HS256 emitido por `POST /api/auth/login` (claims `sub` = id, `email`, `fullName`, `role` y `sv`, la versión de sesión de MEJ-01; el rol da la autoridad `ROLE_<rol>`). Públicos solo login, los enlaces de las cuentas (`POST /api/auth/activate`, `/forgot-password` y `/reset-password`, MEJ-01), `/actuator/health` y la documentación OpenAPI. El reloj se inyecta como bean `Clock` (`shared.config`).
 - Estado de cuentas (HU-03):
   - `PATCH /api/users/{id}/status` con `{ "active": boolean }` (`UserManagementService.changeStatus`).
   - Nunca se borra una cuenta: se desactiva. Reactivarla reinicia intentos fallidos y bloqueo.
   - Un administrador no puede desactivar su propia cuenta (422).
   - Cada cambio real audita `STATUS_CHANGE User`; pedir el estado actual no cambia ni audita nada.
   - El login rechaza la cuenta inactiva con el mensaje genérico de HU-01.
-  - `ActiveAccountTokenValidator` (validador del `JwtDecoder`, después de firma, expiración y emisor) da 401 a los tokens ya emitidos de una cuenta inactiva o inexistente. Las pruebas deben emitir tokens solo para usuarios guardados.
+  - `ActiveAccountTokenValidator` (validador del `JwtDecoder`, después de firma, expiración y emisor) da 401 a los tokens ya emitidos de una cuenta inactiva o inexistente, o emitidos antes del último restablecimiento de contraseña (MEJ-01). Las pruebas deben emitir tokens solo para usuarios guardados.
+- Activación de cuentas y restablecimiento de contraseña (MEJ-01, Jira RHE-84), módulo `auth`. Reemplaza la contraseña que definía el administrador en HU-02:
+  - **Flujo de una cuenta:** el administrador la crea **sin contraseña** → queda "Pendiente de activación" (`email_verified_at` nulo, `password_hash` nulo) y su titular recibe el correo "Active su cuenta de Rehab Elite" con el enlace `{APP_FRONTEND_URL}/activar-cuenta?token=…` → al activarla define su contraseña y queda activa. `UserResponse.status` es `PENDING_ACTIVATION`, `ACTIVE` o `INACTIVE` (desactivada, se haya activado o no; `User.status()`); `active` se conserva.
+  - `POST /api/users` (`UserManagementService.create`): sin `password` (si un cliente antiguo lo envía, se ignora). Crea la cuenta con `User.invite`, audita `CREATE User` e `INVITATION_SENT User`, y envía el correo **al final y dentro de la transacción**: si el SMTP falla, no se crea nada y responde 503 "No se pudo enviar el correo de activación. Intente nuevamente en unos minutos." (`ExternalServiceException`).
+  - `POST /api/users/{id}/resend-invitation` (solo `ADMINISTRATOR`): enlace nuevo para una cuenta habilitada y pendiente; si no, 422 "Solo se puede reenviar la invitación a una cuenta habilitada que aún no se ha activado."; 404 si no existe. Audita `INVITATION_RESENT User`. Un fallo del correo responde 503 y los enlaces anteriores siguen vigentes.
+  - **Enlaces de un solo uso** (`account_tokens`, `AccountTokenService`): 32 bytes de `SecureRandom` en Base64 URL sin relleno (43 caracteres, `AccountTokens`); se guarda solo su SHA-256 en hexadecimal (`token_hash char(64)`, único). Vencen según `app.tokens.activation-ttl` (48 h por defecto) y `app.tokens.reset-ttl` (1 h). Un enlace nuevo del mismo propósito marca como usados (`used_at`) los anteriores sin usar. Al usarlo, la fila se lee con bloqueo `PESSIMISTIC_WRITE`, así que dos usos simultáneos no pueden tener éxito. **El token nunca va a los logs ni a la auditoría**: solo aparece en el enlace del correo, que tampoco se registra.
+  - `POST /api/auth/activate` y `POST /api/auth/reset-password` (públicos, `AccountAccessService`) reciben `{token, password, passwordConfirmation}` (`SetPasswordRequest`). Primero validan la contraseña (la regla de HU-02: de 8 a 72 caracteres, con al menos una letra y un número, y como máximo 72 bytes) y la confirmación (400 "La confirmación no coincide con la contraseña."), sin gastar el enlace; después el enlace. Un enlace inexistente, usado, reemplazado o vencido, de otro propósito o de una cuenta desactivada responde siempre 400 "El enlace no es válido o ya venció. Solicite uno nuevo.". Responden 204.
+    - Activar guarda el BCrypt, `email_verified_at` y `used_at`, y audita `ACTIVATION User` atribuida a la propia cuenta (`recordFor`).
+    - Restablecer guarda el BCrypt, reinicia los intentos fallidos y el bloqueo, incrementa `users.session_version` (los JWT llevan el claim `sv` y `ActiveAccountTokenValidator` rechaza los de una versión anterior: así se cierran las sesiones abiertas, como al desactivar; un token sin el claim cuenta como versión 0) y audita `PASSWORD_RESET User` atribuida a la propia cuenta.
+  - `POST /api/auth/forgot-password` `{email}` (público): responde **siempre 202** con el mismo mensaje, "Si el correo corresponde a una cuenta activa, recibirá en unos minutos un enlace para restablecer la contraseña.". Solo envía el correo "Restablezca su contraseña de Rehab Elite" (`/restablecer-contrasena?token=…`) si la cuenta existe, está habilitada y activada, y recibió **menos de 3 enlaces de restablecimiento en la última hora** (se cuentan en `account_tokens`). El correo sale después del commit en otro hilo (`applicationTaskExecutor`): ni la respuesta ni su tiempo revelan si la cuenta existe, y un fallo del SMTP solo se registra en el log. Cada solicitud audita `RESET_REQUEST User`, sin usuario y con el id de la cuenta, o sin id si el correo no existe (solo queda la IP); el correo nunca se guarda.
+  - **Login:** una cuenta pendiente recibe el mismo mensaje genérico de credenciales inválidas, sin contar un intento fallido; su comparación BCrypt usa el hash ficticio para que el tiempo no la delate.
+  - Las cuentas creadas antes de V5 y las del seed `dev` quedan verificadas (`email_verified_at = created_at`, o `now()` en el seed). `User.create` (administrador inicial, pruebas) crea la cuenta ya verificada y con contraseña.
+  - Correo: `AccountMailer` arma un mensaje en español con texto y HTML (`JavaMailSender`, remitente `app.mail.from`). En desarrollo, Mailpit (`docker compose --profile dev up -d mailpit`) recibe los correos en el puerto 1025 y los muestra en `http://localhost:8025`.
+  - Pruebas: `AccountActivationIntegrationTests` (activación, enlace vencido, usado y reenviado, contraseña inválida, restablecimiento que cierra las sesiones, correo inexistente con la misma respuesta, límite de solicitudes y auditoría y logs sin el token), `UserControllerIntegrationTests` (creación sin contraseña, correo enviado, 503) y `FlywayMigrationTests` (V5 sobre una base con cuentas existentes, en una base nueva del mismo contenedor).
 - Registro de pacientes (HU-05):
   - `POST /api/patients` (`PatientRegistrationService.register`). El número de historia clínica es la cédula y lo asigna el servidor.
   - La edad no se guarda: `Patient.ageOn(fecha)`, y la respuesta trae `age` calculada a la fecha de hoy en Quito.
@@ -292,6 +307,11 @@ Reglas:
 
     | Endpoint | Acción registrada |
     |---|---|
+    | `POST /api/users` (MEJ-01) | `CREATE User` + `INVITATION_SENT User` |
+    | `POST /api/users/{id}/resend-invitation` (MEJ-01) | `INVITATION_RESENT User` |
+    | `POST /api/auth/activate` (MEJ-01) | `ACTIVATION User`, atribuida a la propia cuenta |
+    | `POST /api/auth/forgot-password` (MEJ-01) | `RESET_REQUEST User`, sin usuario; sin id si el correo no existe |
+    | `POST /api/auth/reset-password` (MEJ-01) | `PASSWORD_RESET User`, atribuida a la propia cuenta |
     | `POST /api/patients` | `CREATE Patient` |
     | `PUT /api/patients/{id}` | `UPDATE Patient` (solo si cambia algo) |
     | Evento `PortalAccountCreated` (`POST /api/users` con rol `PATIENT`) | `UPDATE Patient` |
@@ -361,6 +381,7 @@ Reglas:
 - DTO siempre como `record`; las entidades **nunca** se exponen en la API (mapear con MapStruct).
 - Errores: lanzar `InvalidRequestException` (400, para lo que Bean Validation no expresa, p. ej. un rango de fechas invertido), `ResourceNotFoundException` (404), `BusinessRuleException` (422) o `ConflictException` (409) de `ec.rehabelite.shared.domain`, con mensaje en español; `GlobalExceptionHandler` los convierte en `ProblemDetail` en español. Nunca lanzar `ResponseStatusException`: su motivo se reemplaza por el detalle genérico de su código.
   - `ConflictException` añade sus propiedades a la respuesta: solo ids o códigos, nunca datos personales.
+  - `ExternalServiceException` (`shared.domain`, MEJ-01) es para un servicio externo del que depende la operación y que falló (el SMTP del correo de activación): 503 "Servicio no disponible" con su mensaje como `detail`. El log solo registra el tipo de la causa, que puede llevar direcciones de correo.
   - `ForbiddenOperationException` (`shared.domain`, extiende `AccessDeniedException`) es para un rol que puede usar el endpoint pero no sobre ese recurso (HU-10: corregir la sesión de otro fisioterapeuta; HU-12: el tratamiento de otro paciente en el portal). `GlobalExceptionHandler` la relanza y `AuditingAccessDeniedHandler` responde 403 con su mensaje como `detail` y audita `ACCESS_DENIED`. Los demás 403 conservan el detalle genérico.
   - El locale está fijo en `es-EC`, así que los mensajes de Bean Validation también salen en español.
   - Las excepciones propias de Spring MVC salen con el título y el detalle en español de su código, sin cambiar el código. Son el 405 (conserva la cabecera `Allow`), el 415, el cuerpo ilegible, el parámetro faltante o de tipo inválido (400) y la ruta inexistente (`NoResourceFoundException`, 404). El detalle nunca repite el valor enviado por el cliente. Las excepciones de Spring que extienden `ErrorResponseException` (p. ej. `ResponseStatusException`) tampoco conservan el suyo: solo las excepciones de la aplicación (`shared.domain`) conservan su mensaje. Un parámetro fuera de rango (`@Min`/`@Max`, `HandlerMethodValidationException`) responde 400 "Datos no válidos" con la lista `errors`, igual que la validación del cuerpo. Lo hace `GlobalExceptionHandler.handleExceptionInternal`, que usa el `ErrorResponse` de la excepción cuando Spring no trae cuerpo, y lo comprueba `SpringErrorProblemDetailIntegrationTests`.
@@ -385,7 +406,7 @@ Reglas:
   - Toda cédula nueva del seed debe pasar `NationalId` (lo comprueba `DevSeedDataTests`).
   - `spring.flyway.ignore-migration-patterns` incluye `repeatable:missing` para que una base sembrada arranque sin `dev`.
   - Las pruebas de integración nunca activan `dev` sobre el contenedor compartido (`DevSeedIntegrationTests` usa uno propio).
-- Pruebas de integración: extender `ec.rehabelite.AbstractIntegrationTest` (contexto completo, perfil `test`, un único `postgres:16` de Testcontainers compartido). No asumir base vacía: cada prueba crea sus propios datos con valores únicos. Para pacientes de prueba que no son el objeto de la prueba, usar `ec.rehabelite.TestPatients`: los inserta por SQL, sin auditoría, con cédulas sintéticas de dígito verificador válido y el número de historia igual a la cédula. `TestTreatments` (historial, tratamiento y responsable) y `TestSessions.insert` hacen lo mismo con los tratamientos y las sesiones que la prueba solo necesita leer.
+- Pruebas de integración: extender `ec.rehabelite.AbstractIntegrationTest` (contexto completo, perfil `test`, un único `postgres:16` de Testcontainers compartido). Los correos nunca salen: `RecordingMailSender` (MEJ-01) los guarda en memoria; `messagesTo(correo)` lee los de una dirección, `awaitMessagesTo` espera los que salen en otro hilo, `tokenOf` extrae el token del enlace y `failFor(correo)` simula un SMTP caído. No asumir base vacía: cada prueba crea sus propios datos con valores únicos. Para pacientes de prueba que no son el objeto de la prueba, usar `ec.rehabelite.TestPatients`: los inserta por SQL, sin auditoría, con cédulas sintéticas de dígito verificador válido y el número de historia igual a la cédula. `TestTreatments` (historial, tratamiento y responsable) y `TestSessions.insert` hacen lo mismo con los tratamientos y las sesiones que la prueba solo necesita leer.
 
 ### Endpoints REST
 
@@ -400,15 +421,16 @@ Excepciones acordadas en HU-07 (fuera del patrón de recurso plural):
 - HU-10: `POST` y `GET /api/treatments/{treatmentId}/therapy-sessions`, porque una sesión siempre pertenece a un tratamiento. La sesión ya creada se maneja en `/api/therapy-sessions/{id}`.
 - HU-12 y HU-13: `GET /api/portal/treatments` y sus sub-recursos `GET /api/portal/treatments/{id}/progress`, `/sessions` e `/instructions`: vista de los tratamientos del propio paciente, separada de `/api/treatments` y de `/api/therapy-sessions`, que son del fisioterapeuta.
 - HU-14: `GET /api/reports/summary` (singular: los indicadores del reporte), `/api/reports/treatments` y `/api/reports/physiotherapists`: vistas de solo lectura del reporte, separadas de `/api/treatments` y de `/api/physio/physiotherapists`, que son del fisioterapeuta.
+- MEJ-01: `POST /api/users/{id}/resend-invitation` (acción sobre la cuenta) y `POST /api/auth/activate`, `/api/auth/forgot-password` y `/api/auth/reset-password` (acciones públicas de autenticación).
 - HU-15: `GET /api/reports/summary.pdf`: el mismo reporte como archivo; la extensión distingue el formato (Spring no hace coincidir sufijos, así que es una ruta propia).
 
 Ejemplos: `GET /api/patients?query=...`, `PATCH /api/treatments/{id}/status`, `POST /api/ai-summaries/{id}/approve`.
 
 ## Modelo de datos
 
-Fuente de verdad: `backend/src/main/resources/db/migration/` (`V1__initial_schema.sql`, `V2__icd10_initial_catalog.sql`, `V3__envers_audit_tables.sql`: `revinfo`, `treatments_aud`, `therapy_sessions_aud` e índice `ix_audit_logs_occurred_at`; `V4__audit_logs_export_action.sql` (HU-15): agrega `EXPORT` a `ck_audit_logs_action`). `FlywayMigrationTests` comprueba que `ck_audit_logs_action` admite exactamente los valores de `AuditAction`.
+Fuente de verdad: `backend/src/main/resources/db/migration/` (`V1__initial_schema.sql`, `V2__icd10_initial_catalog.sql`, `V3__envers_audit_tables.sql`: `revinfo`, `treatments_aud`, `therapy_sessions_aud` e índice `ix_audit_logs_occurred_at`; `V4__audit_logs_export_action.sql` (HU-15): agrega `EXPORT` a `ck_audit_logs_action`; `V5__account_activation.sql` (MEJ-01): `users.password_hash` admite nulos, `users.email_verified_at` y `users.session_version`, la tabla `account_tokens` y las acciones nuevas de auditoría; las cuentas existentes quedan verificadas desde su creación). `FlywayMigrationTests` comprueba que `ck_audit_logs_action` admite exactamente los valores de `AuditAction`.
 
-- Tablas en inglés, plural, snake_case: `users`, `patients`, `clinical_records`, `icd10_diagnoses`, `treatments`, `responsible_assignments`, `treatment_status_changes`, `therapy_sessions`, `ai_summaries`, `audit_logs`.
+- Tablas en inglés, plural, snake_case: `users`, `patients`, `clinical_records`, `icd10_diagnoses`, `treatments`, `responsible_assignments`, `treatment_status_changes`, `therapy_sessions`, `ai_summaries`, `audit_logs`, `account_tokens` (MEJ-01).
 - Prefijos: `pk_`, `fk_`, `uq_`, `ck_`, `ix_`; triggers `trg_`.
 - Columnas de auditoría: `created_by`, `created_at`, `updated_by`, `updated_at`.
 - Función de búsqueda: `normalize_text(text)` (minúsculas sin tildes; índice trigram sobre `patients`).
@@ -424,7 +446,8 @@ Valores de enums / CHECK:
 | `therapy_sessions.status` | `COMPLETED`, `RESCHEDULED`, `NO_SHOW` |
 | `therapy_sessions.progress_status` | `STABLE`, `IMPROVING`, `NEEDS_ATTENTION` |
 | `ai_summaries.status` | `PENDING_REVIEW`, `APPROVED`, `DISCARDED` |
-| `audit_logs.action` | `CREATE`, `READ`, `UPDATE`, `STATUS_CHANGE`, `ACCESS_DENIED`, `LOGIN`, `EXPORT` (V4, HU-15) |
+| `audit_logs.action` | `CREATE`, `READ`, `UPDATE`, `STATUS_CHANGE`, `ACCESS_DENIED`, `LOGIN`, `EXPORT` (V4, HU-15), `INVITATION_SENT`, `INVITATION_RESENT`, `ACTIVATION`, `RESET_REQUEST`, `PASSWORD_RESET` (V5, MEJ-01; máximo 20 caracteres, el largo de la columna) |
+| `account_tokens.purpose` | `ACTIVATION`, `PASSWORD_RESET` |
 
 ## Reglas de datos y seguridad (no negociables)
 
@@ -443,15 +466,15 @@ Valores de enums / CHECK:
 
 ### Variables de entorno
 
-`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `POSTGRES_DB` (solo para el PostgreSQL de Docker), `JWT_SECRET` (≥ 32 caracteres), `JWT_EXPIRATION_MINUTES`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ANTHROPIC_API_KEY`, `CORS_ALLOWED_ORIGINS`, `DEV_SEED_PASSWORD` (solo perfil `dev`).
+`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `POSTGRES_DB` (solo para el PostgreSQL de Docker), `JWT_SECRET` (≥ 32 caracteres), `JWT_EXPIRATION_MINUTES`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ANTHROPIC_API_KEY`, `CORS_ALLOWED_ORIGINS`, `DEV_SEED_PASSWORD` (solo perfil `dev`) y, desde MEJ-01, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM` y `APP_FRONTEND_URL`.
 
-Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `app.admin.password`, `app.cors.allowed-origins`, `app.ai.anthropic-api-key` y, solo en `application-dev.yml`, `app.dev-seed.password`.
+Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `app.admin.password`, `app.cors.allowed-origins`, `app.ai.anthropic-api-key`, `spring.mail.host`, `spring.mail.port`, `spring.mail.username`, `spring.mail.password`, `app.mail.from`, `app.frontend-url` (base de los enlaces de los correos) y, solo en `application-dev.yml`, `app.dev-seed.password`. Sin valor, el correo va a `localhost:1025` (Mailpit) y los enlaces a `http://localhost:4200`; en producción hay que definirlas. Las duraciones de los enlaces son `app.tokens.activation-ttl` (48h) y `app.tokens.reset-ttl` (1h), en `application.yml`.
 
 ## Frontend (Angular 22 + Material)
 
 - Requiere Node.js `^22.22.3`. `npm start` sirve en `http://localhost:4200` y redirige `/api` a `http://localhost:8080` (`proxy.conf.json`).
 - Carpetas: `src/app/core` (`AuthService` con login y sesión en signals, `authGuard`/`roleGuard`, `authInterceptor`, roles, locale `es-EC`), `src/app/shared/layout` (`AppShell`, `nav-items.ts`, `PlaceholderPage`), `src/app/shared/ui` (componentes reutilizables), `src/app/shared/clinical` (etiquetas clínicas que comparten varias áreas), `src/app/features/auth`, `features/admin`, `features/physiotherapist`, `features/director`, `features/patient`, `features/dev` (solo desarrollo).
-- Rutas: `/login` y, dentro de `AppShell`, un `*.routes.ts` por rol: `/physio` (`patients`, `clinical-records`, `timeline`, `ai-assistant`), `/admin` (`users`, `patients`, `audit`; sin `reports`, HU-14), `/director` (`reports`, `audit`), `/patient`. Cada rol protegido por `authGuard` + `roleGuard(rol)` y cargado de forma diferida. Las secciones sin historia implementada usan `PlaceholderPage` (título y subtítulo en `data`); la historia reemplaza ese `component` por su página real.
+- Rutas: `/login`, las páginas públicas de los enlaces de las cuentas (MEJ-01: `/activar-cuenta`, `/restablecer-contrasena` y `/olvide-contrasena`, en español por la excepción de la regla de idioma) y, dentro de `AppShell`, un `*.routes.ts` por rol: `/physio` (`patients`, `clinical-records`, `timeline`, `ai-assistant`), `/admin` (`users`, `patients`, `audit`; sin `reports`, HU-14), `/director` (`reports`, `audit`), `/patient`. Cada rol protegido por `authGuard` + `roleGuard(rol)` y cargado de forma diferida. Las secciones sin historia implementada usan `PlaceholderPage` (título y subtítulo en `data`); la historia reemplaza ese `component` por su página real.
 - Componentes de `shared/ui` (standalone, con pruebas): `page-header`, `stat-card` (variante `compact` para filas de cuatro tarjetas y `stacked`, con la etiqueta a todo el ancho y el icono junto al valor, para filas de cinco), `status-badge`, `data-table` (paginación en cliente, o en servidor con `[totalItems]` y `[(pageIndex)]`; `appDataTableCell` para celdas personalizadas, `[appDataTableCellOf]="filas"` tipa `let-row`, y `wrapHeader: true` en una columna deja que su encabezado se parta en líneas), `form-section`, `empty-state` (admite varias acciones, separadas), `confirm-dialog` (`openConfirmDialog()` devuelve `Observable<boolean>`) y `hero-banner`. Usarlos antes de crear componentes nuevos. Catálogo visual en `/ui-kit` (solo `isDevMode()`).
 - Diseño: seguir `docs/prototype/`. Capturas de comparación por tarea en `docs/screenshots/<tarea>/`.
 - Nombres según la guía de estilo de Angular CLI 22, en inglés: archivo `patient-list.ts`, clase `PatientList`, selector `app-patient-list`; guards/interceptores `*-guard.ts` / `*-interceptor.ts`. Textos de la interfaz en español.
@@ -557,9 +580,17 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
   - `features/audit/AuditLogList` se reutiliza en `/admin/audit` y `/director/audit`, con la entrada "Auditoría" en el menú de ambos roles.
   - Tabla paginada en el servidor (20 por página) con fecha y hora de Quito, usuario, acción (badge), entidad con id e IP. Solo metadatos.
   - Filtros por usuario (`GET /api/audit-logs/users`), acción, entidad (`/entity-types`) y rango de fechas. Cada cambio recarga la primera página. Con "Desde" posterior a "Hasta" no busca y solo muestra el aviso.
-  - Etiquetas en `audit-labels.ts` (`Report` → "Reporte"; la acción `EXPORT` → "Exportación", HU-15). Un `ACCESS_DENIED` muestra el área de la ruta tal cual (p. ej. `patients` o `portal/treatments`).
+  - Etiquetas en `audit-labels.ts` (`Report` → "Reporte"; la acción `EXPORT` → "Exportación", HU-15; MEJ-01: "Invitación enviada", "Invitación reenviada", "Activación de cuenta", "Solicitud de restablecimiento" y "Restablecimiento de contraseña"). Un `ACCESS_DENIED` muestra el área de la ruta tal cual (p. ej. `patients` o `portal/treatments`).
+- Cuentas (MEJ-01), en `features/admin/users` y `features/auth`:
+  - "Crear usuario" (`CreateUserDialog`) ya no pide contraseña: explica que el usuario recibirá un enlace de activación válido por 48 horas. Al crear, la lista muestra "Enviamos un enlace de activación a {correo}". Un 503 (correo no enviado) se muestra en el diálogo.
+  - La lista de usuarios muestra el estado de `status` ("Activo", "Pendiente de activación", "Inactivo") y, solo en las cuentas pendientes, el botón "Reenviar invitación" (`resend-action`, icono `forward_to_inbox`), con el aviso "Enviamos un nuevo enlace de activación a {correo}". "Usuarios activos" cuenta solo las `ACTIVE`.
+  - `SetPasswordPage` sirve `/activar-cuenta` y `/restablecer-contrasena` (`data: { mode: 'activate' | 'reset' }`): contraseña, confirmación y las reglas visibles, cada una con su marca al cumplirse (`passwordRules`). Al terminar, ofrece "Ir a iniciar sesión". Si el enlace no sirve (falta el token o la API lo rechaza), lo dice y, en el restablecimiento, ofrece "Solicitar un enlace nuevo".
+  - **Protección del token** (`features/auth/link-privacy.ts`, `takeLinkToken()`): mientras la página está abierta pone `<meta name="referrer" content="no-referrer">` en el `head` (y la quita al salir), para que ninguna petición mande el token en el `Referer`; lee el token una vez y, tras el primer render (cuando el router ya no reescribe la URL), lo quita de la barra con `Location.replaceState` (`history.replaceState`). El token queda solo en memoria, nunca en `sessionStorage` ni `localStorage`. Si el usuario recarga, el enlace ya no está: debe abrirlo de nuevo desde el correo.
+  - `ForgotPasswordPage` (`/olvide-contrasena`) pide el correo y muestra la respuesta de la API, la misma exista o no la cuenta. El login tiene el enlace "¿Olvidó su contraseña?".
+  - Las tres páginas usan la tarjeta del login (`features/auth/_auth-card.scss`, clases `auth-page` y `auth-card`). `AccountApi` (`features/auth/account-api.ts`) llama a los endpoints públicos.
 - Validaciones compartidas en `src/app/shared/validation`:
   - `national-id.ts` aplica las mismas reglas de cédula que el backend: `nationalIdValidator` da `{ nationalId: regla }` y `NATIONAL_ID_MESSAGES` tiene el mensaje de cada regla.
+  - `password.ts` (MEJ-01): `PASSWORD_VALIDATORS` (la regla de la API), `passwordsMatchValidator` (marca `mismatch` en la confirmación) y `passwordRules()`, las reglas visibles con su estado.
   - `date-range.ts` (HU-15): `dateRangeValidator`, validador de un grupo con `from` y `to` (`yyyy-MM-dd`) que da `{ range: true }` si "Desde" es posterior a "Hasta", y `DATE_RANGE_MESSAGE`, el mismo texto de la API. Lo usan la auditoría y los reportes.
 - Pacientes del administrador (HU-05, HU-06):
   - `/admin/patients` (`PatientRegistry`) busca con espera de 300 ms y muestra una tabla paginada en el servidor con identificación y contacto. Las columnas de sesiones y estado del prototipo son datos clínicos y no se muestran.
@@ -615,7 +646,7 @@ El autor marca esta lista en la descripción del PR (sección "Definición de te
 ## Docker
 
 - La base de desarrollo principal es el **PostgreSQL de Windows (5432)**; nunca modificarla desde Docker.
-- `docker-compose.yml`: servicio `db` (postgres:16 en **5433**) y `backend` (perfil `full`, imagen de `backend/Dockerfile`, `DB_URL` → `db:5432`). Uso opcional.
+- `docker-compose.yml`: servicio `db` (postgres:16 en **5433**), `backend` (perfil `full`, imagen de `backend/Dockerfile`, `DB_URL` → `db:5432`, `MAIL_HOST` → `mailpit`) y `mailpit` (MEJ-01, perfiles `dev` y `full`, `axllent/mailpit`: SMTP en **1025** e interfaz en **8025**; nada sale de la máquina). Uso opcional.
 - `backend/Dockerfile` es la imagen de despliegue en Render: multi-etapa, usuario no root, `PORT`, `HEALTHCHECK` en `/actuator/health`. No copiar `.env` ni secretos a la imagen.
 
 ## Comandos
@@ -629,6 +660,7 @@ El autor marca esta lista en la descripción del PR (sección "Definición de te
 
 # Docker (desde la raíz)
 docker compose up -d db                     # PostgreSQL 16 en localhost:5433
+docker compose --profile dev up -d mailpit  # correos de las cuentas en http://localhost:8025
 docker compose --profile full up --build    # db + backend en :8080
 docker compose --profile full down          # detener (el volumen se conserva)
 

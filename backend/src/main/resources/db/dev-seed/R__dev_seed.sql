@@ -20,13 +20,14 @@
 -- ---------------------------------------------------------------------
 -- Accounts: every seed email ends with @dev-seed.rehabelite.test
 -- ---------------------------------------------------------------------
-INSERT INTO users (email, password_hash, full_name, role)
-VALUES ('fisio.andrade@dev-seed.rehabelite.test', 'dev-seed:password-set-at-startup', 'Valeria Andrade Mora', 'PHYSIOTHERAPIST'),
-       ('fisio.cevallos@dev-seed.rehabelite.test', 'dev-seed:password-set-at-startup', 'Martín Cevallos Ruiz', 'PHYSIOTHERAPIST'),
-       ('direccion@dev-seed.rehabelite.test', 'dev-seed:password-set-at-startup', 'Paula Herrera Vásconez', 'OPERATIONS_DIRECTOR'),
-       ('paciente.ortiz@dev-seed.rehabelite.test', 'dev-seed:password-set-at-startup', 'Rosa Elena Ortiz Vega', 'PATIENT'),
-       ('paciente.quishpe@dev-seed.rehabelite.test', 'dev-seed:password-set-at-startup', 'Luis Alberto Quishpe Tipán', 'PATIENT'),
-       ('paciente.zambrano@dev-seed.rehabelite.test', 'dev-seed:password-set-at-startup', 'Daniela Sofía Zambrano Loor', 'PATIENT')
+-- MEJ-01: the seed accounts are already activated (verified email); their password comes from DEV_SEED_PASSWORD
+INSERT INTO users (email, password_hash, full_name, role, email_verified_at)
+VALUES ('fisio.andrade@dev-seed.rehabelite.test', 'dev-seed:password-set-at-startup', 'Valeria Andrade Mora', 'PHYSIOTHERAPIST', now()),
+       ('fisio.cevallos@dev-seed.rehabelite.test', 'dev-seed:password-set-at-startup', 'Martín Cevallos Ruiz', 'PHYSIOTHERAPIST', now()),
+       ('direccion@dev-seed.rehabelite.test', 'dev-seed:password-set-at-startup', 'Paula Herrera Vásconez', 'OPERATIONS_DIRECTOR', now()),
+       ('paciente.ortiz@dev-seed.rehabelite.test', 'dev-seed:password-set-at-startup', 'Rosa Elena Ortiz Vega', 'PATIENT', now()),
+       ('paciente.quishpe@dev-seed.rehabelite.test', 'dev-seed:password-set-at-startup', 'Luis Alberto Quishpe Tipán', 'PATIENT', now()),
+       ('paciente.zambrano@dev-seed.rehabelite.test', 'dev-seed:password-set-at-startup', 'Daniela Sofía Zambrano Loor', 'PATIENT', now())
 ON CONFLICT (email) DO NOTHING;
 
 -- ---------------------------------------------------------------------

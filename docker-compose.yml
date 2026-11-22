@@ -7,10 +7,14 @@
 #               without a local PostgreSQL or to try migrations in isolation.
 #   - backend : (profile "full") the same image deployed to Render, wired to
 #               the db container. Start it with --profile full.
+#   - mailpit : (profiles "dev" and "full") test SMTP server for the account
+#               emails (MEJ-01): SMTP on 1025, web interface on
+#               http://localhost:8025. Nothing leaves the machine.
 #
 # Values come from the root .env (POSTGRES_DB, DB_USERNAME, DB_PASSWORD, ...).
 #
 #   docker compose up -d db                    # database only
+#   docker compose --profile dev up -d mailpit # test SMTP for the backend started on Windows
 #   docker compose --profile full up --build   # database + backend
 #   docker compose --profile full down         # stop (data is kept in the volume)
 # =====================================================================
@@ -44,11 +48,28 @@ services:
     environment:
       # Inside the compose network the database is "db" on its internal port 5432
       DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-rehab_elite}
+      # ...and the test SMTP server is "mailpit" on 1025
+      MAIL_HOST: mailpit
+      MAIL_PORT: "1025"
     depends_on:
       db:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     ports:
       - "8080:8080"
+    restart: unless-stopped
+
+  mailpit:
+    profiles: ["dev", "full"]
+    image: axllent/mailpit:v1.27.11
+    ports:
+      # SMTP (MAIL_PORT) and the web interface to read the captured emails
+      - "1025:1025"
+      - "8025:8025"
+    environment:
+      # Accept the messages without SMTP authentication, as the development backend sends them
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
     restart: unless-stopped
 
 volumes:

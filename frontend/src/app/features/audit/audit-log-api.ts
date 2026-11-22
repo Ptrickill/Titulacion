@@ -5,7 +5,18 @@ import { Page } from '../../core/http/page';
 
 /** Values of audit_logs.action. */
 export type AuditAction =
-  'CREATE' | 'READ' | 'UPDATE' | 'STATUS_CHANGE' | 'ACCESS_DENIED' | 'LOGIN' | 'EXPORT';
+  | 'CREATE'
+  | 'READ'
+  | 'UPDATE'
+  | 'STATUS_CHANGE'
+  | 'ACCESS_DENIED'
+  | 'LOGIN'
+  | 'EXPORT'
+  | 'INVITATION_SENT'
+  | 'INVITATION_RESENT'
+  | 'ACTIVATION'
+  | 'RESET_REQUEST'
+  | 'PASSWORD_RESET';
 
 /** Entry of GET /api/audit-logs: metadata only, never clinical data. */
 export interface AuditLogEntry {

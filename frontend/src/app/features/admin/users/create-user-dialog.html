@@ -4,7 +4,9 @@
   </div>
   <div>
     <h2 mat-dialog-title class="title">Crear usuario</h2>
-    <p class="subtitle">La cuenta queda activa y la contraseña se guarda cifrada.</p>
+    <p class="subtitle">
+      La cuenta queda pendiente hasta que el usuario la active desde su correo.
+    </p>
   </div>
 </header>
 
@@ -90,54 +92,13 @@
       </mat-form-field>
     </app-form-section>
 
-    <app-form-section
-      [step]="2"
-      title="Contraseña inicial"
-      description="Comuníquela al usuario por un canal seguro. Debe tener de 8 a 72 caracteres, con al menos una letra y un número."
-    >
-      <mat-form-field appearance="fill" subscriptSizing="dynamic">
-        <mat-label>Contraseña</mat-label>
-        <input
-          matInput
-          [type]="hidePassword() ? 'password' : 'text'"
-          formControlName="password"
-          autocomplete="new-password"
-        />
-        <button
-          mat-icon-button
-          matSuffix
-          type="button"
-          [attr.aria-label]="hidePassword() ? 'Mostrar contraseña' : 'Ocultar contraseña'"
-          (click)="hidePassword.set(!hidePassword())"
-        >
-          <mat-icon>{{ hidePassword() ? 'visibility' : 'visibility_off' }}</mat-icon>
-        </button>
-        @if (form.controls.password.hasError('required')) {
-          <mat-error>Ingrese la contraseña inicial.</mat-error>
-        } @else if (form.controls.password.hasError('minlength')) {
-          <mat-error>Debe tener al menos 8 caracteres.</mat-error>
-        } @else if (form.controls.password.hasError('maxlength')) {
-          <mat-error>Máximo 72 caracteres.</mat-error>
-        } @else if (form.controls.password.hasError('pattern')) {
-          <mat-error>Debe contener al menos una letra y un número.</mat-error>
-        }
-      </mat-form-field>
-
-      <mat-form-field appearance="fill" subscriptSizing="dynamic">
-        <mat-label>Confirmar contraseña</mat-label>
-        <input
-          matInput
-          [type]="hidePassword() ? 'password' : 'text'"
-          formControlName="passwordConfirmation"
-          autocomplete="new-password"
-        />
-        @if (form.controls.passwordConfirmation.hasError('required')) {
-          <mat-error>Confirme la contraseña.</mat-error>
-        } @else if (form.controls.passwordConfirmation.hasError('mismatch')) {
-          <mat-error>Las contraseñas no coinciden.</mat-error>
-        }
-      </mat-form-field>
-    </app-form-section>
+    <div class="activation-note" role="note">
+      <mat-icon aria-hidden="true">mark_email_unread</mat-icon>
+      <p>
+        No necesita definir una contraseña. Al crear la cuenta enviaremos al correo un enlace para
+        activarla, válido por 48 horas: el usuario definirá allí su propia contraseña.
+      </p>
+    </div>
 
     @if (errorMessage(); as message) {
       <div class="error" role="alert">

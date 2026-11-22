@@ -36,7 +36,8 @@ public class User {
     @Column(nullable = false, length = 254)
     private String email;
 
-    @Column(name = "password_hash", nullable = false, length = 100)
+    /** BCrypt hash; null while the account is pending activation (MEJ-01). */
+    @Column(name = "password_hash", length = 100)
     private String passwordHash;
 
     @Column(name = "full_name", nullable = false, length = 150)
@@ -58,6 +59,14 @@ public class User {
     @Column(name = "last_login_at")
     private Instant lastLoginAt;
 
+    /** When the owner activated the account through the emailed link; null while pending (MEJ-01). */
+    @Column(name = "email_verified_at")
+    private Instant emailVerifiedAt;
+
+    /** Carried by the access tokens (claim "sv"); a password reset increments it so older tokens stop working. */
+    @Column(name = "session_version", nullable = false)
+    private int sessionVersion;
+
     @Column(name = "created_by")
     private Long createdBy;
 
@@ -70,16 +79,30 @@ public class User {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
-    /** New active account; the email is stored trimmed and in lower case. */
+    /**
+     * New active account that already has its password and a verified email, e.g. the initial administrator. The
+     * email is stored trimmed and in lower case.
+     */
     public static User create(String email, String passwordHash, String fullName, Role role, Long createdBy,
             Instant now) {
+        User user = invite(email, fullName, role, createdBy, now);
+        user.passwordHash = passwordHash;
+        user.emailVerifiedAt = now;
+        return user;
+    }
+
+    /**
+     * New account pending activation (MEJ-01): no password and no verified email until its owner follows the
+     * activation link. It cannot log in meanwhile.
+     */
+    public static User invite(String email, String fullName, Role role, Long createdBy, Instant now) {
         User user = new User();
         user.email = normalizeEmail(email);
-        user.passwordHash = passwordHash;
         user.fullName = fullName;
         user.role = role;
         user.active = true;
         user.failedAttempts = 0;
+        user.sessionVersion = 0;
         user.createdBy = createdBy;
         user.createdAt = now;
         return user;
@@ -87,6 +110,19 @@ public class User {
 
     public static String normalizeEmail(String email) {
         return email == null ? null : email.trim().toLowerCase(Locale.ROOT);
+    }
+
+    /** The owner has not activated the account yet (no password, email not verified). */
+    public boolean isPendingActivation() {
+        return emailVerifiedAt == null;
+    }
+
+    /** INACTIVE when deactivated, whether or not it was ever activated; otherwise pending or active. */
+    public AccountStatus status() {
+        if (!active) {
+            return AccountStatus.INACTIVE;
+        }
+        return isPendingActivation() ? AccountStatus.PENDING_ACTIVATION : AccountStatus.ACTIVE;
     }
 
     public boolean isLocked(Instant now) {
@@ -126,6 +162,28 @@ public class User {
     public void deactivate(Long updatedBy, Instant now) {
         active = false;
         markUpdated(updatedBy, now);
+    }
+
+    /**
+     * Activation through the emailed link (MEJ-01): stores the first password and marks the email as verified.
+     * The owner acts without a session, so there is no updating user.
+     */
+    public void completeActivation(String passwordHash, Instant now) {
+        this.passwordHash = passwordHash;
+        this.emailVerifiedAt = now;
+        markUpdated(null, now);
+    }
+
+    /**
+     * Password reset through the emailed link (MEJ-01): stores the new password, clears the failed attempts and
+     * the lock, and invalidates every access token issued before (see {@link #getSessionVersion()}).
+     */
+    public void resetPassword(String passwordHash, Instant now) {
+        this.passwordHash = passwordHash;
+        this.failedAttempts = 0;
+        this.lockedUntil = null;
+        this.sessionVersion++;
+        markUpdated(null, now);
     }
 
     /** Stores a new BCrypt password hash, e.g. the development seed accounts (TEC-06). */

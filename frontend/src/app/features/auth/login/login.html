@@ -1,5 +1,5 @@
-<main class="login-page">
-  <section class="login-card" aria-labelledby="login-title">
+<main class="auth-page">
+  <section class="auth-card" aria-labelledby="login-title">
     <div class="logo" aria-hidden="true">
       <mat-icon>shield</mat-icon>
     </div>
@@ -49,6 +49,8 @@
           <mat-error>Ingrese su contraseña.</mat-error>
         }
       </mat-form-field>
+
+      <a class="auth-link forgot" routerLink="/olvide-contrasena">¿Olvidó su contraseña?</a>
 
       <mat-checkbox class="remember" formControlName="remember">
         Recordarme en este dispositivo

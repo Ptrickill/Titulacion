@@ -62,6 +62,12 @@ describe('Login', () => {
     expect(element.textContent).not.toContain('Acceso de desarrollo');
   });
 
+  it('links to the password reset request (MEJ-01)', () => {
+    const link = element.querySelector<HTMLAnchorElement>('a.forgot');
+    expect(link?.textContent?.trim()).toBe('¿Olvidó su contraseña?');
+    expect(link?.getAttribute('href')).toBe('/olvide-contrasena');
+  });
+
   it('does not call the backend when the form is invalid', async () => {
     await submit();
 

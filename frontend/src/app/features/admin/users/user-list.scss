@@ -49,6 +49,15 @@
   font-size: 12px;
 }
 
+// MEJ-01: "Reenviar invitación" of a pending account
+.resend-action {
+  color: var(--re-text-teal);
+
+  &.mat-mdc-button-disabled {
+    color: var(--re-gray-400);
+  }
+}
+
 .status-action {
   color: var(--re-text-teal);
 

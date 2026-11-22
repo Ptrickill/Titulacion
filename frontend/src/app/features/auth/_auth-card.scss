@@ -1,0 +1,155 @@
+// Card of the public pages (prototype 01, login): login and, since MEJ-01, account activation, password reset
+// and "¿Olvidó su contraseña?". Included by each page's stylesheet.
+
+.auth-page {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 24px 16px;
+  background: radial-gradient(circle at center, #ffffff 0%, var(--re-gray-100) 70%);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  box-sizing: border-box;
+  padding: 28px 28px 20px;
+  text-align: center;
+  background: var(--re-card);
+  border-top: 5px solid var(--re-teal);
+  border-radius: 20px;
+  box-shadow: var(--re-shadow-lg);
+}
+
+.logo {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 12px;
+  color: var(--re-text-teal);
+  background: var(--re-teal-50);
+  border-radius: var(--re-radius-md);
+
+  mat-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 28px;
+  }
+}
+
+.brand-name {
+  margin: 0;
+  color: var(--re-navy);
+  font-size: 26px;
+  font-weight: 800;
+
+  span {
+    color: var(--re-text-teal);
+  }
+}
+
+.tagline {
+  margin: 4px 0 24px;
+  color: var(--re-gray-600);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.field-label {
+  margin: 0 0 6px;
+  color: var(--re-gray-700);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+mat-form-field {
+  margin-bottom: 16px;
+}
+
+mat-icon[matPrefix] {
+  margin: 0 4px 0 12px;
+  color: var(--re-gray-400);
+}
+
+.error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  color: var(--re-danger);
+  background: var(--re-danger-bg);
+  border: 1px solid var(--re-danger-border);
+  border-radius: var(--re-radius-sm);
+  font-size: 13px;
+
+  mat-icon {
+    flex-shrink: 0;
+  }
+}
+
+.submit {
+  height: 46px;
+  font-weight: 700;
+}
+
+.footer {
+  margin: 20px 0 0;
+  color: var(--re-gray-400);
+  font-size: 11px;
+}
+
+.auth-title {
+  margin: 0 0 6px;
+  color: var(--re-navy);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.auth-intro {
+  margin: 0 0 20px;
+  color: var(--re-gray-600);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.auth-link {
+  color: var(--re-text-teal);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    text-decoration: underline;
+  }
+}
+
+.success {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 12px;
+  color: var(--re-success);
+  background: var(--re-success-bg);
+  border: 1px solid var(--re-success-border);
+  border-radius: var(--re-radius-sm);
+  font-size: 13.5px;
+  line-height: 1.45;
+  text-align: left;
+
+  mat-icon {
+    flex-shrink: 0;
+  }
+}

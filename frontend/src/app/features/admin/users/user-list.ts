@@ -18,13 +18,20 @@ import { DataTableCell } from '../../../shared/ui/data-table/data-table-cell';
 import { EmptyState } from '../../../shared/ui/empty-state';
 import { PageHeader } from '../../../shared/ui/page-header';
 import { StatCard } from '../../../shared/ui/stat-card';
-import { StatusBadge } from '../../../shared/ui/status-badge';
+import { BadgeTone, StatusBadge } from '../../../shared/ui/status-badge';
 import { openCreateUserDialog } from './create-user-dialog';
 import { formatLastAccess } from './last-access';
-import { UserAccount, UserApi } from './user-api';
+import { AccountStatus, UserAccount, UserApi } from './user-api';
 import { USER_ROLE_FILTERS, USER_ROLE_LABELS, USER_ROLE_TONES } from './user-roles';
 
 type RoleFilter = Role | 'ALL';
+
+/** Badge of each account status (MEJ-01). */
+const STATUS_BADGES: Record<AccountStatus, { label: string; tone: BadgeTone }> = {
+  ACTIVE: { label: 'Activo', tone: 'success' },
+  PENDING_ACTIVATION: { label: 'Pendiente de activación', tone: 'warning' },
+  INACTIVE: { label: 'Inactivo', tone: 'neutral' },
+};
 
 /** Lower case without accents, so "jose" finds "José". */
 function normalize(text: string): string {
@@ -34,7 +41,8 @@ function normalize(text: string): string {
 /**
  * "Gestión de Usuarios y Roles" (HU-02, prototype 09): account indicators, search, role filter and the
  * account table; new accounts are created in {@link CreateUserDialog} and each row can be activated or
- * deactivated (HU-03).
+ * deactivated (HU-03). A new account stays "Pendiente de activación" until its owner follows the emailed link, and
+ * its row offers "Reenviar invitación" (MEJ-01).
  */
 @Component({
   selector: 'app-user-list',
@@ -66,12 +74,13 @@ export class UserList implements OnInit {
   protected readonly roleLabels = USER_ROLE_LABELS;
   protected readonly roleTones = USER_ROLE_TONES;
   protected readonly formatLastAccess = formatLastAccess;
+  protected readonly statusBadges = STATUS_BADGES;
 
   protected readonly columns: DataTableColumn<UserAccount>[] = [
     { key: 'fullName', header: 'Usuario' },
     { key: 'role', header: 'Rol asignado' },
     { key: 'lastLoginAt', header: 'Último acceso' },
-    { key: 'active', header: 'Estado' },
+    { key: 'status', header: 'Estado' },
     { key: 'id', header: 'Acciones', align: 'end' },
   ];
 
@@ -87,7 +96,7 @@ export class UserList implements OnInit {
     const users = this.users();
     const count = (role: Role) => users.filter((user) => user.role === role).length;
     return {
-      active: users.filter((user) => user.active).length,
+      active: users.filter((user) => user.status === 'ACTIVE').length,
       physiotherapists: count('PHYSIOTHERAPIST'),
       portalPatients: count('PATIENT'),
       administrators: count('ADMINISTRATOR'),
@@ -126,8 +135,8 @@ export class UserList implements OnInit {
   protected openCreateDialog(): void {
     openCreateUserDialog(this.dialog).subscribe((created) => {
       if (created) {
-        this.snackBar.open(`Usuario ${created.fullName} creado correctamente.`, 'Cerrar', {
-          duration: 5000,
+        this.snackBar.open(`Enviamos un enlace de activación a ${created.email}`, 'Cerrar', {
+          duration: 6000,
         });
         this.load();
       }
@@ -174,6 +183,36 @@ export class UserList implements OnInit {
               error,
               'No se pudo cambiar el estado de la cuenta. Intente nuevamente.',
             ),
+            'Cerrar',
+            { duration: 6000 },
+          );
+        },
+      });
+  }
+
+  /** Sends a new activation link to a pending account (MEJ-01); the previous links stop working. */
+  protected resendInvitation(user: UserAccount): void {
+    if (this.pendingIds().has(user.id)) {
+      return;
+    }
+    this.setPending(user.id, true);
+    this.api
+      .resendInvitation(user.id)
+      .pipe(finalize(() => this.setPending(user.id, false)))
+      .subscribe({
+        next: (updated) => {
+          this.users.update((users) => users.map((u) => (u.id === updated.id ? updated : u)));
+          this.snackBar.open(
+            `Enviamos un nuevo enlace de activación a ${updated.email}`,
+            'Cerrar',
+            {
+              duration: 6000,
+            },
+          );
+        },
+        error: (error: unknown) => {
+          this.snackBar.open(
+            problemDetailMessage(error, 'No se pudo reenviar la invitación. Intente nuevamente.'),
             'Cerrar',
             { duration: 6000 },
           );
