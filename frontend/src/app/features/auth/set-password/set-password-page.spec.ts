@@ -78,7 +78,11 @@ describe('SetPasswordPage (MEJ-01)', () => {
       const lastUrl = String(replaceState.mock.calls.at(-1)![2]);
       expect(lastUrl).toContain('/activar-cuenta');
       expect(lastUrl).not.toContain(TOKEN);
-      expect(sessionStorage.length + localStorage.length).toBe(0);
+      // Not in any storage either: only in the component's memory
+      const stored = [sessionStorage, localStorage].flatMap((storage) =>
+        Object.keys(storage).map((key) => `${key}=${storage.getItem(key)}`),
+      );
+      expect(stored.join(' ')).not.toContain(TOKEN);
 
       // The token still reaches the API from memory
       await fillAndSubmit('Clave.Segura2026');
