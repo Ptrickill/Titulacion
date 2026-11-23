@@ -1,8 +1,8 @@
 import { DatePipe } from '@angular/common';
-import { Component, input } from '@angular/core';
+import { Component, computed, input } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { formatAge } from '../../admin/patients/patient-age';
-import { Patient } from '../../admin/patients/patient-api';
+import { Patient, PatientAddress } from '../../admin/patients/patient-api';
 import { SEX_LABELS } from '../../admin/patients/patient-options';
 
 /** Data the card shows: the patient of GET /api/patients/{id} or of the clinical record view (HU-09). */
@@ -17,11 +17,18 @@ export type SummaryCardPatient = Pick<
   | 'occupation'
   | 'phone'
 > &
-  Partial<Pick<Patient, 'email' | 'address' | 'healthInsurance' | 'admissionDate'>>;
+  Partial<{
+    email: string;
+    /** The composed address (clinical record view) or the address of GET /api/patients/{id} (MEJ-03). */
+    address: string | Pick<PatientAddress, 'formatted'>;
+    hasHealthInsurance: boolean;
+    admissionDate: string;
+  }>;
 
 /**
  * Patient card at the top of the physiotherapist's clinical pages (prototype 04): identity and key facts. With
- * `showContact` it adds the admission date and a row with email, address and health insurance (HU-09).
+ * `showContact` it adds the admission date and a row with email, address and health insurance (HU-09). Since
+ * MEJ-03 the address is the composed one, with the place names of INEC's catalog, and the insurance is yes/no.
  */
 @Component({
   selector: 'app-patient-summary-card',
@@ -74,14 +81,14 @@ export type SummaryCardPatient = Pick<
             <mat-icon aria-hidden="true">location_on</mat-icon
             ><span class="cdk-visually-hidden">Dirección</span>
           </dt>
-          <dd>{{ p.address }}</dd>
+          <dd>{{ addressText() }}</dd>
         </div>
         <div>
           <dt>
             <mat-icon aria-hidden="true">verified_user</mat-icon
-            ><span class="cdk-visually-hidden">Seguro</span>
+            ><span class="cdk-visually-hidden">Seguro de salud</span>
           </dt>
-          <dd>Seguro: {{ p.healthInsurance }}</dd>
+          <dd>Seguro de salud: {{ p.hasHealthInsurance ? 'Sí' : 'No' }}</dd>
         </div>
       </dl>
     }
@@ -204,4 +211,9 @@ export class PatientSummaryCard {
 
   protected readonly formatAge = formatAge;
   protected readonly sexLabels = SEX_LABELS;
+
+  protected readonly addressText = computed(() => {
+    const address = this.patient().address;
+    return typeof address === 'string' ? address : (address?.formatted ?? '');
+  });
 }

@@ -145,7 +145,9 @@ class PatientSearchIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.content[0].age").isNumber())
                 .andExpect(jsonPath("$.content[0].phone").exists())
                 .andExpect(jsonPath("$.content[0].email").exists())
-                .andExpect(jsonPath("$.content[0].length()").value(8))
+                // MEJ-03 adds needsCompletion ("Datos por completar"), which is not clinical data either
+                .andExpect(jsonPath("$.content[0].needsCompletion").value(false))
+                .andExpect(jsonPath("$.content[0].length()").value(9))
                 .andExpect(jsonPath("$.content[0].diagnosis").doesNotExist())
                 .andExpect(jsonPath("$.content[0].treatments").doesNotExist());
     }

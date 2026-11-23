@@ -63,8 +63,11 @@ describe('ClinicalRecordView', () => {
     expect(card).toContain('HC: 1710034065');
     expect(card).toContain('Fecha de ingreso: 08/07/2026');
     expect(card).toContain('juan.perez@correo.ec');
-    expect(card).toContain('Av. Amazonas N32-12, Quito');
-    expect(card).toContain('Seguro: IESS');
+    // MEJ-03: the composed address with the INEC place names, and the insurance as yes/no
+    expect(card).toContain(
+      'Av. Amazonas N32-12 y Av. Naciones Unidas, Iñaquito, Distrito Metropolitano de Quito, Pichincha.',
+    );
+    expect(card).toContain('Seguro de salud: Sí');
 
     const diagnosis = section('Información diagnóstica')!.textContent!.replace(/\s+/g, ' ');
     expect(diagnosis).toContain('Moderada');

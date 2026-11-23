@@ -25,6 +25,7 @@ import { DataTable, DataTableColumn } from '../../../shared/ui/data-table/data-t
 import { DataTableCell } from '../../../shared/ui/data-table/data-table-cell';
 import { EmptyState } from '../../../shared/ui/empty-state';
 import { PageHeader } from '../../../shared/ui/page-header';
+import { StatusBadge } from '../../../shared/ui/status-badge';
 import { formatAge } from './patient-age';
 import { Page } from '../../../core/http/page';
 import { PatientApi, PatientSummary } from './patient-api';
@@ -52,6 +53,7 @@ interface SearchState {
     MatProgressBarModule,
     MatProgressSpinnerModule,
     PageHeader,
+    StatusBadge,
     DataTable,
     DataTableCell,
     EmptyState,

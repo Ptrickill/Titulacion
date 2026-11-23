@@ -1,0 +1,7770 @@
+{
+ "source": {
+  "publisher": "INEC - Dirección de Cartografía Estadística y Operaciones de Campo (DICA)",
+  "title": "Clasificador Geográfico Estadístico 2025",
+  "version": "CGE 2025",
+  "cutoffDate": "2024-12-31",
+  "url": "https://aplicaciones2.ecuadorencifras.gob.ec/SIN/descargas/cge2025.xls"
+ },
+ "counts": {
+  "provinces": 24,
+  "cantons": 222,
+  "parishes": 1255,
+  "seat": 163,
+  "urban": 268,
+  "rural": 824
+ },
+ "provinces": [
+  {
+   "code": "01",
+   "name": "AZUAY",
+   "cantons": [
+    {
+     "code": "0101",
+     "name": "CUENCA",
+     "parishes": [
+      {
+       "code": "010101",
+       "name": "BELLAVISTA",
+       "type": "URBAN"
+      },
+      {
+       "code": "010102",
+       "name": "CAÑARIBAMBA",
+       "type": "URBAN"
+      },
+      {
+       "code": "010103",
+       "name": "EL BATÁN",
+       "type": "URBAN"
+      },
+      {
+       "code": "010104",
+       "name": "EL SAGRARIO",
+       "type": "URBAN"
+      },
+      {
+       "code": "010105",
+       "name": "EL VECINO",
+       "type": "URBAN"
+      },
+      {
+       "code": "010106",
+       "name": "GIL RAMÍREZ DÁVALOS",
+       "type": "URBAN"
+      },
+      {
+       "code": "010107",
+       "name": "HUAYNACÁPAC",
+       "type": "URBAN"
+      },
+      {
+       "code": "010108",
+       "name": "MACHÁNGARA",
+       "type": "URBAN"
+      },
+      {
+       "code": "010109",
+       "name": "MONAY",
+       "type": "URBAN"
+      },
+      {
+       "code": "010110",
+       "name": "SAN BLAS",
+       "type": "URBAN"
+      },
+      {
+       "code": "010111",
+       "name": "SAN SEBASTIÁN",
+       "type": "URBAN"
+      },
+      {
+       "code": "010112",
+       "name": "SUCRE",
+       "type": "URBAN"
+      },
+      {
+       "code": "010113",
+       "name": "TOTORACOCHA",
+       "type": "URBAN"
+      },
+      {
+       "code": "010114",
+       "name": "YANUNCAY",
+       "type": "URBAN"
+      },
+      {
+       "code": "010115",
+       "name": "HERMANO MIGUEL",
+       "type": "URBAN"
+      },
+      {
+       "code": "010151",
+       "name": "BAÑOS",
+       "type": "RURAL"
+      },
+      {
+       "code": "010152",
+       "name": "CUMBE",
+       "type": "RURAL"
+      },
+      {
+       "code": "010153",
+       "name": "CHAUCHA",
+       "type": "RURAL"
+      },
+      {
+       "code": "010154",
+       "name": "CHECA",
+       "type": "RURAL"
+      },
+      {
+       "code": "010155",
+       "name": "CHIQUINTAD",
+       "type": "RURAL"
+      },
+      {
+       "code": "010156",
+       "name": "LLACAO",
+       "type": "RURAL"
+      },
+      {
+       "code": "010157",
+       "name": "MOLLETURO",
+       "type": "RURAL"
+      },
+      {
+       "code": "010158",
+       "name": "NULTI",
+       "type": "RURAL"
+      },
+      {
+       "code": "010159",
+       "name": "OCTAVIO CORDERO PALACIOS",
+       "type": "RURAL"
+      },
+      {
+       "code": "010160",
+       "name": "PACCHA",
+       "type": "RURAL"
+      },
+      {
+       "code": "010161",
+       "name": "QUINGEO",
+       "type": "RURAL"
+      },
+      {
+       "code": "010162",
+       "name": "RICAURTE",
+       "type": "RURAL"
+      },
+      {
+       "code": "010163",
+       "name": "SAN JOAQUÍN",
+       "type": "RURAL"
+      },
+      {
+       "code": "010164",
+       "name": "SANTA ANA",
+       "type": "RURAL"
+      },
+      {
+       "code": "010165",
+       "name": "SAYAUSÍ",
+       "type": "RURAL"
+      },
+      {
+       "code": "010166",
+       "name": "SIDCAY",
+       "type": "RURAL"
+      },
+      {
+       "code": "010167",
+       "name": "SININCAY",
+       "type": "RURAL"
+      },
+      {
+       "code": "010168",
+       "name": "TARQUI",
+       "type": "RURAL"
+      },
+      {
+       "code": "010169",
+       "name": "TURI",
+       "type": "RURAL"
+      },
+      {
+       "code": "010170",
+       "name": "VALLE",
+       "type": "RURAL"
+      },
+      {
+       "code": "010171",
+       "name": "VICTORIA DEL PORTETE (CAB. EN IRQUIS)",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0102",
+     "name": "GIRÓN",
+     "parishes": [
+      {
+       "code": "010250",
+       "name": "GIRÓN (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "010251",
+       "name": "LA ASUNCIÓN",
+       "type": "RURAL"
+      },
+      {
+       "code": "010252",
+       "name": "SAN GERARDO (CAB. EN SAN GERARDO DE HUAHUALPATA)",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0103",
+     "name": "GUALACEO",
+     "parishes": [
+      {
+       "code": "010350",
+       "name": "GUALACEO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "010352",
+       "name": "DANIEL CÓRDOVA TORAL",
+       "type": "RURAL"
+      },
+      {
+       "code": "010353",
+       "name": "JADÁN",
+       "type": "RURAL"
+      },
+      {
+       "code": "010354",
+       "name": "MARIANO MORENO",
+       "type": "RURAL"
+      },
+      {
+       "code": "010356",
+       "name": "REMIGIO CRESPO TORAL",
+       "type": "RURAL"
+      },
+      {
+       "code": "010357",
+       "name": "SAN JUAN",
+       "type": "RURAL"
+      },
+      {
+       "code": "010358",
+       "name": "ZHIDMAD",
+       "type": "RURAL"
+      },
+      {
+       "code": "010359",
+       "name": "LUIS CORDERO VEGA (CAB. EN LAGUAN)",
+       "type": "RURAL"
+      },
+      {
+       "code": "010360",
+       "name": "SIMÓN BOLÍVAR (CAB. EN GAÑAZOL)",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0104",
+     "name": "NABÓN",
+     "parishes": [
+      {
+       "code": "010450",
+       "name": "NABÓN (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "010451",
+       "name": "COCHAPATA",
+       "type": "RURAL"
+      },
+      {
+       "code": "010452",
+       "name": "EL PROGRESO (CAB. EN ZHOTA)",
+       "type": "RURAL"
+      },
+      {
+       "code": "010453",
+       "name": "LAS NIEVES",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0105",
+     "name": "PAUTE",
+     "parishes": [
+      {
+       "code": "010550",
+       "name": "PAUTE (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "010552",
+       "name": "BULÁN",
+       "type": "RURAL"
+      },
+      {
+       "code": "010553",
+       "name": "CHICÁN",
+       "type": "RURAL"
+      },
+      {
+       "code": "010554",
+       "name": "EL CABO",
+       "type": "RURAL"
+      },
+      {
+       "code": "010556",
+       "name": "GUARAINAG",
+       "type": "RURAL"
+      },
+      {
+       "code": "010559",
+       "name": "SAN CRISTÓBAL",
+       "type": "RURAL"
+      },
+      {
+       "code": "010561",
+       "name": "TOMEBAMBA",
+       "type": "RURAL"
+      },
+      {
+       "code": "010562",
+       "name": "DUG DUG (CAB. EN DUG - DUG)",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0106",
+     "name": "PUCARA",
+     "parishes": [
+      {
+       "code": "010650",
+       "name": "PUCARÁ (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "010652",
+       "name": "SAN RAFAEL DE SHARUG",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0107",
+     "name": "SAN FERNANDO",
+     "parishes": [
+      {
+       "code": "010750",
+       "name": "SAN FERNANDO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "010751",
+       "name": "CHUMBLÍN",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0108",
+     "name": "SANTA ISABEL",
+     "parishes": [
+      {
+       "code": "010850",
+       "name": "SANTA ISABEL (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "010851",
+       "name": "ABDÓN CALDERÓN",
+       "type": "RURAL"
+      },
+      {
+       "code": "010852",
+       "name": "EL CARMEN DE PIJILÍ",
+       "type": "RURAL"
+      },
+      {
+       "code": "010853",
+       "name": "SHAGLLI",
+       "type": "RURAL"
+      },
+      {
+       "code": "010854",
+       "name": "SAN SALVADOR DE CAÑARIBAMBA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0109",
+     "name": "SÍGSIG",
+     "parishes": [
+      {
+       "code": "010950",
+       "name": "SÍGSIG (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "010951",
+       "name": "CUCHIL",
+       "type": "RURAL"
+      },
+      {
+       "code": "010952",
+       "name": "JIMA",
+       "type": "RURAL"
+      },
+      {
+       "code": "010953",
+       "name": "GÜEL",
+       "type": "RURAL"
+      },
+      {
+       "code": "010954",
+       "name": "LUDO",
+       "type": "RURAL"
+      },
+      {
+       "code": "010955",
+       "name": "SAN BARTOLOMÉ",
+       "type": "RURAL"
+      },
+      {
+       "code": "010956",
+       "name": "SAN JOSÉ DE RARANGA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0110",
+     "name": "OÑA",
+     "parishes": [
+      {
+       "code": "011050",
+       "name": "SAN FELIPE DE OÑA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "011051",
+       "name": "SUSUDEL",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0111",
+     "name": "CHORDELEG",
+     "parishes": [
+      {
+       "code": "011150",
+       "name": "CHORDELEG (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "011151",
+       "name": "PRINCIPAL",
+       "type": "RURAL"
+      },
+      {
+       "code": "011152",
+       "name": "LA UNIÓN",
+       "type": "RURAL"
+      },
+      {
+       "code": "011153",
+       "name": "LUIS GALARZA ORELLANA (CAB. EN DELEGSOL)",
+       "type": "RURAL"
+      },
+      {
+       "code": "011154",
+       "name": "SAN MARTÍN DE PUZHIO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0112",
+     "name": "EL PAN",
+     "parishes": [
+      {
+       "code": "011250",
+       "name": "EL PAN (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "011253",
+       "name": "SAN VICENTE",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0113",
+     "name": "SEVILLA DE ORO",
+     "parishes": [
+      {
+       "code": "011350",
+       "name": "SEVILLA DE ORO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "011351",
+       "name": "AMALUZA",
+       "type": "RURAL"
+      },
+      {
+       "code": "011352",
+       "name": "PALMAS",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0114",
+     "name": "GUACHAPALA",
+     "parishes": [
+      {
+       "code": "011450",
+       "name": "GUACHAPALA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    },
+    {
+     "code": "0115",
+     "name": "CAMILO PONCE ENRÍQUEZ",
+     "parishes": [
+      {
+       "code": "011550",
+       "name": "CAMILO PONCE ENRÍQUEZ (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "02",
+   "name": "BOLÍVAR",
+   "cantons": [
+    {
+     "code": "0201",
+     "name": "GUARANDA",
+     "parishes": [
+      {
+       "code": "020101",
+       "name": "ÁNGEL POLIBIO CHÁVES",
+       "type": "URBAN"
+      },
+      {
+       "code": "020102",
+       "name": "GABRIEL IGNACIO VEINTIMILLA",
+       "type": "URBAN"
+      },
+      {
+       "code": "020103",
+       "name": "GUANUJO",
+       "type": "URBAN"
+      },
+      {
+       "code": "020151",
+       "name": "FACUNDO VELA",
+       "type": "RURAL"
+      },
+      {
+       "code": "020153",
+       "name": "JULIO E. MORENO (CAB. EN CATANAGUAN - ESPINO)",
+       "type": "RURAL"
+      },
+      {
+       "code": "020155",
+       "name": "SALINAS",
+       "type": "RURAL"
+      },
+      {
+       "code": "020156",
+       "name": "SAN LORENZO",
+       "type": "RURAL"
+      },
+      {
+       "code": "020157",
+       "name": "SAN SIMÓN",
+       "type": "RURAL"
+      },
+      {
+       "code": "020158",
+       "name": "SANTA FE",
+       "type": "RURAL"
+      },
+      {
+       "code": "020159",
+       "name": "SIMIÁTUG",
+       "type": "RURAL"
+      },
+      {
+       "code": "020160",
+       "name": "SAN LUIS DE PAMBIL",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0202",
+     "name": "CHILLANES",
+     "parishes": [
+      {
+       "code": "020250",
+       "name": "CHILLANES (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "020251",
+       "name": "SAN JOSÉ DEL TAMBO (CAB. EN TAMBOPAMBA)",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0203",
+     "name": "CHIMBO",
+     "parishes": [
+      {
+       "code": "020350",
+       "name": "SAN JOSÉ DE CHIMBO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "020351",
+       "name": "ASUNCIÓN",
+       "type": "RURAL"
+      },
+      {
+       "code": "020353",
+       "name": "LA MAGDALENA",
+       "type": "RURAL"
+      },
+      {
+       "code": "020354",
+       "name": "SAN SEBASTIÁN",
+       "type": "RURAL"
+      },
+      {
+       "code": "020355",
+       "name": "TELIMBELA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0204",
+     "name": "ECHEANDÍA",
+     "parishes": [
+      {
+       "code": "020450",
+       "name": "ECHEANDÍA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    },
+    {
+     "code": "0205",
+     "name": "SAN MIGUEL",
+     "parishes": [
+      {
+       "code": "020550",
+       "name": "SAN MIGUEL (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "020551",
+       "name": "BALSAPAMBA",
+       "type": "RURAL"
+      },
+      {
+       "code": "020552",
+       "name": "BILOVÁN",
+       "type": "RURAL"
+      },
+      {
+       "code": "020553",
+       "name": "RÉGULO DE MORA",
+       "type": "RURAL"
+      },
+      {
+       "code": "020554",
+       "name": "SAN PABLO",
+       "type": "RURAL"
+      },
+      {
+       "code": "020555",
+       "name": "SANTIAGO",
+       "type": "RURAL"
+      },
+      {
+       "code": "020556",
+       "name": "SAN VICENTE",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0206",
+     "name": "CALUMA",
+     "parishes": [
+      {
+       "code": "020650",
+       "name": "CALUMA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    },
+    {
+     "code": "0207",
+     "name": "LAS NAVES",
+     "parishes": [
+      {
+       "code": "020701",
+       "name": "LAS MERCEDES",
+       "type": "URBAN"
+      },
+      {
+       "code": "020702",
+       "name": "LAS NAVES",
+       "type": "URBAN"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "03",
+   "name": "CAÑAR",
+   "cantons": [
+    {
+     "code": "0301",
+     "name": "AZOGUES",
+     "parishes": [
+      {
+       "code": "030101",
+       "name": "AURELIO BAYAS MARTÍNEZ",
+       "type": "URBAN"
+      },
+      {
+       "code": "030102",
+       "name": "AZOGUES",
+       "type": "URBAN"
+      },
+      {
+       "code": "030103",
+       "name": "BORRERO",
+       "type": "URBAN"
+      },
+      {
+       "code": "030104",
+       "name": "SAN FRANCISCO",
+       "type": "URBAN"
+      },
+      {
+       "code": "030151",
+       "name": "COJITAMBO",
+       "type": "RURAL"
+      },
+      {
+       "code": "030153",
+       "name": "GUAPÁN",
+       "type": "RURAL"
+      },
+      {
+       "code": "030154",
+       "name": "JAVIER LOYOLA",
+       "type": "RURAL"
+      },
+      {
+       "code": "030155",
+       "name": "LUIS CORDERO",
+       "type": "RURAL"
+      },
+      {
+       "code": "030156",
+       "name": "PINDILIG",
+       "type": "RURAL"
+      },
+      {
+       "code": "030157",
+       "name": "RIVERA",
+       "type": "RURAL"
+      },
+      {
+       "code": "030158",
+       "name": "SAN MIGUEL",
+       "type": "RURAL"
+      },
+      {
+       "code": "030160",
+       "name": "TADAY",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0302",
+     "name": "BIBLIÁN",
+     "parishes": [
+      {
+       "code": "030250",
+       "name": "BIBLIÁN (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "030251",
+       "name": "NAZÓN (CAB. EN PAMPA DE DOMÍNGUEZ)",
+       "type": "RURAL"
+      },
+      {
+       "code": "030252",
+       "name": "SAN FRANCISCO DE SAGEO",
+       "type": "RURAL"
+      },
+      {
+       "code": "030253",
+       "name": "TURUPAMBA",
+       "type": "RURAL"
+      },
+      {
+       "code": "030254",
+       "name": "JERUSALÉN",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0303",
+     "name": "CAÑAR",
+     "parishes": [
+      {
+       "code": "030350",
+       "name": "CAÑAR (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "030351",
+       "name": "CHONTAMARCA",
+       "type": "RURAL"
+      },
+      {
+       "code": "030352",
+       "name": "CHOROCOPTE",
+       "type": "RURAL"
+      },
+      {
+       "code": "030353",
+       "name": "GENERAL MORALES",
+       "type": "RURAL"
+      },
+      {
+       "code": "030354",
+       "name": "GUALLETURO",
+       "type": "RURAL"
+      },
+      {
+       "code": "030355",
+       "name": "HONORATO VÁSQUEZ",
+       "type": "RURAL"
+      },
+      {
+       "code": "030356",
+       "name": "INGAPIRCA",
+       "type": "RURAL"
+      },
+      {
+       "code": "030357",
+       "name": "JUNCAL",
+       "type": "RURAL"
+      },
+      {
+       "code": "030358",
+       "name": "SAN ANTONIO",
+       "type": "RURAL"
+      },
+      {
+       "code": "030361",
+       "name": "ZHUD",
+       "type": "RURAL"
+      },
+      {
+       "code": "030362",
+       "name": "VENTURA",
+       "type": "RURAL"
+      },
+      {
+       "code": "030363",
+       "name": "DUCUR",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0304",
+     "name": "LA TRONCAL",
+     "parishes": [
+      {
+       "code": "030450",
+       "name": "LA TRONCAL (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "030451",
+       "name": "MANUEL J. CALLE",
+       "type": "RURAL"
+      },
+      {
+       "code": "030452",
+       "name": "PANCHO NEGRO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0305",
+     "name": "EL TAMBO",
+     "parishes": [
+      {
+       "code": "030550",
+       "name": "EL TAMBO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    },
+    {
+     "code": "0306",
+     "name": "DÉLEG",
+     "parishes": [
+      {
+       "code": "030650",
+       "name": "DÉLEG (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "030651",
+       "name": "SOLANO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0307",
+     "name": "SUSCAL",
+     "parishes": [
+      {
+       "code": "030750",
+       "name": "SUSCAL (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "04",
+   "name": "CARCHI",
+   "cantons": [
+    {
+     "code": "0401",
+     "name": "TULCÁN",
+     "parishes": [
+      {
+       "code": "040101",
+       "name": "GONZÁLEZ SUÁREZ",
+       "type": "URBAN"
+      },
+      {
+       "code": "040102",
+       "name": "TULCÁN",
+       "type": "URBAN"
+      },
+      {
+       "code": "040151",
+       "name": "EL CARMELO",
+       "type": "RURAL"
+      },
+      {
+       "code": "040153",
+       "name": "JULIO ANDRADE",
+       "type": "RURAL"
+      },
+      {
+       "code": "040154",
+       "name": "MALDONADO",
+       "type": "RURAL"
+      },
+      {
+       "code": "040155",
+       "name": "PIOTER",
+       "type": "RURAL"
+      },
+      {
+       "code": "040156",
+       "name": "TOBAR DONOSO (CAB. EN LA BOCANA DE CAMUMBÍ)",
+       "type": "RURAL"
+      },
+      {
+       "code": "040157",
+       "name": "TUFIÑO",
+       "type": "RURAL"
+      },
+      {
+       "code": "040158",
+       "name": "URBINA",
+       "type": "RURAL"
+      },
+      {
+       "code": "040159",
+       "name": "EL CHICAL",
+       "type": "RURAL"
+      },
+      {
+       "code": "040161",
+       "name": "SANTA MARTHA DE CUBA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0402",
+     "name": "BOLÍVAR",
+     "parishes": [
+      {
+       "code": "040250",
+       "name": "BOLÍVAR (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "040251",
+       "name": "GARCÍA MORENO",
+       "type": "RURAL"
+      },
+      {
+       "code": "040252",
+       "name": "LOS ANDES",
+       "type": "RURAL"
+      },
+      {
+       "code": "040253",
+       "name": "MONTE OLIVO",
+       "type": "RURAL"
+      },
+      {
+       "code": "040254",
+       "name": "SAN VICENTE DE PUSIR",
+       "type": "RURAL"
+      },
+      {
+       "code": "040255",
+       "name": "SAN RAFAEL",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0403",
+     "name": "ESPEJO",
+     "parishes": [
+      {
+       "code": "040301",
+       "name": "EL ÁNGEL",
+       "type": "URBAN"
+      },
+      {
+       "code": "040302",
+       "name": "27 DE SEPTIEMBRE",
+       "type": "URBAN"
+      },
+      {
+       "code": "040351",
+       "name": "EL GOALTAL",
+       "type": "RURAL"
+      },
+      {
+       "code": "040352",
+       "name": "LA LIBERTAD",
+       "type": "RURAL"
+      },
+      {
+       "code": "040353",
+       "name": "SAN ISIDRO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0404",
+     "name": "MIRA",
+     "parishes": [
+      {
+       "code": "040450",
+       "name": "MIRA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "040451",
+       "name": "CONCEPCIÓN",
+       "type": "RURAL"
+      },
+      {
+       "code": "040452",
+       "name": "JIJÓN Y CAAMAÑO (CAB. EN RÍO BLANCO)",
+       "type": "RURAL"
+      },
+      {
+       "code": "040453",
+       "name": "JUAN MONTALVO (CAB. EN SAN IGNACIO DE QUIL)",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0405",
+     "name": "MONTÚFAR",
+     "parishes": [
+      {
+       "code": "040501",
+       "name": "GONZÁLEZ SUÁREZ",
+       "type": "URBAN"
+      },
+      {
+       "code": "040502",
+       "name": "SAN JOSÉ",
+       "type": "URBAN"
+      },
+      {
+       "code": "040551",
+       "name": "CRISTÓBAL COLÓN",
+       "type": "RURAL"
+      },
+      {
+       "code": "040552",
+       "name": "CHITÁN DE NAVARRETE",
+       "type": "RURAL"
+      },
+      {
+       "code": "040553",
+       "name": "FERNÁNDEZ SALVADOR",
+       "type": "RURAL"
+      },
+      {
+       "code": "040554",
+       "name": "LA PAZ",
+       "type": "RURAL"
+      },
+      {
+       "code": "040555",
+       "name": "PIARTAL",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0406",
+     "name": "SAN PEDRO DE HUACA",
+     "parishes": [
+      {
+       "code": "040650",
+       "name": "HUACA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "040651",
+       "name": "MARISCAL SUCRE",
+       "type": "RURAL"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "05",
+   "name": "COTOPAXI",
+   "cantons": [
+    {
+     "code": "0501",
+     "name": "LATACUNGA",
+     "parishes": [
+      {
+       "code": "050101",
+       "name": "ELOY ALFARO (SAN FELIPE)",
+       "type": "URBAN"
+      },
+      {
+       "code": "050102",
+       "name": "IGNACIO FLORES (PARQUE FLORES)",
+       "type": "URBAN"
+      },
+      {
+       "code": "050103",
+       "name": "JUAN MONTALVO (SAN SEBASTIÁN)",
+       "type": "URBAN"
+      },
+      {
+       "code": "050104",
+       "name": "LA MATRIZ",
+       "type": "URBAN"
+      },
+      {
+       "code": "050105",
+       "name": "SAN BUENAVENTURA",
+       "type": "URBAN"
+      },
+      {
+       "code": "050151",
+       "name": "ALÁQUEZ",
+       "type": "RURAL"
+      },
+      {
+       "code": "050152",
+       "name": "BELISARIO QUEVEDO",
+       "type": "RURAL"
+      },
+      {
+       "code": "050153",
+       "name": "GUAYTACAMA",
+       "type": "RURAL"
+      },
+      {
+       "code": "050154",
+       "name": "JOSEGUANGO BAJO",
+       "type": "RURAL"
+      },
+      {
+       "code": "050156",
+       "name": "MULALÓ",
+       "type": "RURAL"
+      },
+      {
+       "code": "050157",
+       "name": "ONCE DE NOVIEMBRE",
+       "type": "RURAL"
+      },
+      {
+       "code": "050158",
+       "name": "POALÓ",
+       "type": "RURAL"
+      },
+      {
+       "code": "050159",
+       "name": "SAN JUAN DE PASTOCALLE",
+       "type": "RURAL"
+      },
+      {
+       "code": "050161",
+       "name": "TANICUCHÍ",
+       "type": "RURAL"
+      },
+      {
+       "code": "050162",
+       "name": "TOACASO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0502",
+     "name": "LA MANÁ",
+     "parishes": [
+      {
+       "code": "050201",
+       "name": "EL CARMEN",
+       "type": "URBAN"
+      },
+      {
+       "code": "050202",
+       "name": "LA MANÁ",
+       "type": "URBAN"
+      },
+      {
+       "code": "050203",
+       "name": "EL TRIUNFO",
+       "type": "URBAN"
+      },
+      {
+       "code": "050251",
+       "name": "GUASAGANDA (CAB. EN GUASAGANDA CENTRO)",
+       "type": "RURAL"
+      },
+      {
+       "code": "050252",
+       "name": "PUCAYACU",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0503",
+     "name": "PANGUA",
+     "parishes": [
+      {
+       "code": "050350",
+       "name": "EL CORAZÓN (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "050351",
+       "name": "MORASPUNGO",
+       "type": "RURAL"
+      },
+      {
+       "code": "050352",
+       "name": "PINLLOPATA",
+       "type": "RURAL"
+      },
+      {
+       "code": "050353",
+       "name": "RAMÓN CAMPAÑA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0504",
+     "name": "PUJILI",
+     "parishes": [
+      {
+       "code": "050450",
+       "name": "PUJILÍ (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "050451",
+       "name": "ANGAMARCA",
+       "type": "RURAL"
+      },
+      {
+       "code": "050453",
+       "name": "GUANGAJE",
+       "type": "RURAL"
+      },
+      {
+       "code": "050455",
+       "name": "LA VICTORIA",
+       "type": "RURAL"
+      },
+      {
+       "code": "050456",
+       "name": "PILALÓ",
+       "type": "RURAL"
+      },
+      {
+       "code": "050457",
+       "name": "TINGO",
+       "type": "RURAL"
+      },
+      {
+       "code": "050458",
+       "name": "ZUMBAHUA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0505",
+     "name": "SALCEDO",
+     "parishes": [
+      {
+       "code": "050550",
+       "name": "SAN MIGUEL (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "050551",
+       "name": "ANTONIO JOSÉ HOLGUÍN",
+       "type": "RURAL"
+      },
+      {
+       "code": "050552",
+       "name": "CUSUBAMBA",
+       "type": "RURAL"
+      },
+      {
+       "code": "050553",
+       "name": "MULALILLO",
+       "type": "RURAL"
+      },
+      {
+       "code": "050554",
+       "name": "MULLIQUINDIL",
+       "type": "RURAL"
+      },
+      {
+       "code": "050555",
+       "name": "PANSALEO (CAB. EN PANZALEO)",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0506",
+     "name": "SAQUISILÍ",
+     "parishes": [
+      {
+       "code": "050650",
+       "name": "SAQUISILÍ (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "050651",
+       "name": "CANCHAGUA",
+       "type": "RURAL"
+      },
+      {
+       "code": "050652",
+       "name": "CHANTILÍN",
+       "type": "RURAL"
+      },
+      {
+       "code": "050653",
+       "name": "COCHAPAMBA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0507",
+     "name": "SIGCHOS",
+     "parishes": [
+      {
+       "code": "050750",
+       "name": "SIGCHOS (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "050751",
+       "name": "CHUGCHILLÁN",
+       "type": "RURAL"
+      },
+      {
+       "code": "050752",
+       "name": "ISINLIVI",
+       "type": "RURAL"
+      },
+      {
+       "code": "050753",
+       "name": "LAS PAMPAS",
+       "type": "RURAL"
+      },
+      {
+       "code": "050754",
+       "name": "PALO QUEMADO",
+       "type": "RURAL"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "06",
+   "name": "CHIMBORAZO",
+   "cantons": [
+    {
+     "code": "0601",
+     "name": "RIOBAMBA",
+     "parishes": [
+      {
+       "code": "060101",
+       "name": "LIZARZABURU",
+       "type": "URBAN"
+      },
+      {
+       "code": "060102",
+       "name": "MALDONADO",
+       "type": "URBAN"
+      },
+      {
+       "code": "060103",
+       "name": "VELASCO",
+       "type": "URBAN"
+      },
+      {
+       "code": "060104",
+       "name": "VELOZ",
+       "type": "URBAN"
+      },
+      {
+       "code": "060105",
+       "name": "YARUQUÍES",
+       "type": "URBAN"
+      },
+      {
+       "code": "060151",
+       "name": "CACHA",
+       "type": "RURAL"
+      },
+      {
+       "code": "060152",
+       "name": "CALPI",
+       "type": "RURAL"
+      },
+      {
+       "code": "060153",
+       "name": "CUBIJÍES",
+       "type": "RURAL"
+      },
+      {
+       "code": "060154",
+       "name": "FLORES (CAB. EN LANLÁN)",
+       "type": "RURAL"
+      },
+      {
+       "code": "060155",
+       "name": "LICÁN",
+       "type": "RURAL"
+      },
+      {
+       "code": "060156",
+       "name": "LICTO",
+       "type": "RURAL"
+      },
+      {
+       "code": "060157",
+       "name": "PUNGALÁ",
+       "type": "RURAL"
+      },
+      {
+       "code": "060158",
+       "name": "PUNÍN",
+       "type": "RURAL"
+      },
+      {
+       "code": "060159",
+       "name": "QUIMIAG",
+       "type": "RURAL"
+      },
+      {
+       "code": "060160",
+       "name": "SAN JUAN",
+       "type": "RURAL"
+      },
+      {
+       "code": "060161",
+       "name": "SAN LUIS",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0602",
+     "name": "ALAUSI",
+     "parishes": [
+      {
+       "code": "060250",
+       "name": "ALAUSÍ (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "060251",
+       "name": "ACHUPALLAS",
+       "type": "RURAL"
+      },
+      {
+       "code": "060253",
+       "name": "GUASUNTOS",
+       "type": "RURAL"
+      },
+      {
+       "code": "060254",
+       "name": "HUIGRA",
+       "type": "RURAL"
+      },
+      {
+       "code": "060255",
+       "name": "MULTITUD",
+       "type": "RURAL"
+      },
+      {
+       "code": "060256",
+       "name": "PISTISHI",
+       "type": "RURAL"
+      },
+      {
+       "code": "060257",
+       "name": "PUMALLACTA",
+       "type": "RURAL"
+      },
+      {
+       "code": "060258",
+       "name": "SEVILLA",
+       "type": "RURAL"
+      },
+      {
+       "code": "060259",
+       "name": "SIBAMBE",
+       "type": "RURAL"
+      },
+      {
+       "code": "060260",
+       "name": "TIXÁN",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0603",
+     "name": "COLTA",
+     "parishes": [
+      {
+       "code": "060301",
+       "name": "CAJABAMBA",
+       "type": "URBAN"
+      },
+      {
+       "code": "060302",
+       "name": "SICALPA",
+       "type": "URBAN"
+      },
+      {
+       "code": "060351",
+       "name": "CAÑI",
+       "type": "RURAL"
+      },
+      {
+       "code": "060352",
+       "name": "COLUMBE",
+       "type": "RURAL"
+      },
+      {
+       "code": "060353",
+       "name": "JUAN DE VELASCO",
+       "type": "RURAL"
+      },
+      {
+       "code": "060354",
+       "name": "SANTIAGO DE QUITO (CAB. EN SAN ANTONIO DE QUITO)",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0604",
+     "name": "CHAMBO",
+     "parishes": [
+      {
+       "code": "060450",
+       "name": "CHAMBO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    },
+    {
+     "code": "0605",
+     "name": "CHUNCHI",
+     "parishes": [
+      {
+       "code": "060550",
+       "name": "CHUNCHI (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "060551",
+       "name": "CAPZOL",
+       "type": "RURAL"
+      },
+      {
+       "code": "060552",
+       "name": "COMPUD",
+       "type": "RURAL"
+      },
+      {
+       "code": "060553",
+       "name": "GONZOL",
+       "type": "RURAL"
+      },
+      {
+       "code": "060554",
+       "name": "LLAGOS",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0606",
+     "name": "GUAMOTE",
+     "parishes": [
+      {
+       "code": "060650",
+       "name": "GUAMOTE (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "060651",
+       "name": "CEBADAS",
+       "type": "RURAL"
+      },
+      {
+       "code": "060652",
+       "name": "PALMIRA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0607",
+     "name": "GUANO",
+     "parishes": [
+      {
+       "code": "060701",
+       "name": "EL ROSARIO",
+       "type": "URBAN"
+      },
+      {
+       "code": "060702",
+       "name": "LA MATRIZ",
+       "type": "URBAN"
+      },
+      {
+       "code": "060751",
+       "name": "GUANANDO",
+       "type": "RURAL"
+      },
+      {
+       "code": "060752",
+       "name": "ILAPO",
+       "type": "RURAL"
+      },
+      {
+       "code": "060753",
+       "name": "LA PROVIDENCIA",
+       "type": "RURAL"
+      },
+      {
+       "code": "060754",
+       "name": "SAN ANDRÉS",
+       "type": "RURAL"
+      },
+      {
+       "code": "060755",
+       "name": "SAN GERARDO (CAB. EN SAN GERARDO DE PACAICAGUÁN)",
+       "type": "RURAL"
+      },
+      {
+       "code": "060756",
+       "name": "SAN ISIDRO DE PATULÚ",
+       "type": "RURAL"
+      },
+      {
+       "code": "060757",
+       "name": "SAN JOSÉ DEL CHAZO",
+       "type": "RURAL"
+      },
+      {
+       "code": "060758",
+       "name": "SANTA FÉ DE GALÁN",
+       "type": "RURAL"
+      },
+      {
+       "code": "060759",
+       "name": "VALPARAISO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0608",
+     "name": "PALLATANGA",
+     "parishes": [
+      {
+       "code": "060850",
+       "name": "PALLATANGA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    },
+    {
+     "code": "0609",
+     "name": "PENIPE",
+     "parishes": [
+      {
+       "code": "060950",
+       "name": "PENIPE (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "060951",
+       "name": "EL ALTAR",
+       "type": "RURAL"
+      },
+      {
+       "code": "060952",
+       "name": "MATUS",
+       "type": "RURAL"
+      },
+      {
+       "code": "060953",
+       "name": "PUELA",
+       "type": "RURAL"
+      },
+      {
+       "code": "060954",
+       "name": "SAN ANTONIO DE BAYUSHIG",
+       "type": "RURAL"
+      },
+      {
+       "code": "060955",
+       "name": "LA CANDELARIA",
+       "type": "RURAL"
+      },
+      {
+       "code": "060956",
+       "name": "BILBAO (CAB.EN QUILLUYACU)",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0610",
+     "name": "CUMANDÁ",
+     "parishes": [
+      {
+       "code": "061050",
+       "name": "CUMANDÁ (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "07",
+   "name": "EL ORO",
+   "cantons": [
+    {
+     "code": "0701",
+     "name": "MACHALA",
+     "parishes": [
+      {
+       "code": "070101",
+       "name": "LA PROVIDENCIA",
+       "type": "URBAN"
+      },
+      {
+       "code": "070102",
+       "name": "MACHALA",
+       "type": "URBAN"
+      },
+      {
+       "code": "070103",
+       "name": "PUERTO BOLÍVAR",
+       "type": "URBAN"
+      },
+      {
+       "code": "070104",
+       "name": "NUEVE DE MAYO",
+       "type": "URBAN"
+      },
+      {
+       "code": "070105",
+       "name": "EL CAMBIO",
+       "type": "URBAN"
+      },
+      {
+       "code": "070152",
+       "name": "EL RETIRO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0702",
+     "name": "ARENILLAS",
+     "parishes": [
+      {
+       "code": "070250",
+       "name": "ARENILLAS (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "070251",
+       "name": "CHACRAS",
+       "type": "RURAL"
+      },
+      {
+       "code": "070254",
+       "name": "PALMALES",
+       "type": "RURAL"
+      },
+      {
+       "code": "070255",
+       "name": "CARCABÓN",
+       "type": "RURAL"
+      },
+      {
+       "code": "070256",
+       "name": "LA CUCA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0703",
+     "name": "ATAHUALPA",
+     "parishes": [
+      {
+       "code": "070350",
+       "name": "PACCHA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "070351",
+       "name": "AYAPAMBA",
+       "type": "RURAL"
+      },
+      {
+       "code": "070352",
+       "name": "CORDONCILLO",
+       "type": "RURAL"
+      },
+      {
+       "code": "070353",
+       "name": "MILAGRO",
+       "type": "RURAL"
+      },
+      {
+       "code": "070354",
+       "name": "SAN JOSÉ",
+       "type": "RURAL"
+      },
+      {
+       "code": "070355",
+       "name": "SAN JUAN DE CERRO AZUL",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0704",
+     "name": "BALSAS",
+     "parishes": [
+      {
+       "code": "070450",
+       "name": "BALSAS (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "070451",
+       "name": "BELLAMARÍA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0705",
+     "name": "CHILLA",
+     "parishes": [
+      {
+       "code": "070550",
+       "name": "CHILLA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    },
+    {
+     "code": "0706",
+     "name": "EL GUABO",
+     "parishes": [
+      {
+       "code": "070650",
+       "name": "EL GUABO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "070651",
+       "name": "BARBONES",
+       "type": "RURAL"
+      },
+      {
+       "code": "070652",
+       "name": "LA IBERIA",
+       "type": "RURAL"
+      },
+      {
+       "code": "070653",
+       "name": "TENDALES (CAB.EN PUERTO TENDALES)",
+       "type": "RURAL"
+      },
+      {
+       "code": "070654",
+       "name": "RÍO BONITO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0707",
+     "name": "HUAQUILLAS",
+     "parishes": [
+      {
+       "code": "070701",
+       "name": "ECUADOR",
+       "type": "URBAN"
+      },
+      {
+       "code": "070702",
+       "name": "EL PARAÍSO",
+       "type": "URBAN"
+      },
+      {
+       "code": "070703",
+       "name": "HUALTACO",
+       "type": "URBAN"
+      },
+      {
+       "code": "070704",
+       "name": "MILTON REYES",
+       "type": "URBAN"
+      },
+      {
+       "code": "070705",
+       "name": "UNIÓN LOJANA",
+       "type": "URBAN"
+      }
+     ]
+    },
+    {
+     "code": "0708",
+     "name": "MARCABELÍ",
+     "parishes": [
+      {
+       "code": "070850",
+       "name": "MARCABELÍ (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "070851",
+       "name": "EL INGENIO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0709",
+     "name": "PASAJE",
+     "parishes": [
+      {
+       "code": "070901",
+       "name": "BOLÍVAR",
+       "type": "URBAN"
+      },
+      {
+       "code": "070902",
+       "name": "LOMA DE FRANCO",
+       "type": "URBAN"
+      },
+      {
+       "code": "070903",
+       "name": "OCHOA LEÓN (MATRIZ)",
+       "type": "URBAN"
+      },
+      {
+       "code": "070904",
+       "name": "TRES CERRITOS",
+       "type": "URBAN"
+      },
+      {
+       "code": "070951",
+       "name": "BUENAVISTA",
+       "type": "RURAL"
+      },
+      {
+       "code": "070952",
+       "name": "CASACAY",
+       "type": "RURAL"
+      },
+      {
+       "code": "070953",
+       "name": "LA PEAÑA",
+       "type": "RURAL"
+      },
+      {
+       "code": "070954",
+       "name": "PROGRESO",
+       "type": "RURAL"
+      },
+      {
+       "code": "070955",
+       "name": "UZHCURRUMI",
+       "type": "RURAL"
+      },
+      {
+       "code": "070956",
+       "name": "CAÑAQUEMADA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0710",
+     "name": "PIÑAS",
+     "parishes": [
+      {
+       "code": "071001",
+       "name": "LA MATRIZ",
+       "type": "URBAN"
+      },
+      {
+       "code": "071002",
+       "name": "LA SUSAYA",
+       "type": "URBAN"
+      },
+      {
+       "code": "071003",
+       "name": "PIÑAS GRANDE",
+       "type": "URBAN"
+      },
+      {
+       "code": "071051",
+       "name": "CAPIRO (CAB. EN LA CAPILLA DE CAPIRO)",
+       "type": "RURAL"
+      },
+      {
+       "code": "071052",
+       "name": "LA BOCANA",
+       "type": "RURAL"
+      },
+      {
+       "code": "071053",
+       "name": "MOROMORO (CAB. EN EL VADO)",
+       "type": "RURAL"
+      },
+      {
+       "code": "071054",
+       "name": "PIEDRAS",
+       "type": "RURAL"
+      },
+      {
+       "code": "071055",
+       "name": "SAN ROQUE",
+       "type": "RURAL"
+      },
+      {
+       "code": "071056",
+       "name": "SARACAY",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0711",
+     "name": "PORTOVELO",
+     "parishes": [
+      {
+       "code": "071150",
+       "name": "PORTOVELO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "071151",
+       "name": "CURTINCAPA",
+       "type": "RURAL"
+      },
+      {
+       "code": "071152",
+       "name": "MORALES",
+       "type": "RURAL"
+      },
+      {
+       "code": "071153",
+       "name": "SALATÍ",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0712",
+     "name": "SANTA ROSA",
+     "parishes": [
+      {
+       "code": "071201",
+       "name": "SANTA ROSA",
+       "type": "URBAN"
+      },
+      {
+       "code": "071202",
+       "name": "PUERTO JELÍ",
+       "type": "URBAN"
+      },
+      {
+       "code": "071203",
+       "name": "BALNEARIO JAMBELÍ (SATÉLITE)",
+       "type": "URBAN"
+      },
+      {
+       "code": "071204",
+       "name": "JUMÓN (SATÉLITE)",
+       "type": "URBAN"
+      },
+      {
+       "code": "071205",
+       "name": "NUEVO SANTA ROSA",
+       "type": "URBAN"
+      },
+      {
+       "code": "071251",
+       "name": "BELLAVISTA",
+       "type": "RURAL"
+      },
+      {
+       "code": "071252",
+       "name": "JAMBELÍ",
+       "type": "RURAL"
+      },
+      {
+       "code": "071253",
+       "name": "LA AVANZADA",
+       "type": "RURAL"
+      },
+      {
+       "code": "071254",
+       "name": "SAN ANTONIO",
+       "type": "RURAL"
+      },
+      {
+       "code": "071255",
+       "name": "TORATA",
+       "type": "RURAL"
+      },
+      {
+       "code": "071256",
+       "name": "VICTORIA",
+       "type": "RURAL"
+      },
+      {
+       "code": "071257",
+       "name": "BELLAMARÍA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0713",
+     "name": "ZARUMA",
+     "parishes": [
+      {
+       "code": "071350",
+       "name": "ZARUMA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "071351",
+       "name": "ABAÑÍN",
+       "type": "RURAL"
+      },
+      {
+       "code": "071352",
+       "name": "ARCAPAMBA",
+       "type": "RURAL"
+      },
+      {
+       "code": "071353",
+       "name": "GUANAZÁN",
+       "type": "RURAL"
+      },
+      {
+       "code": "071354",
+       "name": "GUIZHAGUIÑA",
+       "type": "RURAL"
+      },
+      {
+       "code": "071355",
+       "name": "HUERTAS",
+       "type": "RURAL"
+      },
+      {
+       "code": "071356",
+       "name": "MALVAS",
+       "type": "RURAL"
+      },
+      {
+       "code": "071357",
+       "name": "MULUNCAY GRANDE",
+       "type": "RURAL"
+      },
+      {
+       "code": "071358",
+       "name": "SINSAO",
+       "type": "RURAL"
+      },
+      {
+       "code": "071359",
+       "name": "SALVIAS",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0714",
+     "name": "LAS LAJAS",
+     "parishes": [
+      {
+       "code": "071401",
+       "name": "LA VICTORIA",
+       "type": "URBAN"
+      },
+      {
+       "code": "071402",
+       "name": "PLATANILLOS",
+       "type": "URBAN"
+      },
+      {
+       "code": "071403",
+       "name": "VALLE HERMOSO",
+       "type": "URBAN"
+      },
+      {
+       "code": "071451",
+       "name": "LA LIBERTAD",
+       "type": "RURAL"
+      },
+      {
+       "code": "071452",
+       "name": "EL PARAÍSO",
+       "type": "RURAL"
+      },
+      {
+       "code": "071453",
+       "name": "SAN ISIDRO",
+       "type": "RURAL"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "08",
+   "name": "ESMERALDAS",
+   "cantons": [
+    {
+     "code": "0801",
+     "name": "ESMERALDAS",
+     "parishes": [
+      {
+       "code": "080101",
+       "name": "BARTOLOMÉ RUIZ (CÉSAR FRANCO CARRIÓN)",
+       "type": "URBAN"
+      },
+      {
+       "code": "080102",
+       "name": "5 DE AGOSTO",
+       "type": "URBAN"
+      },
+      {
+       "code": "080103",
+       "name": "ESMERALDAS",
+       "type": "URBAN"
+      },
+      {
+       "code": "080104",
+       "name": "LUIS TELLO (LAS PALMAS)",
+       "type": "URBAN"
+      },
+      {
+       "code": "080105",
+       "name": "SIMÓN PLATA TORRES",
+       "type": "URBAN"
+      },
+      {
+       "code": "080152",
+       "name": "CAMARONES (CAB. EN SAN VICENTE)",
+       "type": "RURAL"
+      },
+      {
+       "code": "080153",
+       "name": "CORONEL CARLOS CONCHA TORRES (CAB.EN HUELE)",
+       "type": "RURAL"
+      },
+      {
+       "code": "080154",
+       "name": "CHINCA",
+       "type": "RURAL"
+      },
+      {
+       "code": "080159",
+       "name": "MAJUA",
+       "type": "RURAL"
+      },
+      {
+       "code": "080163",
+       "name": "SAN MATEO",
+       "type": "RURAL"
+      },
+      {
+       "code": "080165",
+       "name": "TABIAZO",
+       "type": "RURAL"
+      },
+      {
+       "code": "080166",
+       "name": "TACHINA",
+       "type": "RURAL"
+      },
+      {
+       "code": "080168",
+       "name": "VUELTA LARGA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0802",
+     "name": "ELOY ALFARO",
+     "parishes": [
+      {
+       "code": "080250",
+       "name": "VALDEZ (LIMONES) (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "080251",
+       "name": "ANCHAYACU",
+       "type": "RURAL"
+      },
+      {
+       "code": "080252",
+       "name": "ATAHUALPA (CAB. EN CAMARONES)",
+       "type": "RURAL"
+      },
+      {
+       "code": "080253",
+       "name": "BORBÓN",
+       "type": "RURAL"
+      },
+      {
+       "code": "080254",
+       "name": "LA TOLA",
+       "type": "RURAL"
+      },
+      {
+       "code": "080255",
+       "name": "LUIS VARGAS TORRES (CAB. EN PLAYA DE ORO)",
+       "type": "RURAL"
+      },
+      {
+       "code": "080256",
+       "name": "MALDONADO",
+       "type": "RURAL"
+      },
+      {
+       "code": "080257",
+       "name": "PAMPANAL DE BOLÍVAR",
+       "type": "RURAL"
+      },
+      {
+       "code": "080258",
+       "name": "SAN FRANCISCO DE ONZOLE",
+       "type": "RURAL"
+      },
+      {
+       "code": "080259",
+       "name": "SANTO DOMINGO DE ONZOLE",
+       "type": "RURAL"
+      },
+      {
+       "code": "080260",
+       "name": "SELVA ALEGRE",
+       "type": "RURAL"
+      },
+      {
+       "code": "080261",
+       "name": "TELEMBÍ",
+       "type": "RURAL"
+      },
+      {
+       "code": "080262",
+       "name": "COLÓN ELOY DEL MARÍA (CAB. EN COLÓN ELOY)",
+       "type": "RURAL"
+      },
+      {
+       "code": "080263",
+       "name": "SAN JOSÉ DE CAYAPAS",
+       "type": "RURAL"
+      },
+      {
+       "code": "080264",
+       "name": "TIMBIRÉ",
+       "type": "RURAL"
+      },
+      {
+       "code": "080265",
+       "name": "SANTA LUCÍA DE LAS PEÑAS",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0803",
+     "name": "MUISNE",
+     "parishes": [
+      {
+       "code": "080350",
+       "name": "MUISNE (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "080351",
+       "name": "BOLÍVAR",
+       "type": "RURAL"
+      },
+      {
+       "code": "080352",
+       "name": "DAULE",
+       "type": "RURAL"
+      },
+      {
+       "code": "080353",
+       "name": "GALERA",
+       "type": "RURAL"
+      },
+      {
+       "code": "080354",
+       "name": "QUINGUE",
+       "type": "RURAL"
+      },
+      {
+       "code": "080355",
+       "name": "SÁLIMA",
+       "type": "RURAL"
+      },
+      {
+       "code": "080356",
+       "name": "SAN FRANCISCO",
+       "type": "RURAL"
+      },
+      {
+       "code": "080357",
+       "name": "SAN GREGORIO",
+       "type": "RURAL"
+      },
+      {
+       "code": "080358",
+       "name": "SAN JOSÉ DE CHAMANGA (CAB.EN CHAMANGA)",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0804",
+     "name": "QUININDÉ",
+     "parishes": [
+      {
+       "code": "080450",
+       "name": "ROSA ZÁRATE (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "080451",
+       "name": "CUBE",
+       "type": "RURAL"
+      },
+      {
+       "code": "080452",
+       "name": "CHURA (CAB. EN EL YERBERO)",
+       "type": "RURAL"
+      },
+      {
+       "code": "080453",
+       "name": "MALIMPIA",
+       "type": "RURAL"
+      },
+      {
+       "code": "080454",
+       "name": "VICHE",
+       "type": "RURAL"
+      },
+      {
+       "code": "080455",
+       "name": "LA UNIÓN",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0805",
+     "name": "SAN LORENZO",
+     "parishes": [
+      {
+       "code": "080550",
+       "name": "SAN LORENZO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "080551",
+       "name": "ALTO TAMBO (CAB. EN GUADUAL)",
+       "type": "RURAL"
+      },
+      {
+       "code": "080552",
+       "name": "ANCÓN (CAB. EN PALMA REAL)",
+       "type": "RURAL"
+      },
+      {
+       "code": "080553",
+       "name": "CALDERÓN",
+       "type": "RURAL"
+      },
+      {
+       "code": "080554",
+       "name": "CARONDELET",
+       "type": "RURAL"
+      },
+      {
+       "code": "080555",
+       "name": "5 DE JUNIO (CAB. EN UIMBÍ)",
+       "type": "RURAL"
+      },
+      {
+       "code": "080556",
+       "name": "CONCEPCIÓN",
+       "type": "RURAL"
+      },
+      {
+       "code": "080557",
+       "name": "MATAJE (CAB. EN SANTANDER)",
+       "type": "RURAL"
+      },
+      {
+       "code": "080558",
+       "name": "SAN JAVIER DE CACHAVÍ (CAB. EN SAN JAVIER)",
+       "type": "RURAL"
+      },
+      {
+       "code": "080559",
+       "name": "SANTA RITA",
+       "type": "RURAL"
+      },
+      {
+       "code": "080560",
+       "name": "TAMBILLO",
+       "type": "RURAL"
+      },
+      {
+       "code": "080561",
+       "name": "TULULBÍ (CAB. EN RICAURTE)",
+       "type": "RURAL"
+      },
+      {
+       "code": "080562",
+       "name": "URBINA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0806",
+     "name": "ATACAMES",
+     "parishes": [
+      {
+       "code": "080650",
+       "name": "ATACAMES (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "080651",
+       "name": "LA UNIÓN",
+       "type": "RURAL"
+      },
+      {
+       "code": "080652",
+       "name": "SÚA (CAB. EN LA BOCANA)",
+       "type": "RURAL"
+      },
+      {
+       "code": "080653",
+       "name": "TONCHIGÜE",
+       "type": "RURAL"
+      },
+      {
+       "code": "080654",
+       "name": "TONSUPA (CAB. EN TONSUPA CENTRAL)",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0807",
+     "name": "RÍOVERDE",
+     "parishes": [
+      {
+       "code": "080750",
+       "name": "RÍOVERDE (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "080751",
+       "name": "CHONTADURO",
+       "type": "RURAL"
+      },
+      {
+       "code": "080752",
+       "name": "CHUMUNDÉ",
+       "type": "RURAL"
+      },
+      {
+       "code": "080753",
+       "name": "LAGARTO",
+       "type": "RURAL"
+      },
+      {
+       "code": "080754",
+       "name": "MONTALVO (CAB. EN HORQUETA)",
+       "type": "RURAL"
+      },
+      {
+       "code": "080755",
+       "name": "ROCAFUERTE",
+       "type": "RURAL"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "09",
+   "name": "GUAYAS",
+   "cantons": [
+    {
+     "code": "0901",
+     "name": "GUAYAQUIL",
+     "parishes": [
+      {
+       "code": "090101",
+       "name": "AYACUCHO",
+       "type": "URBAN"
+      },
+      {
+       "code": "090102",
+       "name": "BOLÍVAR (SAGRARIO)",
+       "type": "URBAN"
+      },
+      {
+       "code": "090103",
+       "name": "CARBO (CONCEPCIÓN)",
+       "type": "URBAN"
+      },
+      {
+       "code": "090104",
+       "name": "FEBRES CORDERO",
+       "type": "URBAN"
+      },
+      {
+       "code": "090105",
+       "name": "GARCÍA MORENO",
+       "type": "URBAN"
+      },
+      {
+       "code": "090106",
+       "name": "LETAMENDI",
+       "type": "URBAN"
+      },
+      {
+       "code": "090107",
+       "name": "NUEVE DE OCTUBRE",
+       "type": "URBAN"
+      },
+      {
+       "code": "090108",
+       "name": "OLMEDO (SAN ALEJO)",
+       "type": "URBAN"
+      },
+      {
+       "code": "090109",
+       "name": "ROCA",
+       "type": "URBAN"
+      },
+      {
+       "code": "090110",
+       "name": "ROCAFUERTE",
+       "type": "URBAN"
+      },
+      {
+       "code": "090111",
+       "name": "SUCRE",
+       "type": "URBAN"
+      },
+      {
+       "code": "090112",
+       "name": "TARQUI",
+       "type": "URBAN"
+      },
+      {
+       "code": "090113",
+       "name": "URDANETA",
+       "type": "URBAN"
+      },
+      {
+       "code": "090114",
+       "name": "XIMENA",
+       "type": "URBAN"
+      },
+      {
+       "code": "090115",
+       "name": "PASCUALES",
+       "type": "URBAN"
+      },
+      {
+       "code": "090152",
+       "name": "JUAN GÓMEZ RENDÓN",
+       "type": "RURAL"
+      },
+      {
+       "code": "090153",
+       "name": "MORRO",
+       "type": "RURAL"
+      },
+      {
+       "code": "090156",
+       "name": "POSORJA",
+       "type": "RURAL"
+      },
+      {
+       "code": "090157",
+       "name": "PUNÁ",
+       "type": "RURAL"
+      },
+      {
+       "code": "090158",
+       "name": "TENGUEL",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0902",
+     "name": "ALFREDO BAQUERIZO MORENO",
+     "parishes": [
+      {
+       "code": "090250",
+       "name": "ALFREDO BAQUERIZO MORENO (JUJÁN) (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    },
+    {
+     "code": "0903",
+     "name": "BALAO",
+     "parishes": [
+      {
+       "code": "090350",
+       "name": "BALAO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    },
+    {
+     "code": "0904",
+     "name": "BALZAR",
+     "parishes": [
+      {
+       "code": "090450",
+       "name": "BALZAR (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    },
+    {
+     "code": "0905",
+     "name": "COLIMES",
+     "parishes": [
+      {
+       "code": "090550",
+       "name": "COLIMES (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "090551",
+       "name": "SAN JACINTO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0906",
+     "name": "DAULE",
+     "parishes": [
+      {
+       "code": "090601",
+       "name": "DAULE",
+       "type": "URBAN"
+      },
+      {
+       "code": "090602",
+       "name": "LA AURORA (SATÉLITE)",
+       "type": "URBAN"
+      },
+      {
+       "code": "090603",
+       "name": "BANIFE",
+       "type": "URBAN"
+      },
+      {
+       "code": "090604",
+       "name": "EMILIANO CAICEDO MARCOS",
+       "type": "URBAN"
+      },
+      {
+       "code": "090605",
+       "name": "MAGRO",
+       "type": "URBAN"
+      },
+      {
+       "code": "090606",
+       "name": "PADRE JUAN BAUTISTA AGUIRRE",
+       "type": "URBAN"
+      },
+      {
+       "code": "090607",
+       "name": "SANTA CLARA",
+       "type": "URBAN"
+      },
+      {
+       "code": "090608",
+       "name": "VICENTE PIEDRAHITA",
+       "type": "URBAN"
+      },
+      {
+       "code": "090652",
+       "name": "JUAN BAUTISTA AGUIRRE (CAB. EN LOS TINTOS)",
+       "type": "RURAL"
+      },
+      {
+       "code": "090653",
+       "name": "LAUREL (CAB. EN EL LAUREL)",
+       "type": "RURAL"
+      },
+      {
+       "code": "090654",
+       "name": "LIMONAL",
+       "type": "RURAL"
+      },
+      {
+       "code": "090656",
+       "name": "LOS LOJAS",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0907",
+     "name": "DURÁN",
+     "parishes": [
+      {
+       "code": "090701",
+       "name": "ELOY ALFARO (DURÁN)",
+       "type": "URBAN"
+      },
+      {
+       "code": "090702",
+       "name": "EL RECREO",
+       "type": "URBAN"
+      },
+      {
+       "code": "090703",
+       "name": "DIVINO NIÑO",
+       "type": "URBAN"
+      }
+     ]
+    },
+    {
+     "code": "0908",
+     "name": "EL EMPALME",
+     "parishes": [
+      {
+       "code": "090850",
+       "name": "VELASCO IBARRA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "090851",
+       "name": "GUAYAS (CAB. EN PUEBLO NUEVO)",
+       "type": "RURAL"
+      },
+      {
+       "code": "090852",
+       "name": "EL ROSARIO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0909",
+     "name": "EL TRIUNFO",
+     "parishes": [
+      {
+       "code": "090950",
+       "name": "EL TRIUNFO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    },
+    {
+     "code": "0910",
+     "name": "MILAGRO",
+     "parishes": [
+      {
+       "code": "091001",
+       "name": "CAMILO ANDRADE",
+       "type": "URBAN"
+      },
+      {
+       "code": "091002",
+       "name": "ELOY ALFARO",
+       "type": "URBAN"
+      },
+      {
+       "code": "091003",
+       "name": "CHIRIJOS",
+       "type": "URBAN"
+      },
+      {
+       "code": "091004",
+       "name": "CORONEL ENRIQUE VALDEZ",
+       "type": "URBAN"
+      },
+      {
+       "code": "091005",
+       "name": "ROSA MARÍA",
+       "type": "URBAN"
+      },
+      {
+       "code": "091006",
+       "name": "JOSÉ MARÍA VELASCO IBARRA",
+       "type": "URBAN"
+      },
+      {
+       "code": "091007",
+       "name": "VICENTE ROCAFUERTE",
+       "type": "URBAN"
+      },
+      {
+       "code": "091008",
+       "name": "ERNESTO SEMINARIO",
+       "type": "URBAN"
+      },
+      {
+       "code": "091009",
+       "name": "LAS PIÑAS",
+       "type": "URBAN"
+      },
+      {
+       "code": "091051",
+       "name": "CHOBO",
+       "type": "RURAL"
+      },
+      {
+       "code": "091053",
+       "name": "MARISCAL SUCRE",
+       "type": "RURAL"
+      },
+      {
+       "code": "091054",
+       "name": "ROBERTO ASTUDILLO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0911",
+     "name": "NARANJAL",
+     "parishes": [
+      {
+       "code": "091150",
+       "name": "NARANJAL (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "091151",
+       "name": "JESÚS MARÍA",
+       "type": "RURAL"
+      },
+      {
+       "code": "091152",
+       "name": "SAN CARLOS",
+       "type": "RURAL"
+      },
+      {
+       "code": "091153",
+       "name": "SANTA ROSA DE FLANDES",
+       "type": "RURAL"
+      },
+      {
+       "code": "091154",
+       "name": "TAURA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0912",
+     "name": "NARANJITO",
+     "parishes": [
+      {
+       "code": "091250",
+       "name": "NARANJITO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    },
+    {
+     "code": "0913",
+     "name": "PALESTINA",
+     "parishes": [
+      {
+       "code": "091350",
+       "name": "PALESTINA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    },
+    {
+     "code": "0914",
+     "name": "PEDRO CARBO",
+     "parishes": [
+      {
+       "code": "091450",
+       "name": "PEDRO CARBO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "091451",
+       "name": "VALLE DE LA VIRGEN",
+       "type": "RURAL"
+      },
+      {
+       "code": "091452",
+       "name": "SABANILLA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0916",
+     "name": "SAMBORONDÓN",
+     "parishes": [
+      {
+       "code": "091601",
+       "name": "SAMBORONDÓN",
+       "type": "URBAN"
+      },
+      {
+       "code": "091602",
+       "name": "LA PUNTILLA (SATÉLITE)",
+       "type": "URBAN"
+      },
+      {
+       "code": "091651",
+       "name": "TARIFA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0918",
+     "name": "SANTA LUCÍA",
+     "parishes": [
+      {
+       "code": "091850",
+       "name": "SANTA LUCÍA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    },
+    {
+     "code": "0919",
+     "name": "SALITRE",
+     "parishes": [
+      {
+       "code": "091901",
+       "name": "BOCANA",
+       "type": "URBAN"
+      },
+      {
+       "code": "091902",
+       "name": "CANDILEJOS",
+       "type": "URBAN"
+      },
+      {
+       "code": "091903",
+       "name": "CENTRAL",
+       "type": "URBAN"
+      },
+      {
+       "code": "091904",
+       "name": "PARAÍSO",
+       "type": "URBAN"
+      },
+      {
+       "code": "091905",
+       "name": "SAN MATEO",
+       "type": "URBAN"
+      },
+      {
+       "code": "091951",
+       "name": "GENERAL VERNAZA",
+       "type": "RURAL"
+      },
+      {
+       "code": "091952",
+       "name": "LA VICTORIA",
+       "type": "RURAL"
+      },
+      {
+       "code": "091953",
+       "name": "JUNQUILLAL",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0920",
+     "name": "SAN JACINTO DE YAGUACHI",
+     "parishes": [
+      {
+       "code": "092050",
+       "name": "SAN JACINTO DE YAGUACHI (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "092053",
+       "name": "GENERAL PEDRO J. MONTERO",
+       "type": "RURAL"
+      },
+      {
+       "code": "092055",
+       "name": "YAGUACHI VIEJO",
+       "type": "RURAL"
+      },
+      {
+       "code": "092056",
+       "name": "VIRGEN DE FÁTIMA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0921",
+     "name": "PLAYAS",
+     "parishes": [
+      {
+       "code": "092150",
+       "name": "GENERAL VILLAMIL (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    },
+    {
+     "code": "0922",
+     "name": "SIMÓN BOLÍVAR",
+     "parishes": [
+      {
+       "code": "092250",
+       "name": "SIMÓN BOLÍVAR (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "092251",
+       "name": "CORONEL LORENZO DE GARAYCOA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "0923",
+     "name": "CORONEL MARCELINO MARIDUEÑA",
+     "parishes": [
+      {
+       "code": "092350",
+       "name": "CORONEL MARCELINO MARIDUEÑA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    },
+    {
+     "code": "0924",
+     "name": "LOMAS DE SARGENTILLO",
+     "parishes": [
+      {
+       "code": "092450",
+       "name": "LOMAS DE SARGENTILLO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    },
+    {
+     "code": "0925",
+     "name": "NOBOL",
+     "parishes": [
+      {
+       "code": "092550",
+       "name": "NARCISA DE JESÚS (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    },
+    {
+     "code": "0927",
+     "name": "GENERAL ANTONIO ELIZALDE",
+     "parishes": [
+      {
+       "code": "092750",
+       "name": "GENERAL ANTONIO ELIZALDE (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    },
+    {
+     "code": "0928",
+     "name": "ISIDRO AYORA",
+     "parishes": [
+      {
+       "code": "092850",
+       "name": "ISIDRO AYORA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "10",
+   "name": "IMBABURA",
+   "cantons": [
+    {
+     "code": "1001",
+     "name": "IBARRA",
+     "parishes": [
+      {
+       "code": "100101",
+       "name": "CARANQUI",
+       "type": "URBAN"
+      },
+      {
+       "code": "100102",
+       "name": "GUAYAQUIL DE ALPACHACA",
+       "type": "URBAN"
+      },
+      {
+       "code": "100103",
+       "name": "SAGRARIO",
+       "type": "URBAN"
+      },
+      {
+       "code": "100104",
+       "name": "SAN FRANCISCO",
+       "type": "URBAN"
+      },
+      {
+       "code": "100105",
+       "name": "LA DOLOROSA DEL PRIORATO",
+       "type": "URBAN"
+      },
+      {
+       "code": "100151",
+       "name": "AMBUQUÍ",
+       "type": "RURAL"
+      },
+      {
+       "code": "100152",
+       "name": "ANGOCHAGUA",
+       "type": "RURAL"
+      },
+      {
+       "code": "100153",
+       "name": "LA CAROLINA",
+       "type": "RURAL"
+      },
+      {
+       "code": "100154",
+       "name": "LA ESPERANZA",
+       "type": "RURAL"
+      },
+      {
+       "code": "100155",
+       "name": "LITA",
+       "type": "RURAL"
+      },
+      {
+       "code": "100156",
+       "name": "SALINAS",
+       "type": "RURAL"
+      },
+      {
+       "code": "100157",
+       "name": "SAN ANTONIO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1002",
+     "name": "ANTONIO ANTE",
+     "parishes": [
+      {
+       "code": "100201",
+       "name": "ANDRADE MARÍN (LOURDES)",
+       "type": "URBAN"
+      },
+      {
+       "code": "100202",
+       "name": "ATUNTAQUI",
+       "type": "URBAN"
+      },
+      {
+       "code": "100251",
+       "name": "IMBAYA (CAB. EN SAN LUIS DE IMBAYA)",
+       "type": "RURAL"
+      },
+      {
+       "code": "100252",
+       "name": "SAN FRANCISCO DE NATABUELA (CAB. EN NATABUELA)",
+       "type": "RURAL"
+      },
+      {
+       "code": "100253",
+       "name": "SAN JOSÉ DE CHALTURA (CAB. EN CHALTURA)",
+       "type": "RURAL"
+      },
+      {
+       "code": "100254",
+       "name": "SAN ROQUE",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1003",
+     "name": "COTACACHI",
+     "parishes": [
+      {
+       "code": "100301",
+       "name": "SAGRARIO",
+       "type": "URBAN"
+      },
+      {
+       "code": "100302",
+       "name": "SAN FRANCISCO",
+       "type": "URBAN"
+      },
+      {
+       "code": "100351",
+       "name": "APUELA",
+       "type": "RURAL"
+      },
+      {
+       "code": "100352",
+       "name": "GARCÍA MORENO",
+       "type": "RURAL"
+      },
+      {
+       "code": "100353",
+       "name": "IMANTAG",
+       "type": "RURAL"
+      },
+      {
+       "code": "100354",
+       "name": "PEÑAHERRERA",
+       "type": "RURAL"
+      },
+      {
+       "code": "100355",
+       "name": "PLAZA GUTIÉRREZ",
+       "type": "RURAL"
+      },
+      {
+       "code": "100356",
+       "name": "QUIROGA",
+       "type": "RURAL"
+      },
+      {
+       "code": "100357",
+       "name": "SEIS DE JULIO DE CUELLAJE (CAB. EN CUELLAJE)",
+       "type": "RURAL"
+      },
+      {
+       "code": "100358",
+       "name": "VACAS GALINDO (CAB.EN SAN MIGUEL ALTO)",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1004",
+     "name": "OTAVALO",
+     "parishes": [
+      {
+       "code": "100401",
+       "name": "JORDÁN",
+       "type": "URBAN"
+      },
+      {
+       "code": "100402",
+       "name": "SAN LUIS",
+       "type": "URBAN"
+      },
+      {
+       "code": "100451",
+       "name": "DR. MIGUEL EGAS CABEZAS (CAB. EN PEGUCHE)",
+       "type": "RURAL"
+      },
+      {
+       "code": "100452",
+       "name": "EUGENIO ESPEJO",
+       "type": "RURAL"
+      },
+      {
+       "code": "100453",
+       "name": "GONZÁLEZ SUÁREZ",
+       "type": "RURAL"
+      },
+      {
+       "code": "100454",
+       "name": "PATAQUÍ",
+       "type": "RURAL"
+      },
+      {
+       "code": "100455",
+       "name": "SAN JOSÉ DE QUICHINCHE",
+       "type": "RURAL"
+      },
+      {
+       "code": "100456",
+       "name": "SAN JUAN DE ILUMÁN",
+       "type": "RURAL"
+      },
+      {
+       "code": "100457",
+       "name": "SAN PABLO",
+       "type": "RURAL"
+      },
+      {
+       "code": "100458",
+       "name": "SAN RAFAEL",
+       "type": "RURAL"
+      },
+      {
+       "code": "100459",
+       "name": "SELVA ALEGRE",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1005",
+     "name": "PIMAMPIRO",
+     "parishes": [
+      {
+       "code": "100550",
+       "name": "PIMAMPIRO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "100551",
+       "name": "CHUGÁ",
+       "type": "RURAL"
+      },
+      {
+       "code": "100552",
+       "name": "MARIANO ACOSTA",
+       "type": "RURAL"
+      },
+      {
+       "code": "100553",
+       "name": "SAN FRANCISCO DE SIGSIPAMBA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1006",
+     "name": "SAN MIGUEL DE URCUQUÍ",
+     "parishes": [
+      {
+       "code": "100650",
+       "name": "URCUQUÍ CABECERA CANTONAL (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "100651",
+       "name": "CAHUASQUÍ",
+       "type": "RURAL"
+      },
+      {
+       "code": "100652",
+       "name": "LA MERCED DE BUENOS AIRES",
+       "type": "RURAL"
+      },
+      {
+       "code": "100653",
+       "name": "PABLO ARENAS",
+       "type": "RURAL"
+      },
+      {
+       "code": "100654",
+       "name": "SAN BLAS",
+       "type": "RURAL"
+      },
+      {
+       "code": "100655",
+       "name": "TUMBABIRO",
+       "type": "RURAL"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "11",
+   "name": "LOJA",
+   "cantons": [
+    {
+     "code": "1101",
+     "name": "LOJA",
+     "parishes": [
+      {
+       "code": "110101",
+       "name": "EL SAGRARIO",
+       "type": "URBAN"
+      },
+      {
+       "code": "110102",
+       "name": "SAN SEBASTIÁN",
+       "type": "URBAN"
+      },
+      {
+       "code": "110103",
+       "name": "SUCRE",
+       "type": "URBAN"
+      },
+      {
+       "code": "110104",
+       "name": "VALLE",
+       "type": "URBAN"
+      },
+      {
+       "code": "110105",
+       "name": "CARIGÁN",
+       "type": "URBAN"
+      },
+      {
+       "code": "110106",
+       "name": "PUNZARA",
+       "type": "URBAN"
+      },
+      {
+       "code": "110151",
+       "name": "CHANTACO",
+       "type": "RURAL"
+      },
+      {
+       "code": "110152",
+       "name": "CHUQUIRIBAMBA",
+       "type": "RURAL"
+      },
+      {
+       "code": "110153",
+       "name": "EL CISNE",
+       "type": "RURAL"
+      },
+      {
+       "code": "110154",
+       "name": "GUALEL",
+       "type": "RURAL"
+      },
+      {
+       "code": "110155",
+       "name": "JIMBILLA",
+       "type": "RURAL"
+      },
+      {
+       "code": "110156",
+       "name": "MALACATOS",
+       "type": "RURAL"
+      },
+      {
+       "code": "110157",
+       "name": "SAN LUCAS",
+       "type": "RURAL"
+      },
+      {
+       "code": "110158",
+       "name": "SAN PEDRO DE VILCABAMBA",
+       "type": "RURAL"
+      },
+      {
+       "code": "110159",
+       "name": "SANTIAGO",
+       "type": "RURAL"
+      },
+      {
+       "code": "110160",
+       "name": "TAQUIL",
+       "type": "RURAL"
+      },
+      {
+       "code": "110161",
+       "name": "VILCABAMBA",
+       "type": "RURAL"
+      },
+      {
+       "code": "110162",
+       "name": "YANGANA",
+       "type": "RURAL"
+      },
+      {
+       "code": "110163",
+       "name": "QUINARA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1102",
+     "name": "CALVAS",
+     "parishes": [
+      {
+       "code": "110201",
+       "name": "CARIAMANGA",
+       "type": "URBAN"
+      },
+      {
+       "code": "110202",
+       "name": "CHILE",
+       "type": "URBAN"
+      },
+      {
+       "code": "110203",
+       "name": "SAN VICENTE",
+       "type": "URBAN"
+      },
+      {
+       "code": "110251",
+       "name": "COLAISACA",
+       "type": "RURAL"
+      },
+      {
+       "code": "110252",
+       "name": "EL LUCERO",
+       "type": "RURAL"
+      },
+      {
+       "code": "110253",
+       "name": "UTUANA",
+       "type": "RURAL"
+      },
+      {
+       "code": "110254",
+       "name": "SANGUILLÍN",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1103",
+     "name": "CATAMAYO",
+     "parishes": [
+      {
+       "code": "110301",
+       "name": "CATAMAYO",
+       "type": "URBAN"
+      },
+      {
+       "code": "110302",
+       "name": "SAN JOSÉ",
+       "type": "URBAN"
+      },
+      {
+       "code": "110351",
+       "name": "EL TAMBO",
+       "type": "RURAL"
+      },
+      {
+       "code": "110352",
+       "name": "GUAYQUICHUMA (CAB. EN EL PRADO)",
+       "type": "RURAL"
+      },
+      {
+       "code": "110353",
+       "name": "SAN PEDRO DE LA BENDITA",
+       "type": "RURAL"
+      },
+      {
+       "code": "110354",
+       "name": "ZAMBI",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1104",
+     "name": "CELICA",
+     "parishes": [
+      {
+       "code": "110450",
+       "name": "CELICA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "110451",
+       "name": "CRUZPAMBA",
+       "type": "RURAL"
+      },
+      {
+       "code": "110455",
+       "name": "PÓZUL",
+       "type": "RURAL"
+      },
+      {
+       "code": "110456",
+       "name": "SABANILLA",
+       "type": "RURAL"
+      },
+      {
+       "code": "110457",
+       "name": "TENIENTE MAXIMILIANO RODRÍGUEZ LOAIZA (CAB. EN ALGARROBILLO)",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1105",
+     "name": "CHAGUARPAMBA",
+     "parishes": [
+      {
+       "code": "110550",
+       "name": "CHAGUARPAMBA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "110551",
+       "name": "BUENAVISTA",
+       "type": "RURAL"
+      },
+      {
+       "code": "110552",
+       "name": "EL ROSARIO",
+       "type": "RURAL"
+      },
+      {
+       "code": "110553",
+       "name": "SANTA RUFINA",
+       "type": "RURAL"
+      },
+      {
+       "code": "110554",
+       "name": "AMARILLOS",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1106",
+     "name": "ESPÍNDOLA",
+     "parishes": [
+      {
+       "code": "110650",
+       "name": "AMALUZA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "110651",
+       "name": "BELLAVISTA",
+       "type": "RURAL"
+      },
+      {
+       "code": "110652",
+       "name": "JIMBURA",
+       "type": "RURAL"
+      },
+      {
+       "code": "110653",
+       "name": "SANTA TERESITA",
+       "type": "RURAL"
+      },
+      {
+       "code": "110654",
+       "name": "27 DE ABRIL (CAB. EN LA NARANJA)",
+       "type": "RURAL"
+      },
+      {
+       "code": "110655",
+       "name": "EL INGENIO",
+       "type": "RURAL"
+      },
+      {
+       "code": "110656",
+       "name": "EL AIRO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1107",
+     "name": "GONZANAMÁ",
+     "parishes": [
+      {
+       "code": "110750",
+       "name": "GONZANAMÁ (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "110751",
+       "name": "CHANGAIMINA",
+       "type": "RURAL"
+      },
+      {
+       "code": "110753",
+       "name": "NAMBACOLA",
+       "type": "RURAL"
+      },
+      {
+       "code": "110754",
+       "name": "PURUNUMA",
+       "type": "RURAL"
+      },
+      {
+       "code": "110756",
+       "name": "SACAPALCA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1108",
+     "name": "MACARÁ",
+     "parishes": [
+      {
+       "code": "110801",
+       "name": "GENERAL ELOY ALFARO (SAN SEBASTIÁN)",
+       "type": "URBAN"
+      },
+      {
+       "code": "110802",
+       "name": "MACARÁ (MANUEL ENRIQUE RENGEL SUQUILANDA)",
+       "type": "URBAN"
+      },
+      {
+       "code": "110851",
+       "name": "LARAMA",
+       "type": "RURAL"
+      },
+      {
+       "code": "110852",
+       "name": "LA VICTORIA",
+       "type": "RURAL"
+      },
+      {
+       "code": "110853",
+       "name": "SABIANGO (CAB. EN LA CAPILLA)",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1109",
+     "name": "PALTAS",
+     "parishes": [
+      {
+       "code": "110901",
+       "name": "CATACOCHA",
+       "type": "URBAN"
+      },
+      {
+       "code": "110902",
+       "name": "LOURDES",
+       "type": "URBAN"
+      },
+      {
+       "code": "110951",
+       "name": "CANGONAMÁ",
+       "type": "RURAL"
+      },
+      {
+       "code": "110952",
+       "name": "GUACHANAMÁ",
+       "type": "RURAL"
+      },
+      {
+       "code": "110954",
+       "name": "LAURO GUERRERO (CAB. EN CHINCHANGA)",
+       "type": "RURAL"
+      },
+      {
+       "code": "110956",
+       "name": "ORIANGA",
+       "type": "RURAL"
+      },
+      {
+       "code": "110957",
+       "name": "SAN ANTONIO",
+       "type": "RURAL"
+      },
+      {
+       "code": "110958",
+       "name": "CASANGA",
+       "type": "RURAL"
+      },
+      {
+       "code": "110959",
+       "name": "YAMANA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1110",
+     "name": "PUYANGO",
+     "parishes": [
+      {
+       "code": "111050",
+       "name": "ALAMOR (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "111051",
+       "name": "CIANO",
+       "type": "RURAL"
+      },
+      {
+       "code": "111052",
+       "name": "EL ARENAL",
+       "type": "RURAL"
+      },
+      {
+       "code": "111053",
+       "name": "EL LIMO",
+       "type": "RURAL"
+      },
+      {
+       "code": "111054",
+       "name": "MERCADILLO",
+       "type": "RURAL"
+      },
+      {
+       "code": "111055",
+       "name": "VICENTINO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1111",
+     "name": "SARAGURO",
+     "parishes": [
+      {
+       "code": "111150",
+       "name": "SARAGURO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "111151",
+       "name": "EL PARAÍSO DE CELEN",
+       "type": "RURAL"
+      },
+      {
+       "code": "111152",
+       "name": "EL TABLÓN",
+       "type": "RURAL"
+      },
+      {
+       "code": "111153",
+       "name": "LLUZHAPA",
+       "type": "RURAL"
+      },
+      {
+       "code": "111154",
+       "name": "MANÚ",
+       "type": "RURAL"
+      },
+      {
+       "code": "111155",
+       "name": "SAN ANTONIO DE QUMBE",
+       "type": "RURAL"
+      },
+      {
+       "code": "111156",
+       "name": "SAN PABLO DE TENTA",
+       "type": "RURAL"
+      },
+      {
+       "code": "111157",
+       "name": "SAN SEBASTIÁN DE YÚLUC",
+       "type": "RURAL"
+      },
+      {
+       "code": "111158",
+       "name": "SELVA ALEGRE",
+       "type": "RURAL"
+      },
+      {
+       "code": "111159",
+       "name": "URDANETA",
+       "type": "RURAL"
+      },
+      {
+       "code": "111160",
+       "name": "SUMAYPAMBA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1112",
+     "name": "SOZORANGA",
+     "parishes": [
+      {
+       "code": "111250",
+       "name": "SOZORANGA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "111251",
+       "name": "NUEVA FÁTIMA",
+       "type": "RURAL"
+      },
+      {
+       "code": "111252",
+       "name": "TACAMOROS",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1113",
+     "name": "ZAPOTILLO",
+     "parishes": [
+      {
+       "code": "111350",
+       "name": "ZAPOTILLO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "111351",
+       "name": "MANGAHURCO",
+       "type": "RURAL"
+      },
+      {
+       "code": "111352",
+       "name": "GARZAREAL",
+       "type": "RURAL"
+      },
+      {
+       "code": "111353",
+       "name": "LIMONES",
+       "type": "RURAL"
+      },
+      {
+       "code": "111354",
+       "name": "PALETILLAS",
+       "type": "RURAL"
+      },
+      {
+       "code": "111355",
+       "name": "BOLASPAMBA",
+       "type": "RURAL"
+      },
+      {
+       "code": "111356",
+       "name": "CAZADEROS",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1114",
+     "name": "PINDAL",
+     "parishes": [
+      {
+       "code": "111450",
+       "name": "PINDAL (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "111451",
+       "name": "CHAQUINAL",
+       "type": "RURAL"
+      },
+      {
+       "code": "111452",
+       "name": "12 DE DICIEMBRE (CAB.EN ACHIOTES)",
+       "type": "RURAL"
+      },
+      {
+       "code": "111453",
+       "name": "MILAGROS",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1115",
+     "name": "QUILANGA",
+     "parishes": [
+      {
+       "code": "111550",
+       "name": "QUILANGA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "111551",
+       "name": "FUNDOCHAMBA",
+       "type": "RURAL"
+      },
+      {
+       "code": "111552",
+       "name": "SAN ANTONIO DE LAS ARADAS (CAB. EN LAS ARADAS)",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1116",
+     "name": "OLMEDO",
+     "parishes": [
+      {
+       "code": "111650",
+       "name": "OLMEDO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "111651",
+       "name": "LA TINGUE",
+       "type": "RURAL"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "12",
+   "name": "LOS RÍOS",
+   "cantons": [
+    {
+     "code": "1201",
+     "name": "BABAHOYO",
+     "parishes": [
+      {
+       "code": "120101",
+       "name": "CLEMENTE BAQUERIZO",
+       "type": "URBAN"
+      },
+      {
+       "code": "120102",
+       "name": "DOCTOR CAMILO PONCE",
+       "type": "URBAN"
+      },
+      {
+       "code": "120103",
+       "name": "BARREIRO",
+       "type": "URBAN"
+      },
+      {
+       "code": "120104",
+       "name": "EL SALTO",
+       "type": "URBAN"
+      },
+      {
+       "code": "120152",
+       "name": "CARACOL",
+       "type": "RURAL"
+      },
+      {
+       "code": "120153",
+       "name": "FEBRES CORDERO (CAB. EN MATA DE CACAO)",
+       "type": "RURAL"
+      },
+      {
+       "code": "120154",
+       "name": "PIMOCHA",
+       "type": "RURAL"
+      },
+      {
+       "code": "120155",
+       "name": "LA UNIÓN",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1202",
+     "name": "BABA",
+     "parishes": [
+      {
+       "code": "120250",
+       "name": "BABA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "120251",
+       "name": "GUARE",
+       "type": "RURAL"
+      },
+      {
+       "code": "120252",
+       "name": "ISLA DE BEJUCAL",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1203",
+     "name": "MONTALVO",
+     "parishes": [
+      {
+       "code": "120350",
+       "name": "MONTALVO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "120351",
+       "name": "LA ESMERALDA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1204",
+     "name": "PUEBLOVIEJO",
+     "parishes": [
+      {
+       "code": "120450",
+       "name": "PUEBLOVIEJO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "120451",
+       "name": "PUERTO PECHICHE",
+       "type": "RURAL"
+      },
+      {
+       "code": "120452",
+       "name": "SAN JUAN",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1205",
+     "name": "QUEVEDO",
+     "parishes": [
+      {
+       "code": "120501",
+       "name": "QUEVEDO",
+       "type": "URBAN"
+      },
+      {
+       "code": "120502",
+       "name": "SAN CAMILO",
+       "type": "URBAN"
+      },
+      {
+       "code": "120504",
+       "name": "GUAYACÁN",
+       "type": "URBAN"
+      },
+      {
+       "code": "120505",
+       "name": "NICOLÁS INFANTE DÍAZ",
+       "type": "URBAN"
+      },
+      {
+       "code": "120506",
+       "name": "SAN CRISTÓBAL",
+       "type": "URBAN"
+      },
+      {
+       "code": "120507",
+       "name": "SIETE DE OCTUBRE",
+       "type": "URBAN"
+      },
+      {
+       "code": "120508",
+       "name": "24 DE MAYO",
+       "type": "URBAN"
+      },
+      {
+       "code": "120509",
+       "name": "VENUS DEL RÍO QUEVEDO",
+       "type": "URBAN"
+      },
+      {
+       "code": "120510",
+       "name": "VIVA ALFARO",
+       "type": "URBAN"
+      },
+      {
+       "code": "120553",
+       "name": "SAN CARLOS",
+       "type": "RURAL"
+      },
+      {
+       "code": "120555",
+       "name": "LA ESPERANZA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1206",
+     "name": "URDANETA",
+     "parishes": [
+      {
+       "code": "120650",
+       "name": "CATARAMA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "120651",
+       "name": "RICAURTE",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1207",
+     "name": "VENTANAS",
+     "parishes": [
+      {
+       "code": "120701",
+       "name": "10 DE NOVIEMBRE",
+       "type": "URBAN"
+      },
+      {
+       "code": "120702",
+       "name": "VENTANAS",
+       "type": "URBAN"
+      },
+      {
+       "code": "120752",
+       "name": "ZAPOTAL",
+       "type": "RURAL"
+      },
+      {
+       "code": "120753",
+       "name": "CHACARITA",
+       "type": "RURAL"
+      },
+      {
+       "code": "120754",
+       "name": "LOS ÁNGELES",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1208",
+     "name": "VINCES",
+     "parishes": [
+      {
+       "code": "120801",
+       "name": "BALZAR DE VINCES",
+       "type": "URBAN"
+      },
+      {
+       "code": "120802",
+       "name": "VINCES CENTRAL",
+       "type": "URBAN"
+      },
+      {
+       "code": "120803",
+       "name": "SAN LORENZO DE VINCES",
+       "type": "URBAN"
+      },
+      {
+       "code": "120851",
+       "name": "ANTONIO SOTOMAYOR (CAB. EN PLAYAS DE VINCES)",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1209",
+     "name": "PALENQUE",
+     "parishes": [
+      {
+       "code": "120950",
+       "name": "PALENQUE (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    },
+    {
+     "code": "1210",
+     "name": "BUENA FÉ",
+     "parishes": [
+      {
+       "code": "121001",
+       "name": "SAN JACINTO DE BUENA FÉ",
+       "type": "URBAN"
+      },
+      {
+       "code": "121002",
+       "name": "7 DE AGOSTO",
+       "type": "URBAN"
+      },
+      {
+       "code": "121003",
+       "name": "11 DE OCTUBRE",
+       "type": "URBAN"
+      },
+      {
+       "code": "121051",
+       "name": "PATRICIA PILAR",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1211",
+     "name": "VALENCIA",
+     "parishes": [
+      {
+       "code": "121101",
+       "name": "VALENCIA",
+       "type": "URBAN"
+      },
+      {
+       "code": "121102",
+       "name": "LA UNIÓN",
+       "type": "URBAN"
+      },
+      {
+       "code": "121103",
+       "name": "LA NUEVA UNIÓN",
+       "type": "URBAN"
+      }
+     ]
+    },
+    {
+     "code": "1212",
+     "name": "MOCACHE",
+     "parishes": [
+      {
+       "code": "121250",
+       "name": "MOCACHE (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    },
+    {
+     "code": "1213",
+     "name": "QUINSALOMA",
+     "parishes": [
+      {
+       "code": "121350",
+       "name": "QUINSALOMA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "13",
+   "name": "MANABÍ",
+   "cantons": [
+    {
+     "code": "1301",
+     "name": "PORTOVIEJO",
+     "parishes": [
+      {
+       "code": "130101",
+       "name": "PORTOVIEJO",
+       "type": "URBAN"
+      },
+      {
+       "code": "130102",
+       "name": "12 DE MARZO",
+       "type": "URBAN"
+      },
+      {
+       "code": "130103",
+       "name": "COLÓN",
+       "type": "URBAN"
+      },
+      {
+       "code": "130104",
+       "name": "PICOAZÁ",
+       "type": "URBAN"
+      },
+      {
+       "code": "130105",
+       "name": "SAN PABLO",
+       "type": "URBAN"
+      },
+      {
+       "code": "130106",
+       "name": "ANDRÉS DE VERA",
+       "type": "URBAN"
+      },
+      {
+       "code": "130107",
+       "name": "FRANCISCO PACHECO",
+       "type": "URBAN"
+      },
+      {
+       "code": "130108",
+       "name": "18 DE OCTUBRE",
+       "type": "URBAN"
+      },
+      {
+       "code": "130109",
+       "name": "SIMÓN BOLÍVAR",
+       "type": "URBAN"
+      },
+      {
+       "code": "130151",
+       "name": "ABDÓN CALDERÓN",
+       "type": "RURAL"
+      },
+      {
+       "code": "130152",
+       "name": "ALHAJUELA",
+       "type": "RURAL"
+      },
+      {
+       "code": "130153",
+       "name": "CRUCITA",
+       "type": "RURAL"
+      },
+      {
+       "code": "130154",
+       "name": "PUEBLO NUEVO",
+       "type": "RURAL"
+      },
+      {
+       "code": "130155",
+       "name": "RIOCHICO",
+       "type": "RURAL"
+      },
+      {
+       "code": "130156",
+       "name": "SAN PLÁCIDO",
+       "type": "RURAL"
+      },
+      {
+       "code": "130157",
+       "name": "CHIRIJOS",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1302",
+     "name": "BOLÍVAR",
+     "parishes": [
+      {
+       "code": "130250",
+       "name": "CALCETA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "130251",
+       "name": "MEMBRILLO",
+       "type": "RURAL"
+      },
+      {
+       "code": "130252",
+       "name": "QUIROGA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1303",
+     "name": "CHONE",
+     "parishes": [
+      {
+       "code": "130301",
+       "name": "CHONE",
+       "type": "URBAN"
+      },
+      {
+       "code": "130302",
+       "name": "SANTA RITA",
+       "type": "URBAN"
+      },
+      {
+       "code": "130351",
+       "name": "BOYACÁ",
+       "type": "RURAL"
+      },
+      {
+       "code": "130352",
+       "name": "CANUTO",
+       "type": "RURAL"
+      },
+      {
+       "code": "130353",
+       "name": "CONVENTO",
+       "type": "RURAL"
+      },
+      {
+       "code": "130354",
+       "name": "CHIBUNGA",
+       "type": "RURAL"
+      },
+      {
+       "code": "130355",
+       "name": "ELOY ALFARO",
+       "type": "RURAL"
+      },
+      {
+       "code": "130356",
+       "name": "RICAURTE",
+       "type": "RURAL"
+      },
+      {
+       "code": "130357",
+       "name": "SAN ANTONIO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1304",
+     "name": "EL CARMEN",
+     "parishes": [
+      {
+       "code": "130401",
+       "name": "EL CARMEN",
+       "type": "URBAN"
+      },
+      {
+       "code": "130402",
+       "name": "4 DE DICIEMBRE",
+       "type": "URBAN"
+      },
+      {
+       "code": "130451",
+       "name": "WILFRIDO LOOR MOREIRA",
+       "type": "RURAL"
+      },
+      {
+       "code": "130452",
+       "name": "SAN PEDRO DE SUMA",
+       "type": "RURAL"
+      },
+      {
+       "code": "130453",
+       "name": "SANTA MARÍA",
+       "type": "RURAL"
+      },
+      {
+       "code": "130454",
+       "name": "EL PARAÍSO LA 14 (CAB. EN EL PARAÍSO)",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1305",
+     "name": "FLAVIO ALFARO",
+     "parishes": [
+      {
+       "code": "130550",
+       "name": "FLAVIO ALFARO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "130551",
+       "name": "SAN FRANCISCO DE NOVILLO (CAB. EN NOVILLO)",
+       "type": "RURAL"
+      },
+      {
+       "code": "130552",
+       "name": "ZAPALLO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1306",
+     "name": "JIPIJAPA",
+     "parishes": [
+      {
+       "code": "130601",
+       "name": "DOCTOR MIGUEL MORÁN LUCIO",
+       "type": "URBAN"
+      },
+      {
+       "code": "130602",
+       "name": "MANUEL INOCENCIO PARRALES Y GUALE",
+       "type": "URBAN"
+      },
+      {
+       "code": "130603",
+       "name": "SAN LORENZO DE JIPIJAPA",
+       "type": "URBAN"
+      },
+      {
+       "code": "130651",
+       "name": "AMÉRICA",
+       "type": "RURAL"
+      },
+      {
+       "code": "130652",
+       "name": "EL ANEGADO (CAB. EN ELOY ALFARO)",
+       "type": "RURAL"
+      },
+      {
+       "code": "130653",
+       "name": "JULCUY",
+       "type": "RURAL"
+      },
+      {
+       "code": "130654",
+       "name": "LA UNIÓN",
+       "type": "RURAL"
+      },
+      {
+       "code": "130656",
+       "name": "MEMBRILLAL",
+       "type": "RURAL"
+      },
+      {
+       "code": "130657",
+       "name": "PEDRO PABLO GÓMEZ (CAB. EN POTRERO NUEVO)",
+       "type": "RURAL"
+      },
+      {
+       "code": "130658",
+       "name": "PUERTO DE CAYO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1307",
+     "name": "JUNÍN",
+     "parishes": [
+      {
+       "code": "130750",
+       "name": "JUNÍN (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    },
+    {
+     "code": "1308",
+     "name": "MANTA",
+     "parishes": [
+      {
+       "code": "130801",
+       "name": "LOS ESTEROS",
+       "type": "URBAN"
+      },
+      {
+       "code": "130802",
+       "name": "MANTA",
+       "type": "URBAN"
+      },
+      {
+       "code": "130803",
+       "name": "SAN MATEO",
+       "type": "URBAN"
+      },
+      {
+       "code": "130804",
+       "name": "TARQUI",
+       "type": "URBAN"
+      },
+      {
+       "code": "130805",
+       "name": "ELOY ALFARO",
+       "type": "URBAN"
+      },
+      {
+       "code": "130851",
+       "name": "SAN LORENZO",
+       "type": "RURAL"
+      },
+      {
+       "code": "130852",
+       "name": "SANTA MARIANITA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1309",
+     "name": "MONTECRISTI",
+     "parishes": [
+      {
+       "code": "130901",
+       "name": "ANÍBAL SAN ANDRÉS",
+       "type": "URBAN"
+      },
+      {
+       "code": "130902",
+       "name": "MONTECRISTI",
+       "type": "URBAN"
+      },
+      {
+       "code": "130903",
+       "name": "EL COLORADO",
+       "type": "URBAN"
+      },
+      {
+       "code": "130904",
+       "name": "GENERAL ELOY ALFARO",
+       "type": "URBAN"
+      },
+      {
+       "code": "130905",
+       "name": "LEONIDAS PROAÑO",
+       "type": "URBAN"
+      },
+      {
+       "code": "130906",
+       "name": "ISABEL MUENTES",
+       "type": "URBAN"
+      },
+      {
+       "code": "130952",
+       "name": "LA PILA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1310",
+     "name": "PAJÁN",
+     "parishes": [
+      {
+       "code": "131050",
+       "name": "PAJÁN (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "131051",
+       "name": "CAMPOZANO",
+       "type": "RURAL"
+      },
+      {
+       "code": "131052",
+       "name": "CASCOL",
+       "type": "RURAL"
+      },
+      {
+       "code": "131053",
+       "name": "GUALE",
+       "type": "RURAL"
+      },
+      {
+       "code": "131054",
+       "name": "LASCANO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1311",
+     "name": "PICHINCHA",
+     "parishes": [
+      {
+       "code": "131150",
+       "name": "PICHINCHA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "131151",
+       "name": "BARRAGANETE",
+       "type": "RURAL"
+      },
+      {
+       "code": "131152",
+       "name": "SAN SEBASTIÁN",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1312",
+     "name": "ROCAFUERTE",
+     "parishes": [
+      {
+       "code": "131250",
+       "name": "ROCAFUERTE (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "131251",
+       "name": "SOSOTE",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1313",
+     "name": "SANTA ANA",
+     "parishes": [
+      {
+       "code": "131301",
+       "name": "SANTA ANA",
+       "type": "URBAN"
+      },
+      {
+       "code": "131302",
+       "name": "LODANA",
+       "type": "URBAN"
+      },
+      {
+       "code": "131351",
+       "name": "AYACUCHO",
+       "type": "RURAL"
+      },
+      {
+       "code": "131352",
+       "name": "HONORATO VÁSQUEZ (CAB. EN VÁSQUEZ)",
+       "type": "RURAL"
+      },
+      {
+       "code": "131353",
+       "name": "LA UNIÓN",
+       "type": "RURAL"
+      },
+      {
+       "code": "131355",
+       "name": "SAN PABLO (CAB. EN PUEBLO NUEVO)",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1314",
+     "name": "SUCRE",
+     "parishes": [
+      {
+       "code": "131401",
+       "name": "BAHÍA DE CARÁQUEZ",
+       "type": "URBAN"
+      },
+      {
+       "code": "131402",
+       "name": "LEONIDAS PLAZA GUTIÉRREZ",
+       "type": "URBAN"
+      },
+      {
+       "code": "131453",
+       "name": "CHARAPOTÓ",
+       "type": "RURAL"
+      },
+      {
+       "code": "131457",
+       "name": "SAN ISIDRO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1315",
+     "name": "TOSAGUA",
+     "parishes": [
+      {
+       "code": "131550",
+       "name": "TOSAGUA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "131551",
+       "name": "BACHILLERO",
+       "type": "RURAL"
+      },
+      {
+       "code": "131552",
+       "name": "ÁNGEL PEDRO GILER",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1316",
+     "name": "24 DE MAYO",
+     "parishes": [
+      {
+       "code": "131650",
+       "name": "SUCRE (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "131651",
+       "name": "BELLAVISTA",
+       "type": "RURAL"
+      },
+      {
+       "code": "131652",
+       "name": "NOBOA",
+       "type": "RURAL"
+      },
+      {
+       "code": "131653",
+       "name": "ARQUITECTO SIXTO DURÁN BALLÉN (CAB. EN LAS PAJITAS)",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1317",
+     "name": "PEDERNALES",
+     "parishes": [
+      {
+       "code": "131750",
+       "name": "PEDERNALES (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "131751",
+       "name": "COJIMÍES",
+       "type": "RURAL"
+      },
+      {
+       "code": "131752",
+       "name": "DIEZ DE AGOSTO",
+       "type": "RURAL"
+      },
+      {
+       "code": "131753",
+       "name": "ATAHUALPA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1318",
+     "name": "OLMEDO",
+     "parishes": [
+      {
+       "code": "131850",
+       "name": "OLMEDO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    },
+    {
+     "code": "1319",
+     "name": "PUERTO LÓPEZ",
+     "parishes": [
+      {
+       "code": "131950",
+       "name": "PUERTO LÓPEZ (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "131951",
+       "name": "MACHALILLA",
+       "type": "RURAL"
+      },
+      {
+       "code": "131952",
+       "name": "SALANGO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1320",
+     "name": "JAMA",
+     "parishes": [
+      {
+       "code": "132050",
+       "name": "JAMA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    },
+    {
+     "code": "1321",
+     "name": "JARAMIJÓ",
+     "parishes": [
+      {
+       "code": "132150",
+       "name": "JARAMIJÓ (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    },
+    {
+     "code": "1322",
+     "name": "SAN VICENTE",
+     "parishes": [
+      {
+       "code": "132250",
+       "name": "SAN VICENTE (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "132251",
+       "name": "CANOA",
+       "type": "RURAL"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "14",
+   "name": "MORONA SANTIAGO",
+   "cantons": [
+    {
+     "code": "1401",
+     "name": "MORONA",
+     "parishes": [
+      {
+       "code": "140150",
+       "name": "MACAS (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "140151",
+       "name": "ALSHI (CAB. EN NUEVE DE OCTUBRE)",
+       "type": "RURAL"
+      },
+      {
+       "code": "140153",
+       "name": "GENERAL PROAÑO (CAB. EN BARAHONA)",
+       "type": "RURAL"
+      },
+      {
+       "code": "140156",
+       "name": "SAN ISIDRO",
+       "type": "RURAL"
+      },
+      {
+       "code": "140158",
+       "name": "SINAÍ",
+       "type": "RURAL"
+      },
+      {
+       "code": "140160",
+       "name": "ZUÑA",
+       "type": "RURAL"
+      },
+      {
+       "code": "140162",
+       "name": "CUCHAENTZA",
+       "type": "RURAL"
+      },
+      {
+       "code": "140164",
+       "name": "RÍO BLANCO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1402",
+     "name": "GUALAQUIZA",
+     "parishes": [
+      {
+       "code": "140201",
+       "name": "GUALAQUIZA",
+       "type": "URBAN"
+      },
+      {
+       "code": "140202",
+       "name": "MERCEDES MOLINA",
+       "type": "URBAN"
+      },
+      {
+       "code": "140251",
+       "name": "AMAZONAS",
+       "type": "RURAL"
+      },
+      {
+       "code": "140252",
+       "name": "BERMEJOS",
+       "type": "RURAL"
+      },
+      {
+       "code": "140253",
+       "name": "BOMBOÍZA",
+       "type": "RURAL"
+      },
+      {
+       "code": "140254",
+       "name": "CHIGÜINDA",
+       "type": "RURAL"
+      },
+      {
+       "code": "140255",
+       "name": "EL ROSARIO",
+       "type": "RURAL"
+      },
+      {
+       "code": "140256",
+       "name": "NUEVA TARQUI",
+       "type": "RURAL"
+      },
+      {
+       "code": "140257",
+       "name": "SAN MIGUEL DE CUYES",
+       "type": "RURAL"
+      },
+      {
+       "code": "140258",
+       "name": "EL IDEAL",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1403",
+     "name": "LIMÓN INDANZA",
+     "parishes": [
+      {
+       "code": "140350",
+       "name": "GENERAL LEONIDAS PLAZA GUTIÉRREZ (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "140351",
+       "name": "INDANZA",
+       "type": "RURAL"
+      },
+      {
+       "code": "140353",
+       "name": "SAN ANTONIO (CAB. EN SAN ANTONIO CENTRO)",
+       "type": "RURAL"
+      },
+      {
+       "code": "140356",
+       "name": "SAN MIGUEL DE CONCHAY",
+       "type": "RURAL"
+      },
+      {
+       "code": "140357",
+       "name": "SANTA SUSANA DE CHIVIAZA (CAB. EN CHIVIAZA)",
+       "type": "RURAL"
+      },
+      {
+       "code": "140358",
+       "name": "YUNGANZA (CAB. EN EL ROSARIO)",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1404",
+     "name": "PALORA",
+     "parishes": [
+      {
+       "code": "140450",
+       "name": "PALORA (METZERA) (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "140451",
+       "name": "ARAPICOS",
+       "type": "RURAL"
+      },
+      {
+       "code": "140452",
+       "name": "CUMANDÁ (CAB. EN COLONIA AGRÍCOLA SEVILLA DE ORO)",
+       "type": "RURAL"
+      },
+      {
+       "code": "140454",
+       "name": "SANGAY (CAB. EN NAYAMANACA)",
+       "type": "RURAL"
+      },
+      {
+       "code": "140455",
+       "name": "16 DE AGOSTO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1405",
+     "name": "SANTIAGO",
+     "parishes": [
+      {
+       "code": "140550",
+       "name": "SANTIAGO DE MÉNDEZ (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "140551",
+       "name": "COPAL",
+       "type": "RURAL"
+      },
+      {
+       "code": "140552",
+       "name": "CHUPIANZA",
+       "type": "RURAL"
+      },
+      {
+       "code": "140553",
+       "name": "PATUCA",
+       "type": "RURAL"
+      },
+      {
+       "code": "140554",
+       "name": "SAN LUIS DE EL ACHO (CAB. EN EL ACHO)",
+       "type": "RURAL"
+      },
+      {
+       "code": "140556",
+       "name": "TAYUZA",
+       "type": "RURAL"
+      },
+      {
+       "code": "140557",
+       "name": "SAN FRANCISCO DE CHINIMBIMI (CAB. EN CHINIMBIMI)",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1406",
+     "name": "SUCÚA",
+     "parishes": [
+      {
+       "code": "140650",
+       "name": "SUCÚA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "140651",
+       "name": "ASUNCIÓN",
+       "type": "RURAL"
+      },
+      {
+       "code": "140652",
+       "name": "HUAMBI",
+       "type": "RURAL"
+      },
+      {
+       "code": "140655",
+       "name": "SANTA MARIANITA DE JESÚS (CAB. EN SANTA MARIANITA)",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1407",
+     "name": "HUAMBOYA",
+     "parishes": [
+      {
+       "code": "140750",
+       "name": "HUAMBOYA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "140751",
+       "name": "CHIGUAZA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1408",
+     "name": "SAN JUAN BOSCO",
+     "parishes": [
+      {
+       "code": "140850",
+       "name": "SAN JUAN BOSCO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "140851",
+       "name": "PAN DE AZÚCAR",
+       "type": "RURAL"
+      },
+      {
+       "code": "140852",
+       "name": "SAN CARLOS DE LIMÓN",
+       "type": "RURAL"
+      },
+      {
+       "code": "140853",
+       "name": "SAN JACINTO DE WAKAMBEIS (CAB. EN WAKAMBEIS)",
+       "type": "RURAL"
+      },
+      {
+       "code": "140854",
+       "name": "SANTIAGO DE PANANZA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1409",
+     "name": "TAISHA",
+     "parishes": [
+      {
+       "code": "140950",
+       "name": "TAISHA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "140951",
+       "name": "HUASAGA (CAB. EN WAMPUIK)",
+       "type": "RURAL"
+      },
+      {
+       "code": "140952",
+       "name": "MACUMA",
+       "type": "RURAL"
+      },
+      {
+       "code": "140953",
+       "name": "TUUTINENTSA",
+       "type": "RURAL"
+      },
+      {
+       "code": "140954",
+       "name": "PUMPUENTSA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1410",
+     "name": "LOGROÑO",
+     "parishes": [
+      {
+       "code": "141050",
+       "name": "LOGROÑO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "141051",
+       "name": "YAUPI",
+       "type": "RURAL"
+      },
+      {
+       "code": "141052",
+       "name": "SHIMPIS",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1411",
+     "name": "PABLO SEXTO",
+     "parishes": [
+      {
+       "code": "141150",
+       "name": "PABLO SEXTO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    },
+    {
+     "code": "1412",
+     "name": "TIWINTZA",
+     "parishes": [
+      {
+       "code": "141250",
+       "name": "SANTIAGO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "141251",
+       "name": "SAN JOSÉ DE MORONA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1413",
+     "name": "SEVILLA DON BOSCO",
+     "parishes": [
+      {
+       "code": "141350",
+       "name": "SEVILLA DON BOSCO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "15",
+   "name": "NAPO",
+   "cantons": [
+    {
+     "code": "1501",
+     "name": "TENA",
+     "parishes": [
+      {
+       "code": "150150",
+       "name": "TENA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "150151",
+       "name": "AHUANO",
+       "type": "RURAL"
+      },
+      {
+       "code": "150153",
+       "name": "CHONTAPUNTA",
+       "type": "RURAL"
+      },
+      {
+       "code": "150154",
+       "name": "PANO",
+       "type": "RURAL"
+      },
+      {
+       "code": "150155",
+       "name": "PUERTO MISAHUALLÍ",
+       "type": "RURAL"
+      },
+      {
+       "code": "150156",
+       "name": "PUERTO NAPO",
+       "type": "RURAL"
+      },
+      {
+       "code": "150157",
+       "name": "TÁLAG",
+       "type": "RURAL"
+      },
+      {
+       "code": "150158",
+       "name": "SAN JUAN DE MUYUNA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1503",
+     "name": "ARCHIDONA",
+     "parishes": [
+      {
+       "code": "150350",
+       "name": "ARCHIDONA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "150352",
+       "name": "COTUNDO",
+       "type": "RURAL"
+      },
+      {
+       "code": "150354",
+       "name": "SAN PABLO DE USHPAYACU",
+       "type": "RURAL"
+      },
+      {
+       "code": "150356",
+       "name": "HATUN SUMAKU (CAB. EN DIEZ DE AGOSTO)",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1504",
+     "name": "EL CHACO",
+     "parishes": [
+      {
+       "code": "150450",
+       "name": "EL CHACO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "150451",
+       "name": "GONZALO DÍAZ DE PINEDA",
+       "type": "RURAL"
+      },
+      {
+       "code": "150452",
+       "name": "LINARES",
+       "type": "RURAL"
+      },
+      {
+       "code": "150453",
+       "name": "OYACACHI",
+       "type": "RURAL"
+      },
+      {
+       "code": "150454",
+       "name": "SANTA ROSA",
+       "type": "RURAL"
+      },
+      {
+       "code": "150455",
+       "name": "SARDINAS",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1507",
+     "name": "QUIJOS",
+     "parishes": [
+      {
+       "code": "150750",
+       "name": "BAEZA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "150751",
+       "name": "COSANGA",
+       "type": "RURAL"
+      },
+      {
+       "code": "150752",
+       "name": "CUYUJA",
+       "type": "RURAL"
+      },
+      {
+       "code": "150753",
+       "name": "PAPALLACTA",
+       "type": "RURAL"
+      },
+      {
+       "code": "150754",
+       "name": "SAN FRANCISCO DE BORJA",
+       "type": "RURAL"
+      },
+      {
+       "code": "150756",
+       "name": "SUMACO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1509",
+     "name": "CARLOS JULIO AROSEMENA TOLA",
+     "parishes": [
+      {
+       "code": "150950",
+       "name": "CARLOS JULIO AROSEMENA TOLA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "16",
+   "name": "PASTAZA",
+   "cantons": [
+    {
+     "code": "1601",
+     "name": "PASTAZA",
+     "parishes": [
+      {
+       "code": "160150",
+       "name": "PUYO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "160152",
+       "name": "CANELOS",
+       "type": "RURAL"
+      },
+      {
+       "code": "160154",
+       "name": "DIEZ DE AGOSTO",
+       "type": "RURAL"
+      },
+      {
+       "code": "160155",
+       "name": "FÁTIMA",
+       "type": "RURAL"
+      },
+      {
+       "code": "160156",
+       "name": "MONTALVO",
+       "type": "RURAL"
+      },
+      {
+       "code": "160157",
+       "name": "POMONA",
+       "type": "RURAL"
+      },
+      {
+       "code": "160158",
+       "name": "RÍO CORRIENTES",
+       "type": "RURAL"
+      },
+      {
+       "code": "160159",
+       "name": "RÍO TIGRE",
+       "type": "RURAL"
+      },
+      {
+       "code": "160161",
+       "name": "SARAYACU",
+       "type": "RURAL"
+      },
+      {
+       "code": "160162",
+       "name": "SIMÓN BOLÍVAR (CAB. EN MUSHULLACTA)",
+       "type": "RURAL"
+      },
+      {
+       "code": "160163",
+       "name": "TARQUI",
+       "type": "RURAL"
+      },
+      {
+       "code": "160164",
+       "name": "TENIENTE HUGO ORTIZ",
+       "type": "RURAL"
+      },
+      {
+       "code": "160165",
+       "name": "VERACRUZ (CAB. EN INDILLAMA)",
+       "type": "RURAL"
+      },
+      {
+       "code": "160166",
+       "name": "EL TRIUNFO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1602",
+     "name": "MERA",
+     "parishes": [
+      {
+       "code": "160250",
+       "name": "MERA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "160251",
+       "name": "MADRE TIERRA",
+       "type": "RURAL"
+      },
+      {
+       "code": "160252",
+       "name": "SHELL",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1603",
+     "name": "SANTA CLARA",
+     "parishes": [
+      {
+       "code": "160350",
+       "name": "SANTA CLARA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "160351",
+       "name": "SAN JOSÉ",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1604",
+     "name": "ARAJUNO",
+     "parishes": [
+      {
+       "code": "160450",
+       "name": "ARAJUNO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "160451",
+       "name": "CURARAY",
+       "type": "RURAL"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "17",
+   "name": "PICHINCHA",
+   "cantons": [
+    {
+     "code": "1701",
+     "name": "DISTRITO METROPOLITANO DE QUITO",
+     "parishes": [
+      {
+       "code": "170101",
+       "name": "BELISARIO QUEVEDO",
+       "type": "URBAN"
+      },
+      {
+       "code": "170102",
+       "name": "CARCELÉN",
+       "type": "URBAN"
+      },
+      {
+       "code": "170103",
+       "name": "CENTRO HISTÓRICO",
+       "type": "URBAN"
+      },
+      {
+       "code": "170104",
+       "name": "COCHAPAMBA",
+       "type": "URBAN"
+      },
+      {
+       "code": "170105",
+       "name": "COMITÉ DEL PUEBLO",
+       "type": "URBAN"
+      },
+      {
+       "code": "170106",
+       "name": "COTOCOLLAO",
+       "type": "URBAN"
+      },
+      {
+       "code": "170107",
+       "name": "CHILIBULO",
+       "type": "URBAN"
+      },
+      {
+       "code": "170108",
+       "name": "CHILLOGALLO",
+       "type": "URBAN"
+      },
+      {
+       "code": "170109",
+       "name": "CHIMBACALLE",
+       "type": "URBAN"
+      },
+      {
+       "code": "170110",
+       "name": "EL CONDADO",
+       "type": "URBAN"
+      },
+      {
+       "code": "170111",
+       "name": "GUAMANÍ",
+       "type": "URBAN"
+      },
+      {
+       "code": "170112",
+       "name": "IÑAQUITO",
+       "type": "URBAN"
+      },
+      {
+       "code": "170113",
+       "name": "ITCHIMBIA",
+       "type": "URBAN"
+      },
+      {
+       "code": "170114",
+       "name": "JIPIJAPA",
+       "type": "URBAN"
+      },
+      {
+       "code": "170115",
+       "name": "KENNEDY",
+       "type": "URBAN"
+      },
+      {
+       "code": "170116",
+       "name": "LA ARGELIA",
+       "type": "URBAN"
+      },
+      {
+       "code": "170117",
+       "name": "LA CONCEPCIÓN",
+       "type": "URBAN"
+      },
+      {
+       "code": "170118",
+       "name": "LA ECUATORIANA",
+       "type": "URBAN"
+      },
+      {
+       "code": "170119",
+       "name": "LA FERROVIARIA",
+       "type": "URBAN"
+      },
+      {
+       "code": "170120",
+       "name": "LA LIBERTAD",
+       "type": "URBAN"
+      },
+      {
+       "code": "170121",
+       "name": "LA MAGDALENA",
+       "type": "URBAN"
+      },
+      {
+       "code": "170122",
+       "name": "LA MENA",
+       "type": "URBAN"
+      },
+      {
+       "code": "170123",
+       "name": "MARISCAL SUCRE",
+       "type": "URBAN"
+      },
+      {
+       "code": "170124",
+       "name": "PONCEANO",
+       "type": "URBAN"
+      },
+      {
+       "code": "170125",
+       "name": "PUENGASÍ",
+       "type": "URBAN"
+      },
+      {
+       "code": "170126",
+       "name": "QUITUMBE",
+       "type": "URBAN"
+      },
+      {
+       "code": "170127",
+       "name": "RUMIPAMBA",
+       "type": "URBAN"
+      },
+      {
+       "code": "170128",
+       "name": "SAN BARTOLO",
+       "type": "URBAN"
+      },
+      {
+       "code": "170129",
+       "name": "SAN ISIDRO DEL INCA",
+       "type": "URBAN"
+      },
+      {
+       "code": "170130",
+       "name": "SAN JUAN",
+       "type": "URBAN"
+      },
+      {
+       "code": "170131",
+       "name": "SOLANDA",
+       "type": "URBAN"
+      },
+      {
+       "code": "170132",
+       "name": "TURUBAMBA",
+       "type": "URBAN"
+      },
+      {
+       "code": "170151",
+       "name": "ALANGASÍ",
+       "type": "RURAL"
+      },
+      {
+       "code": "170152",
+       "name": "AMAGUAÑA",
+       "type": "RURAL"
+      },
+      {
+       "code": "170153",
+       "name": "ATAHUALPA",
+       "type": "RURAL"
+      },
+      {
+       "code": "170154",
+       "name": "CALACALÍ",
+       "type": "RURAL"
+      },
+      {
+       "code": "170155",
+       "name": "CALDERÓN",
+       "type": "RURAL"
+      },
+      {
+       "code": "170156",
+       "name": "CONOCOTO",
+       "type": "RURAL"
+      },
+      {
+       "code": "170157",
+       "name": "CUMBAYÁ",
+       "type": "RURAL"
+      },
+      {
+       "code": "170158",
+       "name": "CHAVEZPAMBA",
+       "type": "RURAL"
+      },
+      {
+       "code": "170159",
+       "name": "CHECA",
+       "type": "RURAL"
+      },
+      {
+       "code": "170160",
+       "name": "EL QUINCHE",
+       "type": "RURAL"
+      },
+      {
+       "code": "170161",
+       "name": "GUALEA",
+       "type": "RURAL"
+      },
+      {
+       "code": "170162",
+       "name": "GUANGOPOLO",
+       "type": "RURAL"
+      },
+      {
+       "code": "170163",
+       "name": "GUAYLLABAMBA",
+       "type": "RURAL"
+      },
+      {
+       "code": "170164",
+       "name": "LA MERCED",
+       "type": "RURAL"
+      },
+      {
+       "code": "170165",
+       "name": "LLANO CHICO",
+       "type": "RURAL"
+      },
+      {
+       "code": "170166",
+       "name": "LLOA",
+       "type": "RURAL"
+      },
+      {
+       "code": "170168",
+       "name": "NANEGAL",
+       "type": "RURAL"
+      },
+      {
+       "code": "170169",
+       "name": "NANEGALITO",
+       "type": "RURAL"
+      },
+      {
+       "code": "170170",
+       "name": "NAYÓN",
+       "type": "RURAL"
+      },
+      {
+       "code": "170171",
+       "name": "NONO",
+       "type": "RURAL"
+      },
+      {
+       "code": "170172",
+       "name": "PACTO",
+       "type": "RURAL"
+      },
+      {
+       "code": "170174",
+       "name": "PERUCHO",
+       "type": "RURAL"
+      },
+      {
+       "code": "170175",
+       "name": "PIFO",
+       "type": "RURAL"
+      },
+      {
+       "code": "170176",
+       "name": "PÍNTAG",
+       "type": "RURAL"
+      },
+      {
+       "code": "170177",
+       "name": "POMASQUI",
+       "type": "RURAL"
+      },
+      {
+       "code": "170178",
+       "name": "PUÉLLARO",
+       "type": "RURAL"
+      },
+      {
+       "code": "170179",
+       "name": "PUEMBO",
+       "type": "RURAL"
+      },
+      {
+       "code": "170180",
+       "name": "SAN ANTONIO",
+       "type": "RURAL"
+      },
+      {
+       "code": "170181",
+       "name": "SAN JOSÉ DE MINAS",
+       "type": "RURAL"
+      },
+      {
+       "code": "170183",
+       "name": "TABABELA",
+       "type": "RURAL"
+      },
+      {
+       "code": "170184",
+       "name": "TUMBACO",
+       "type": "RURAL"
+      },
+      {
+       "code": "170185",
+       "name": "YARUQUÍ",
+       "type": "RURAL"
+      },
+      {
+       "code": "170186",
+       "name": "ZÁMBIZA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1702",
+     "name": "CAYAMBE",
+     "parishes": [
+      {
+       "code": "170250",
+       "name": "CAYAMBE (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "170251",
+       "name": "ASCÁZUBI",
+       "type": "RURAL"
+      },
+      {
+       "code": "170252",
+       "name": "CANGAHUA",
+       "type": "RURAL"
+      },
+      {
+       "code": "170253",
+       "name": "OLMEDO",
+       "type": "RURAL"
+      },
+      {
+       "code": "170254",
+       "name": "OTÓN",
+       "type": "RURAL"
+      },
+      {
+       "code": "170255",
+       "name": "SANTA ROSA DE CUZUBAMBA",
+       "type": "RURAL"
+      },
+      {
+       "code": "170256",
+       "name": "SAN JOSÉ DE AYORA",
+       "type": "RURAL"
+      },
+      {
+       "code": "170257",
+       "name": "JUAN MONTALVO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1703",
+     "name": "MEJIA",
+     "parishes": [
+      {
+       "code": "170350",
+       "name": "MACHACHI (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "170351",
+       "name": "ALOAG",
+       "type": "RURAL"
+      },
+      {
+       "code": "170352",
+       "name": "ALOASÍ",
+       "type": "RURAL"
+      },
+      {
+       "code": "170353",
+       "name": "CUTUGLAHUA",
+       "type": "RURAL"
+      },
+      {
+       "code": "170354",
+       "name": "EL CHAUPI",
+       "type": "RURAL"
+      },
+      {
+       "code": "170355",
+       "name": "MANUEL CORNEJO ASTORGA",
+       "type": "RURAL"
+      },
+      {
+       "code": "170356",
+       "name": "TAMBILLO",
+       "type": "RURAL"
+      },
+      {
+       "code": "170357",
+       "name": "UYUMBICHO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1704",
+     "name": "PEDRO MONCAYO",
+     "parishes": [
+      {
+       "code": "170450",
+       "name": "TABACUNDO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "170451",
+       "name": "LA ESPERANZA",
+       "type": "RURAL"
+      },
+      {
+       "code": "170452",
+       "name": "MALCHINGUÍ",
+       "type": "RURAL"
+      },
+      {
+       "code": "170453",
+       "name": "TOCACHI",
+       "type": "RURAL"
+      },
+      {
+       "code": "170454",
+       "name": "TUPIGACHI",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1705",
+     "name": "RUMIÑAHUI",
+     "parishes": [
+      {
+       "code": "170501",
+       "name": "SANGOLQUÍ",
+       "type": "URBAN"
+      },
+      {
+       "code": "170502",
+       "name": "SAN PEDRO DE TABOADA",
+       "type": "URBAN"
+      },
+      {
+       "code": "170503",
+       "name": "SAN RAFAEL",
+       "type": "URBAN"
+      },
+      {
+       "code": "170504",
+       "name": "FAJARDO",
+       "type": "URBAN"
+      },
+      {
+       "code": "170551",
+       "name": "COTOGCHOA",
+       "type": "RURAL"
+      },
+      {
+       "code": "170552",
+       "name": "RUMIPAMBA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1707",
+     "name": "SAN MIGUEL DE LOS BANCOS",
+     "parishes": [
+      {
+       "code": "170750",
+       "name": "SAN MIGUEL DE LOS BANCOS (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "170751",
+       "name": "MINDO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1708",
+     "name": "PEDRO VICENTE MALDONADO",
+     "parishes": [
+      {
+       "code": "170850",
+       "name": "PEDRO VICENTE MALDONADO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    },
+    {
+     "code": "1709",
+     "name": "PUERTO QUITO",
+     "parishes": [
+      {
+       "code": "170950",
+       "name": "PUERTO QUITO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "18",
+   "name": "TUNGURAHUA",
+   "cantons": [
+    {
+     "code": "1801",
+     "name": "AMBATO",
+     "parishes": [
+      {
+       "code": "180101",
+       "name": "ATOCHA – FICOA",
+       "type": "URBAN"
+      },
+      {
+       "code": "180102",
+       "name": "CELIANO MONGE",
+       "type": "URBAN"
+      },
+      {
+       "code": "180103",
+       "name": "HUACHI CHICO",
+       "type": "URBAN"
+      },
+      {
+       "code": "180104",
+       "name": "HUACHI LORETO",
+       "type": "URBAN"
+      },
+      {
+       "code": "180105",
+       "name": "LA MERCED",
+       "type": "URBAN"
+      },
+      {
+       "code": "180106",
+       "name": "LA PENÍNSULA",
+       "type": "URBAN"
+      },
+      {
+       "code": "180107",
+       "name": "MATRIZ",
+       "type": "URBAN"
+      },
+      {
+       "code": "180108",
+       "name": "PISHILATA",
+       "type": "URBAN"
+      },
+      {
+       "code": "180109",
+       "name": "SAN FRANCISCO",
+       "type": "URBAN"
+      },
+      {
+       "code": "180151",
+       "name": "AMBATILLO",
+       "type": "RURAL"
+      },
+      {
+       "code": "180152",
+       "name": "ATAHUALPA (CAB. EN CHISALATA)",
+       "type": "RURAL"
+      },
+      {
+       "code": "180153",
+       "name": "AUGUSTO N. MARTÍNEZ",
+       "type": "RURAL"
+      },
+      {
+       "code": "180154",
+       "name": "CONSTANTINO FERNÁNDEZ (CAB. EN CULLITAHUA)",
+       "type": "RURAL"
+      },
+      {
+       "code": "180155",
+       "name": "HUACHI GRANDE",
+       "type": "RURAL"
+      },
+      {
+       "code": "180156",
+       "name": "IZAMBA",
+       "type": "RURAL"
+      },
+      {
+       "code": "180157",
+       "name": "JUAN BENIGNO VELA",
+       "type": "RURAL"
+      },
+      {
+       "code": "180158",
+       "name": "MONTALVO",
+       "type": "RURAL"
+      },
+      {
+       "code": "180159",
+       "name": "PASA",
+       "type": "RURAL"
+      },
+      {
+       "code": "180160",
+       "name": "PICAIHUA",
+       "type": "RURAL"
+      },
+      {
+       "code": "180161",
+       "name": "PILAGÜÍN",
+       "type": "RURAL"
+      },
+      {
+       "code": "180162",
+       "name": "QUISAPINCHA",
+       "type": "RURAL"
+      },
+      {
+       "code": "180163",
+       "name": "SAN BARTOLOMÉ DE PINLLO",
+       "type": "RURAL"
+      },
+      {
+       "code": "180164",
+       "name": "SAN FERNANDO",
+       "type": "RURAL"
+      },
+      {
+       "code": "180165",
+       "name": "SANTA ROSA",
+       "type": "RURAL"
+      },
+      {
+       "code": "180166",
+       "name": "TOTORAS",
+       "type": "RURAL"
+      },
+      {
+       "code": "180167",
+       "name": "CUNCHIBAMBA",
+       "type": "RURAL"
+      },
+      {
+       "code": "180168",
+       "name": "UNAMUNCHO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1802",
+     "name": "BAÑOS DE AGUA SANTA",
+     "parishes": [
+      {
+       "code": "180250",
+       "name": "BAÑOS (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "180251",
+       "name": "LLIGUA",
+       "type": "RURAL"
+      },
+      {
+       "code": "180252",
+       "name": "RÍO NEGRO",
+       "type": "RURAL"
+      },
+      {
+       "code": "180253",
+       "name": "RÍO VERDE",
+       "type": "RURAL"
+      },
+      {
+       "code": "180254",
+       "name": "ULBA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1803",
+     "name": "CEVALLOS",
+     "parishes": [
+      {
+       "code": "180350",
+       "name": "CEVALLOS (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    },
+    {
+     "code": "1804",
+     "name": "MOCHA",
+     "parishes": [
+      {
+       "code": "180450",
+       "name": "MOCHA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "180451",
+       "name": "PINGUILÍ",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1805",
+     "name": "PATATE",
+     "parishes": [
+      {
+       "code": "180550",
+       "name": "PATATE (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "180551",
+       "name": "EL TRIUNFO",
+       "type": "RURAL"
+      },
+      {
+       "code": "180552",
+       "name": "LOS ANDES (CAB. EN POATUG)",
+       "type": "RURAL"
+      },
+      {
+       "code": "180553",
+       "name": "SUCRE (CAB. EN SUCRE PATATE-URCU)",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1806",
+     "name": "QUERO",
+     "parishes": [
+      {
+       "code": "180650",
+       "name": "QUERO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "180651",
+       "name": "RUMIPAMBA",
+       "type": "RURAL"
+      },
+      {
+       "code": "180652",
+       "name": "YANAYACU-MOCHAPATA (CAB. EN YANAYACU)",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1807",
+     "name": "SAN PEDRO DE PELILEO",
+     "parishes": [
+      {
+       "code": "180701",
+       "name": "PELILEO",
+       "type": "URBAN"
+      },
+      {
+       "code": "180702",
+       "name": "PELILEO GRANDE",
+       "type": "URBAN"
+      },
+      {
+       "code": "180751",
+       "name": "BENÍTEZ",
+       "type": "RURAL"
+      },
+      {
+       "code": "180752",
+       "name": "BOLÍVAR",
+       "type": "RURAL"
+      },
+      {
+       "code": "180753",
+       "name": "COTALÓ",
+       "type": "RURAL"
+      },
+      {
+       "code": "180754",
+       "name": "CHIQUICHA (CAB. EN CHIQUICHA GRANDE)",
+       "type": "RURAL"
+      },
+      {
+       "code": "180755",
+       "name": "EL ROSARIO",
+       "type": "RURAL"
+      },
+      {
+       "code": "180756",
+       "name": "GARCÍA MORENO",
+       "type": "RURAL"
+      },
+      {
+       "code": "180757",
+       "name": "GUAMBALÓ",
+       "type": "RURAL"
+      },
+      {
+       "code": "180758",
+       "name": "SALASACA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1808",
+     "name": "SANTIAGO DE PÍLLARO",
+     "parishes": [
+      {
+       "code": "180801",
+       "name": "CIUDAD NUEVA",
+       "type": "URBAN"
+      },
+      {
+       "code": "180802",
+       "name": "PÍLLARO",
+       "type": "URBAN"
+      },
+      {
+       "code": "180851",
+       "name": "BAQUERIZO MORENO",
+       "type": "RURAL"
+      },
+      {
+       "code": "180852",
+       "name": "EMILIO MARÍA TERÁN",
+       "type": "RURAL"
+      },
+      {
+       "code": "180853",
+       "name": "MARCOS ESPINEL",
+       "type": "RURAL"
+      },
+      {
+       "code": "180854",
+       "name": "PRESIDENTE URBINA",
+       "type": "RURAL"
+      },
+      {
+       "code": "180855",
+       "name": "SAN ANDRÉS",
+       "type": "RURAL"
+      },
+      {
+       "code": "180856",
+       "name": "SAN JOSÉ DE POALÓ",
+       "type": "RURAL"
+      },
+      {
+       "code": "180857",
+       "name": "SAN MIGUELITO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1809",
+     "name": "TISALEO",
+     "parishes": [
+      {
+       "code": "180950",
+       "name": "TISALEO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "180951",
+       "name": "QUINCHICOTO",
+       "type": "RURAL"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "19",
+   "name": "ZAMORA CHINCHIPE",
+   "cantons": [
+    {
+     "code": "1901",
+     "name": "ZAMORA",
+     "parishes": [
+      {
+       "code": "190101",
+       "name": "EL LIMÓN",
+       "type": "URBAN"
+      },
+      {
+       "code": "190102",
+       "name": "ZAMORA",
+       "type": "URBAN"
+      },
+      {
+       "code": "190151",
+       "name": "CUMBARATZA",
+       "type": "RURAL"
+      },
+      {
+       "code": "190152",
+       "name": "GUADALUPE",
+       "type": "RURAL"
+      },
+      {
+       "code": "190153",
+       "name": "IMBANA (CAB. EN LA VICTORIA DE IMBANA)",
+       "type": "RURAL"
+      },
+      {
+       "code": "190155",
+       "name": "SABANILLA",
+       "type": "RURAL"
+      },
+      {
+       "code": "190156",
+       "name": "TIMBARA",
+       "type": "RURAL"
+      },
+      {
+       "code": "190158",
+       "name": "SAN CARLOS DE LAS MINAS",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1902",
+     "name": "CHINCHIPE",
+     "parishes": [
+      {
+       "code": "190250",
+       "name": "ZUMBA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "190251",
+       "name": "CHITO",
+       "type": "RURAL"
+      },
+      {
+       "code": "190252",
+       "name": "EL CHORRO",
+       "type": "RURAL"
+      },
+      {
+       "code": "190254",
+       "name": "LA CHONTA",
+       "type": "RURAL"
+      },
+      {
+       "code": "190256",
+       "name": "PUCAPAMBA",
+       "type": "RURAL"
+      },
+      {
+       "code": "190259",
+       "name": "SAN ANDRÉS",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1903",
+     "name": "NANGARITZA",
+     "parishes": [
+      {
+       "code": "190350",
+       "name": "GUAYZIMI (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "190351",
+       "name": "ZURMI",
+       "type": "RURAL"
+      },
+      {
+       "code": "190352",
+       "name": "NUEVO PARAÍSO",
+       "type": "RURAL"
+      },
+      {
+       "code": "190353",
+       "name": "NANKAIS (CAB. EN TSARUNTS (SANTA ELENA))",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1904",
+     "name": "YACUAMBI",
+     "parishes": [
+      {
+       "code": "190450",
+       "name": "28 DE MAYO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "190451",
+       "name": "LA PAZ",
+       "type": "RURAL"
+      },
+      {
+       "code": "190452",
+       "name": "TUTUPALI",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1905",
+     "name": "YANTZAZA",
+     "parishes": [
+      {
+       "code": "190550",
+       "name": "YANTZAZA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "190551",
+       "name": "CHICAÑA",
+       "type": "RURAL"
+      },
+      {
+       "code": "190553",
+       "name": "LOS ENCUENTROS",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1906",
+     "name": "EL PANGUI",
+     "parishes": [
+      {
+       "code": "190650",
+       "name": "EL PANGUI (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "190651",
+       "name": "EL GUISME",
+       "type": "RURAL"
+      },
+      {
+       "code": "190652",
+       "name": "PACHICUTZA",
+       "type": "RURAL"
+      },
+      {
+       "code": "190653",
+       "name": "TUNDAYME",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1907",
+     "name": "CENTINELA DEL CÓNDOR",
+     "parishes": [
+      {
+       "code": "190750",
+       "name": "ZUMBI (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "190752",
+       "name": "TRIUNFO DORADO (CAB. EN EL DORADO)",
+       "type": "RURAL"
+      },
+      {
+       "code": "190753",
+       "name": "PANGUINTZA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1908",
+     "name": "PALANDA",
+     "parishes": [
+      {
+       "code": "190850",
+       "name": "PALANDA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "190851",
+       "name": "EL PORVENIR DEL CARMEN",
+       "type": "RURAL"
+      },
+      {
+       "code": "190852",
+       "name": "SAN FRANCISCO DEL VERGEL",
+       "type": "RURAL"
+      },
+      {
+       "code": "190853",
+       "name": "VALLADOLID",
+       "type": "RURAL"
+      },
+      {
+       "code": "190854",
+       "name": "LA CANELA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "1909",
+     "name": "PAQUISHA",
+     "parishes": [
+      {
+       "code": "190950",
+       "name": "PAQUISHA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "190951",
+       "name": "BELLAVISTA",
+       "type": "RURAL"
+      },
+      {
+       "code": "190952",
+       "name": "NUEVO QUITO",
+       "type": "RURAL"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "20",
+   "name": "GALÁPAGOS",
+   "cantons": [
+    {
+     "code": "2001",
+     "name": "SAN CRISTÓBAL",
+     "parishes": [
+      {
+       "code": "200150",
+       "name": "PUERTO BAQUERIZO MORENO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "200151",
+       "name": "EL PROGRESO",
+       "type": "RURAL"
+      },
+      {
+       "code": "200152",
+       "name": "ISLA SANTA MARÍA FLOREANA (CAB. EN PUERTO VELASCO IBARRA)",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "2002",
+     "name": "ISABELA",
+     "parishes": [
+      {
+       "code": "200250",
+       "name": "PUERTO VILLAMIL (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "200251",
+       "name": "TOMÁS DE BERLANGA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "2003",
+     "name": "SANTA CRUZ",
+     "parishes": [
+      {
+       "code": "200350",
+       "name": "PUERTO AYORA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "200351",
+       "name": "BELLA VISTA",
+       "type": "RURAL"
+      },
+      {
+       "code": "200352",
+       "name": "SANTA ROSA",
+       "type": "RURAL"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "21",
+   "name": "SUCUMBÍOS",
+   "cantons": [
+    {
+     "code": "2101",
+     "name": "LAGO AGRIO",
+     "parishes": [
+      {
+       "code": "210150",
+       "name": "NUEVA LOJA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "210152",
+       "name": "DURENO",
+       "type": "RURAL"
+      },
+      {
+       "code": "210153",
+       "name": "GENERAL FARFÁN",
+       "type": "RURAL"
+      },
+      {
+       "code": "210155",
+       "name": "EL ENO",
+       "type": "RURAL"
+      },
+      {
+       "code": "210156",
+       "name": "PACAYACU",
+       "type": "RURAL"
+      },
+      {
+       "code": "210157",
+       "name": "JAMBELÍ",
+       "type": "RURAL"
+      },
+      {
+       "code": "210158",
+       "name": "SANTA CECILIA",
+       "type": "RURAL"
+      },
+      {
+       "code": "210160",
+       "name": "10 DE AGOSTO",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "2102",
+     "name": "GONZALO PIZARRO",
+     "parishes": [
+      {
+       "code": "210250",
+       "name": "LUMBAQUÍ (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "210251",
+       "name": "EL REVENTADOR",
+       "type": "RURAL"
+      },
+      {
+       "code": "210252",
+       "name": "GONZALO PIZARRO",
+       "type": "RURAL"
+      },
+      {
+       "code": "210254",
+       "name": "PUERTO LIBRE",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "2103",
+     "name": "PUTUMAYO",
+     "parishes": [
+      {
+       "code": "210350",
+       "name": "PUERTO EL CARMEN DEL PUTUMAYO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "210351",
+       "name": "PALMA ROJA",
+       "type": "RURAL"
+      },
+      {
+       "code": "210352",
+       "name": "PUERTO BOLÍVAR",
+       "type": "RURAL"
+      },
+      {
+       "code": "210353",
+       "name": "PUERTO RODRÍGUEZ",
+       "type": "RURAL"
+      },
+      {
+       "code": "210354",
+       "name": "SANTA ELENA",
+       "type": "RURAL"
+      },
+      {
+       "code": "210355",
+       "name": "SANSAHUARI",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "2104",
+     "name": "SHUSHUFINDI",
+     "parishes": [
+      {
+       "code": "210450",
+       "name": "SHUSHUFINDI (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "210451",
+       "name": "LIMONCOCHA",
+       "type": "RURAL"
+      },
+      {
+       "code": "210452",
+       "name": "PAÑACOCHA",
+       "type": "RURAL"
+      },
+      {
+       "code": "210453",
+       "name": "SAN ROQUE (CAB. EN SAN VICENTE)",
+       "type": "RURAL"
+      },
+      {
+       "code": "210454",
+       "name": "SAN PEDRO DE LOS COFÁNES",
+       "type": "RURAL"
+      },
+      {
+       "code": "210455",
+       "name": "SIETE DE JULIO",
+       "type": "RURAL"
+      },
+      {
+       "code": "210456",
+       "name": "LA MAGDALENA",
+       "type": "RURAL"
+      },
+      {
+       "code": "210457",
+       "name": "LA PRIMAVERA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "2105",
+     "name": "SUCUMBÍOS",
+     "parishes": [
+      {
+       "code": "210550",
+       "name": "LA BONITA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "210551",
+       "name": "EL PLAYÓN DE SAN FRANCISCO",
+       "type": "RURAL"
+      },
+      {
+       "code": "210552",
+       "name": "LA SOFÍA",
+       "type": "RURAL"
+      },
+      {
+       "code": "210553",
+       "name": "ROSA FLORIDA",
+       "type": "RURAL"
+      },
+      {
+       "code": "210554",
+       "name": "SANTA BÁRBARA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "2106",
+     "name": "CASCALES",
+     "parishes": [
+      {
+       "code": "210650",
+       "name": "EL DORADO DE CASCALES (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "210651",
+       "name": "SANTA ROSA DE SUCUMBÍOS",
+       "type": "RURAL"
+      },
+      {
+       "code": "210652",
+       "name": "SEVILLA",
+       "type": "RURAL"
+      },
+      {
+       "code": "210653",
+       "name": "NUEVA TRONCAL (CAB. EN LA TRONCAL)",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "2107",
+     "name": "CUYABENO",
+     "parishes": [
+      {
+       "code": "210750",
+       "name": "TARAPOA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "210751",
+       "name": "CUYABENO",
+       "type": "RURAL"
+      },
+      {
+       "code": "210752",
+       "name": "AGUAS NEGRAS",
+       "type": "RURAL"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "22",
+   "name": "ORELLANA",
+   "cantons": [
+    {
+     "code": "2201",
+     "name": "FRANCISCO DE ORELLANA",
+     "parishes": [
+      {
+       "code": "220150",
+       "name": "EL COCA (PUERTO FRANCISCO DE ORELLANA) (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "220151",
+       "name": "DAYUMA",
+       "type": "RURAL"
+      },
+      {
+       "code": "220152",
+       "name": "TARACOA",
+       "type": "RURAL"
+      },
+      {
+       "code": "220153",
+       "name": "ALEJANDRO LABAKA",
+       "type": "RURAL"
+      },
+      {
+       "code": "220154",
+       "name": "EL DORADO",
+       "type": "RURAL"
+      },
+      {
+       "code": "220155",
+       "name": "EL EDÉN",
+       "type": "RURAL"
+      },
+      {
+       "code": "220156",
+       "name": "GARCÍA MORENO",
+       "type": "RURAL"
+      },
+      {
+       "code": "220157",
+       "name": "INÉS ARANGO (CAB. EN WESTERN)",
+       "type": "RURAL"
+      },
+      {
+       "code": "220158",
+       "name": "LA BELLEZA",
+       "type": "RURAL"
+      },
+      {
+       "code": "220159",
+       "name": "NUEVO PARAÍSO (CAB. EN UNIÓN CHIMBORAZO)",
+       "type": "RURAL"
+      },
+      {
+       "code": "220160",
+       "name": "SAN JOSÉ DE GUAYUSA",
+       "type": "RURAL"
+      },
+      {
+       "code": "220161",
+       "name": "SAN LUIS DE ARMENIA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "2202",
+     "name": "AGUARICO",
+     "parishes": [
+      {
+       "code": "220201",
+       "name": "NUEVO ROCAFUERTE",
+       "type": "URBAN"
+      },
+      {
+       "code": "220202",
+       "name": "TIPUTINI",
+       "type": "URBAN"
+      },
+      {
+       "code": "220251",
+       "name": "CAPITÁN AUGUSTO RIVADENEYRA",
+       "type": "RURAL"
+      },
+      {
+       "code": "220252",
+       "name": "CONONACO",
+       "type": "RURAL"
+      },
+      {
+       "code": "220253",
+       "name": "SANTA MARÍA DE HUIRIRIMA",
+       "type": "RURAL"
+      },
+      {
+       "code": "220255",
+       "name": "YASUNÍ",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "2203",
+     "name": "LA JOYA DE LOS SACHAS",
+     "parishes": [
+      {
+       "code": "220350",
+       "name": "LA JOYA DE LOS SACHAS (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "220351",
+       "name": "ENOKANQUI (CAB. EN EL PARAÍSO)",
+       "type": "RURAL"
+      },
+      {
+       "code": "220352",
+       "name": "POMPEYA",
+       "type": "RURAL"
+      },
+      {
+       "code": "220353",
+       "name": "SAN CARLOS",
+       "type": "RURAL"
+      },
+      {
+       "code": "220354",
+       "name": "SAN SEBASTIÁN DEL COCA",
+       "type": "RURAL"
+      },
+      {
+       "code": "220355",
+       "name": "LAGO SAN PEDRO",
+       "type": "RURAL"
+      },
+      {
+       "code": "220356",
+       "name": "RUMIPAMBA",
+       "type": "RURAL"
+      },
+      {
+       "code": "220357",
+       "name": "TRES DE NOVIEMBRE",
+       "type": "RURAL"
+      },
+      {
+       "code": "220358",
+       "name": "UNIÓN MILAGREÑA",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "2204",
+     "name": "LORETO",
+     "parishes": [
+      {
+       "code": "220450",
+       "name": "LORETO (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "220451",
+       "name": "ÁVILA (CAB. EN HUIRUNO)",
+       "type": "RURAL"
+      },
+      {
+       "code": "220452",
+       "name": "PUERTO MURIALDO",
+       "type": "RURAL"
+      },
+      {
+       "code": "220453",
+       "name": "SAN JOSÉ DE PAYAMINO",
+       "type": "RURAL"
+      },
+      {
+       "code": "220454",
+       "name": "SAN JOSÉ DE DAHUANO",
+       "type": "RURAL"
+      },
+      {
+       "code": "220455",
+       "name": "SAN VICENTE DE HUATICOCHA",
+       "type": "RURAL"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "23",
+   "name": "SANTO DOMINGO DE LOS TSÁCHILAS",
+   "cantons": [
+    {
+     "code": "2301",
+     "name": "SANTO DOMINGO",
+     "parishes": [
+      {
+       "code": "230101",
+       "name": "ABRAHAM CALAZACÓN",
+       "type": "URBAN"
+      },
+      {
+       "code": "230102",
+       "name": "BOMBOLÍ",
+       "type": "URBAN"
+      },
+      {
+       "code": "230103",
+       "name": "CHIGUILPE",
+       "type": "URBAN"
+      },
+      {
+       "code": "230104",
+       "name": "RÍO TOACHI",
+       "type": "URBAN"
+      },
+      {
+       "code": "230105",
+       "name": "RÍO VERDE",
+       "type": "URBAN"
+      },
+      {
+       "code": "230106",
+       "name": "SANTO DOMINGO DE LOS COLORADOS",
+       "type": "URBAN"
+      },
+      {
+       "code": "230107",
+       "name": "ZARACAY",
+       "type": "URBAN"
+      },
+      {
+       "code": "230151",
+       "name": "ALLURIQUÍN",
+       "type": "RURAL"
+      },
+      {
+       "code": "230152",
+       "name": "PUERTO LIMÓN",
+       "type": "RURAL"
+      },
+      {
+       "code": "230153",
+       "name": "LUZ DE AMÉRICA",
+       "type": "RURAL"
+      },
+      {
+       "code": "230154",
+       "name": "SAN JACINTO DEL BÚA",
+       "type": "RURAL"
+      },
+      {
+       "code": "230155",
+       "name": "VALLE HERMOSO",
+       "type": "RURAL"
+      },
+      {
+       "code": "230156",
+       "name": "EL ESFUERZO",
+       "type": "RURAL"
+      },
+      {
+       "code": "230157",
+       "name": "SANTA MARÍA DEL TOACHI",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "2302",
+     "name": "LA CONCORDIA",
+     "parishes": [
+      {
+       "code": "230250",
+       "name": "LA CONCORDIA (CABECERA CANTONAL)",
+       "type": "SEAT"
+      },
+      {
+       "code": "230251",
+       "name": "MONTERREY",
+       "type": "RURAL"
+      },
+      {
+       "code": "230252",
+       "name": "LA VILLEGAS",
+       "type": "RURAL"
+      },
+      {
+       "code": "230253",
+       "name": "PLAN PILOTO",
+       "type": "RURAL"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "code": "24",
+   "name": "SANTA ELENA",
+   "cantons": [
+    {
+     "code": "2401",
+     "name": "SANTA ELENA",
+     "parishes": [
+      {
+       "code": "240101",
+       "name": "BALLENITA",
+       "type": "URBAN"
+      },
+      {
+       "code": "240102",
+       "name": "SANTA ELENA",
+       "type": "URBAN"
+      },
+      {
+       "code": "240151",
+       "name": "ATAHUALPA",
+       "type": "RURAL"
+      },
+      {
+       "code": "240152",
+       "name": "COLONCHE",
+       "type": "RURAL"
+      },
+      {
+       "code": "240153",
+       "name": "CHANDUY",
+       "type": "RURAL"
+      },
+      {
+       "code": "240154",
+       "name": "MANGLARALTO",
+       "type": "RURAL"
+      },
+      {
+       "code": "240155",
+       "name": "SIMÓN BOLÍVAR",
+       "type": "RURAL"
+      },
+      {
+       "code": "240156",
+       "name": "SAN JOSÉ DE ANCÓN",
+       "type": "RURAL"
+      }
+     ]
+    },
+    {
+     "code": "2402",
+     "name": "LA LIBERTAD",
+     "parishes": [
+      {
+       "code": "240250",
+       "name": "LA LIBERTAD (CABECERA CANTONAL)",
+       "type": "SEAT"
+      }
+     ]
+    },
+    {
+     "code": "2403",
+     "name": "SALINAS",
+     "parishes": [
+      {
+       "code": "240301",
+       "name": "CARLOS ESPINOZA LARREA",
+       "type": "URBAN"
+      },
+      {
+       "code": "240302",
+       "name": "GENERAL ALBERTO ENRÍQUEZ GALLO",
+       "type": "URBAN"
+      },
+      {
+       "code": "240303",
+       "name": "VICENTE ROCAFUERTE",
+       "type": "URBAN"
+      },
+      {
+       "code": "240304",
+       "name": "SANTA ROSA",
+       "type": "URBAN"
+      },
+      {
+       "code": "240351",
+       "name": "ANCONCITO",
+       "type": "RURAL"
+      },
+      {
+       "code": "240352",
+       "name": "JOSÉ LUIS TAMAYO",
+       "type": "RURAL"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

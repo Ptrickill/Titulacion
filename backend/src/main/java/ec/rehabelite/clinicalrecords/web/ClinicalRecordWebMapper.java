@@ -89,7 +89,8 @@ interface ClinicalRecordWebMapper {
         PatientProfileResponse patientResponse = new PatientProfileResponse(patient.id(), patient.nationalId(),
                 patient.medicalRecordNumber(), patient.firstName(), patient.lastName(), patient.birthDate(),
                 patient.ageOn(today), patient.sex(), patient.phone(), patient.email(), patient.address(),
-                patient.occupation(), patient.educationLevel(), patient.healthInsurance(), patient.admissionDate());
+                patient.addressComplete(), patient.occupation(), patient.educationLevel(),
+                patient.hasHealthInsurance(), patient.admissionDate());
         Treatment active = view.activeTreatment();
         ActiveTreatmentResponse activeResponse = active == null ? null : new ActiveTreatmentResponse(active.getId(),
                 toResponse(active.getDiagnosis()), active.getChiefComplaint(), active.getCurrentIllness(),

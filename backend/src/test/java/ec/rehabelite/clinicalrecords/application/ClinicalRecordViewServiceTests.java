@@ -138,8 +138,8 @@ class ClinicalRecordViewServiceTests {
 
     private static PatientProfile profile() {
         return new PatientProfile(PATIENT_ID, "1710034065", "1710034065", "Juan Carlos", "Pérez Gómez",
-                LocalDate.of(1981, 3, 15), "MALE", "0991234567", "paciente@rehabelite.test", "Av. Amazonas",
-                "Ingeniero", "Superior", "IESS", LocalDate.of(2026, 7, 8));
+                LocalDate.of(1981, 3, 15), "MALE", "0991234567", "paciente@rehabelite.test", "Av. Amazonas", true,
+                "Ingeniero", "Superior", true, LocalDate.of(2026, 7, 8));
     }
 
     private static ClinicalHistoryData history() {

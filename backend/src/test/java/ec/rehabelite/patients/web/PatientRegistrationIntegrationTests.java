@@ -216,7 +216,12 @@ class PatientRegistrationIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.paths['/api/patients/{id}'].get.responses['404']").exists());
     }
 
-    /** A valid registration; {@code overrides} replace or add fields (strings only). */
+    /** Structured address (MEJ-03): Conocoto, Distrito Metropolitano de Quito, Pichincha. */
+    static final String ADDRESS = """
+            {"provinceCode":"17","cantonCode":"1701","parishCode":"170156","mainStreet":"Av. Ilaló",\
+            "streetNumber":"N12-34","crossStreet":"Río Pita","reference":"Frente al parque central"}""";
+
+    /** A valid registration; {@code overrides} replace or add fields (JSON objects and booleans as they are). */
     private static String body(String nationalId, Map<String, String> overrides) {
         Map<String, String> fields = new LinkedHashMap<>(Map.ofEntries(
                 Map.entry("nationalId", nationalId),
@@ -224,15 +229,18 @@ class PatientRegistrationIntegrationTests extends AbstractIntegrationTest {
                 Map.entry("lastName", "Pérez Gómez"),
                 Map.entry("birthDate", BIRTH_DATE.toString()),
                 Map.entry("sex", "MALE"),
-                Map.entry("phone", "+593 98 765 4321"),
+                Map.entry("phone", "0987654321"),
                 Map.entry("email", "Juan.Perez@correo.ec"),
-                Map.entry("address", "Av. Ilaló y Río Pita, Valle de los Chillos"),
+                Map.entry("address", ADDRESS),
                 Map.entry("occupation", "Ingeniero civil"),
                 Map.entry("educationLevel", "Superior"),
-                Map.entry("healthInsurance", "IESS")));
+                Map.entry("hasHealthInsurance", "true")));
         fields.putAll(overrides);
+        // Objects and booleans go as they are; everything else as a JSON string
         return fields.entrySet().stream()
-                .map(e -> "\"%s\":\"%s\"".formatted(e.getKey(), e.getValue()))
+                .map(e -> e.getValue().startsWith("{") || e.getValue().equals("true") || e.getValue().equals("false")
+                        ? "\"%s\":%s".formatted(e.getKey(), e.getValue())
+                        : "\"%s\":\"%s\"".formatted(e.getKey(), e.getValue()))
                 .collect(Collectors.joining(",", "{", "}"));
     }
 

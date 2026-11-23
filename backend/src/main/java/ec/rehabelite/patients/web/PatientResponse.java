@@ -20,15 +20,17 @@ record PatientResponse(
                 example = "30")
         int age,
         @Schema(description = "Sexo", example = "MALE") Sex sex,
-        @Schema(description = "Teléfono", example = "+593 98 765 4321") String phone,
+        @Schema(description = "Teléfono", example = "0987654321") String phone,
         @Schema(description = "Correo electrónico", example = "juan.perez@correo.ec") String email,
-        @Schema(description = "Dirección", example = "Av. Ilaló y Río Pita, Valle de los Chillos") String address,
+        @Schema(description = "Dirección estructurada (MEJ-03)") AddressResponse address,
         @Schema(description = "Ocupación", example = "Ingeniero civil") String occupation,
         @Schema(description = "Nivel de instrucción", example = "Superior") String educationLevel,
-        @Schema(description = "Seguro de salud", example = "IESS") String healthInsurance,
+        @Schema(description = "¿Tiene seguro de salud?", example = "true") boolean hasHealthInsurance,
         @Schema(description = "Autoidentificación étnica; null si no se indicó", example = "Mestizo")
         String ethnicSelfIdentification,
         @Schema(description = "Religión; null si no se indicó", example = "Católica") String religion,
+        @Schema(description = "Datos por completar: dirección registrada antes de MEJ-03 o teléfono fuera de la regla",
+                example = "false") boolean needsCompletion,
         @Schema(description = "Fecha y hora de registro") Instant createdAt,
         @Schema(description = "Fecha y hora de la última actualización; null si nunca se actualizó")
         Instant updatedAt) {

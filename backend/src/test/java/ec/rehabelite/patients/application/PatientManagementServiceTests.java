@@ -1,5 +1,6 @@
 package ec.rehabelite.patients.application;
 
+import ec.rehabelite.patients.domain.PatientAddress;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
@@ -90,7 +91,8 @@ class PatientManagementServiceTests {
 
     private static PersonalData personalData(String phone) {
         return new PersonalData("Juan Carlos", "Pérez Gómez", LocalDate.of(1996, 3, 15), Sex.MALE, phone,
-                "juan.perez@correo.ec", "Av. Ilaló y Río Pita", "Ingeniero civil", "Superior", "IESS", null, null);
+                "juan.perez@correo.ec", new PatientAddress("17", "1701", "170156", "Av. Ilaló", "N12-34", "Río Pita", "Frente al parque"), "Ingeniero civil",
+                "Superior", true, null, null);
     }
 
 }

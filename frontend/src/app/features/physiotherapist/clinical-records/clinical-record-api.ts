@@ -111,10 +111,12 @@ export interface PatientProfile {
   sex: Sex;
   phone: string;
   email: string;
+  /** Composed with the place names of INEC's catalog; the former text for an incomplete address (MEJ-03). */
   address: string;
+  addressComplete: boolean;
   occupation: string;
   educationLevel: string;
-  healthInsurance: string;
+  hasHealthInsurance: boolean;
   admissionDate: string;
 }
 

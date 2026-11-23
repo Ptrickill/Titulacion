@@ -8,6 +8,10 @@ import java.time.Period;
  * religion are left out: no other module needs them.
  *
  * @param sex {@code MALE} or {@code FEMALE}
+ * @param address the composed address (MEJ-03), with the place names of the INEC catalog; for a patient registered
+ *                before MEJ-03, its former free text
+ * @param addressComplete whether the address has its place and streets (false until an old patient is edited)
+ * @param hasHealthInsurance "¿Tiene seguro de salud?" (MEJ-03)
  */
 public record PatientProfile(
         Long id,
@@ -20,9 +24,10 @@ public record PatientProfile(
         String phone,
         String email,
         String address,
+        boolean addressComplete,
         String occupation,
         String educationLevel,
-        String healthInsurance,
+        boolean hasHealthInsurance,
         LocalDate admissionDate) {
 
     /** Completed years on the given date; the age is never stored. */

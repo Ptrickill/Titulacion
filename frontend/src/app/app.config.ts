@@ -11,12 +11,15 @@ import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
 import { authInterceptor } from './core/auth/auth-interceptor';
 import { APP_LOCALE } from './core/locale';
+import { provideEcDates } from './shared/forms/ec-date-adapter';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     { provide: LOCALE_ID, useValue: APP_LOCALE },
     provideRouter(routes),
+    // MEJ-03: date fields typed and shown as dd/mm/aaaa, strictly, with the es-EC calendar
+    ...provideEcDates(),
     provideHttpClient(withInterceptors([authInterceptor])),
     // index.html loads the Material Symbols font instead of the legacy Material Icons
     provideAppInitializer(() => {

@@ -35,9 +35,9 @@ class FlywayMigrationTests extends AbstractIntegrationTest {
     }
 
     @Test
-    void appliesV1ToV5() {
+    void appliesV1ToV6() {
         assertThat(Arrays.stream(flyway.info().applied()).map(MigrationInfo::getVersion).map(Object::toString))
-                .containsExactly("1", "2", "3", "4", "5");
+                .containsExactly("1", "2", "3", "4", "5", "6");
         assertThat(flyway.info().applied()).allMatch(migration -> migration.getState().isApplied());
         assertThat(flyway.info().pending()).isEmpty();
     }
@@ -114,6 +114,70 @@ class FlywayMigrationTests extends AbstractIntegrationTest {
         } finally {
             jdbc.execute("DROP DATABASE IF EXISTS " + database + " WITH (FORCE)");
         }
+    }
+
+    /**
+     * MEJ-03: V6 on a database that already has patients (a fresh database in the same container, migrated to V5,
+     * then to V6). "Ninguno", in any case and with spaces, becomes no insurance and any other value yes; the former
+     * free-text address is kept as the reference of an incomplete address.
+     */
+    @Test
+    void v6ConvertsTheInsuranceAndKeepsTheFormerAddressAsTheReference() {
+        String database = "mej03_" + UUID.randomUUID().toString().replace("-", "");
+        jdbc.execute("CREATE DATABASE " + database);
+        try {
+            String url = POSTGRES.getJdbcUrl().replaceFirst("/[^/?]+(\\?|$)", "/" + database + "$1");
+            DriverManagerDataSource dataSource = new DriverManagerDataSource(url, POSTGRES.getUsername(),
+                    POSTGRES.getPassword());
+            JdbcTemplate other = new JdbcTemplate(dataSource);
+            Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").target("5").load().migrate();
+            String insert = """
+                    INSERT INTO patients (national_id, medical_record_number, first_name, last_name, birth_date, sex,
+                                          phone, email, address, occupation, education_level, health_insurance)
+                    VALUES (?, ?, 'Nombre', 'Apellido', DATE '1980-01-01', 'FEMALE', '+593 99 111 2233',
+                            'p@rehabelite.test', ?, 'Ocupación', 'Superior', ?)""";
+            other.update(insert, "1710034065", "1710034065", "Av. Ilaló y Río Pita, Valle de los Chillos", "IESS");
+            other.update(insert, "0102030405", "0102030405", "Calle Larga 8-40, Cuenca", "Ninguno");
+            other.update(insert, "0912345675", "0912345675", "Mz 3 V 12, Guayaquil", "  ninguno ");
+            other.update(insert, "1802345671", "1802345671", "Av. Cevallos, Ambato", "Seguro privado");
+
+            Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").load().migrate();
+
+            assertThat(other.queryForList("""
+                    SELECT national_id || ':' || has_health_insurance || ':' || address_reference || ':'
+                           || (province_code IS NULL AND parish_code IS NULL AND main_street IS NULL)
+                    FROM patients ORDER BY national_id""", String.class)).containsExactly(
+                    "0102030405:false:Calle Larga 8-40, Cuenca:true",
+                    "0912345675:false:Mz 3 V 12, Guayaquil:true",
+                    "1710034065:true:Av. Ilaló y Río Pita, Valle de los Chillos:true",
+                    "1802345671:true:Av. Cevallos, Ambato:true");
+            assertThat(other.queryForList("""
+                    SELECT column_name FROM information_schema.columns
+                    WHERE table_name = 'patients' AND column_name IN ('address', 'health_insurance')""", String.class))
+                    .isEmpty();
+            assertThat(other.queryForObject(
+                    "SELECT is_nullable FROM information_schema.columns WHERE table_name = 'patients' "
+                            + "AND column_name = 'has_health_insurance'", String.class)).isEqualTo("NO");
+        } finally {
+            jdbc.execute("DROP DATABASE IF EXISTS " + database + " WITH (FORCE)");
+        }
+    }
+
+    /** MEJ-03: an address has all its parts or none, and the codes are nested. */
+    @Test
+    void v6RejectsAPartialOrInconsistentAddress() {
+        String base = """
+                INSERT INTO patients (national_id, medical_record_number, first_name, last_name, birth_date, sex,
+                                      phone, email, province_code, canton_code, parish_code, main_street,
+                                      cross_street, occupation, education_level, has_health_insurance)
+                VALUES (?, ?, 'N', 'A', DATE '1980-01-01', 'MALE', '0991234567', 'p@rehabelite.test', ?, ?, ?, ?, ?,
+                        'O', 'Superior', true)""";
+        String partialId = TestPatients.randomNationalId();
+        assertThatThrownBy(() -> jdbc.update(base, partialId, partialId, "17", "1701", "170156", "Calle", null))
+                .rootCause().hasMessageContaining("ck_patients_address_parts");
+        String crossedId = TestPatients.randomNationalId();
+        assertThatThrownBy(() -> jdbc.update(base, crossedId, crossedId, "09", "1701", "170156", "Calle", "Otra"))
+                .rootCause().hasMessageContaining("ck_patients_address_codes");
     }
 
     /** MEJ-01: a pending account has no password; a token stores only its 64-character hash, once. */

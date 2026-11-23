@@ -108,7 +108,11 @@ class ClinicalRecordViewIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.patient.age").isNumber())
                 .andExpect(jsonPath("$.patient.sex").value("FEMALE"))
                 .andExpect(jsonPath("$.patient.email").value("paciente@rehabelite.test"))
-                .andExpect(jsonPath("$.patient.healthInsurance").value("Ninguno"))
+                .andExpect(jsonPath("$.patient.hasHealthInsurance").value(false))
+                .andExpect(jsonPath("$.patient.address").value(
+                        "Calle de prueba y Calle secundaria de prueba, Conocoto, Distrito Metropolitano de Quito, "
+                                + "Pichincha. Referencia: Referencia de prueba"))
+                .andExpect(jsonPath("$.patient.addressComplete").value(true))
                 .andExpect(jsonPath("$.patient.ethnicSelfIdentification").doesNotExist())
                 .andExpect(jsonPath("$.clinicalRecord.id").value(recordId))
                 .andExpect(jsonPath("$.clinicalRecord.habits").value("No fuma; café diario"))
