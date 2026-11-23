@@ -596,8 +596,11 @@ class ClinicalAuditIntegrationTests extends AbstractIntegrationTest {
     private static String patientBody(String extraFields) {
         return """
                 {%s"firstName":"Rosa Elena","lastName":"Ortiz Vega","birthDate":"1985-04-12","sex":"FEMALE",
-                 "phone":"0991112233","email":"rosa.ortiz@correo.ec","address":"Av. 6 de Diciembre N34-12, Quito",
-                 "occupation":"Contadora","educationLevel":"Superior","healthInsurance":"IESS"}"""
+                 "phone":"0991112233","email":"rosa.ortiz@correo.ec",
+                 "address":{"provinceCode":"17","cantonCode":"1701","parishCode":"170112",
+                            "mainStreet":"Av. 6 de Diciembre","streetNumber":"N34-12","crossStreet":"Av. Portugal",
+                            "reference":"Edificio azul"},
+                 "occupation":"Contadora","educationLevel":"Superior","hasHealthInsurance":true}"""
                 .formatted(extraFields);
     }
 

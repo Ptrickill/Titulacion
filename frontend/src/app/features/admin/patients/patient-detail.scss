@@ -30,6 +30,12 @@
   text-transform: uppercase;
 }
 
+.incomplete {
+  color: var(--re-warning);
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .value {
   color: var(--re-text);
   font-size: 14px;

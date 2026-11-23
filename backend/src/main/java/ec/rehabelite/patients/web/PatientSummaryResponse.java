@@ -12,8 +12,10 @@ record PatientSummaryResponse(
         @Schema(description = "Apellidos", example = "Pérez Gómez") String lastName,
         @Schema(description = "Edad en años cumplidos, calculada desde la fecha de nacimiento", example = "30")
         int age,
-        @Schema(description = "Teléfono", example = "+593 98 765 4321") String phone,
-        @Schema(description = "Correo electrónico", example = "juan.perez@correo.ec") String email) {
+        @Schema(description = "Teléfono", example = "0987654321") String phone,
+        @Schema(description = "Correo electrónico", example = "juan.perez@correo.ec") String email,
+        @Schema(description = "Datos por completar: dirección registrada antes de MEJ-03 o teléfono fuera de la regla",
+                example = "false") boolean needsCompletion) {
 
     /** Never print personal data, e.g. in logs or debugger views. */
     @Override

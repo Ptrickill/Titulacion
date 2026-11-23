@@ -1,6 +1,6 @@
 <app-page-header
-  title="Registro y Control de Pacientes"
-  subtitle="Admisión de pacientes, datos personales y actualización de expedientes"
+  title="Registro de Usuarios"
+  subtitle="Pacientes: admisión, datos personales y actualización de expedientes"
 >
   <button mat-flat-button actions type="button" (click)="openRegisterDialog()">
     <mat-icon aria-hidden="true">add</mat-icon>
@@ -54,7 +54,12 @@
       <div class="patient">
         <span class="avatar" aria-hidden="true">{{ initials(patient) }}</span>
         <div>
-          <div class="name">{{ patient.firstName }} {{ patient.lastName }}</div>
+          <div class="name">
+            {{ patient.firstName }} {{ patient.lastName }}
+            @if (patient.needsCompletion) {
+              <app-status-badge class="pending" label="Datos por completar" tone="warning" />
+            }
+          </div>
           <div class="meta">Cédula: {{ patient.nationalId }} • {{ formatAge(patient.age) }}</div>
         </div>
       </div>

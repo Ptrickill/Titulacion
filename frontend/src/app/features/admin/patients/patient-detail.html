@@ -93,7 +93,10 @@
         </div>
         <div class="item">
           <span class="label">Dirección</span>
-          <span class="value">{{ patient.address }}</span>
+          <span class="value">{{ patient.address.formatted }}</span>
+          @if (!patient.address.complete) {
+            <span class="incomplete">Dirección incompleta: complétela con "Editar datos".</span>
+          }
         </div>
         <div class="item">
           <span class="label">Ocupación</span>
@@ -105,7 +108,7 @@
         </div>
         <div class="item">
           <span class="label">Seguro de salud</span>
-          <span class="value">{{ patient.healthInsurance }}</span>
+          <span class="value">{{ patient.hasHealthInsurance ? 'Sí' : 'No' }}</span>
         </div>
         <div class="item">
           <span class="label">Autoidentificación étnica</span>

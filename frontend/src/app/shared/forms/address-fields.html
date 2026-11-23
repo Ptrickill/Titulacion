@@ -1,0 +1,83 @@
+<div class="address" [formGroup]="group()">
+  @if (loadError()) {
+    <div class="load-error full" role="alert">
+      <span>No se pudo cargar el catálogo de provincias, cantones y parroquias.</span>
+      <button mat-stroked-button type="button" (click)="load()">Reintentar</button>
+    </div>
+  }
+
+  <mat-form-field appearance="fill" subscriptSizing="dynamic">
+    <mat-label>Provincia</mat-label>
+    <mat-select formControlName="provinceCode">
+      @for (province of provinces(); track province.code) {
+        <mat-option [value]="province.code">{{ province.displayName }}</mat-option>
+      }
+    </mat-select>
+    <mat-error>Elija la provincia.</mat-error>
+  </mat-form-field>
+
+  <mat-form-field appearance="fill" subscriptSizing="dynamic">
+    <mat-label>Cantón</mat-label>
+    <mat-select formControlName="cantonCode">
+      @for (canton of cantons(); track canton.code) {
+        <mat-option [value]="canton.code">{{ canton.displayName }}</mat-option>
+      } @empty {
+        <mat-option disabled>Elija primero la provincia</mat-option>
+      }
+    </mat-select>
+    <mat-error>Elija el cantón.</mat-error>
+  </mat-form-field>
+
+  <mat-form-field appearance="fill" subscriptSizing="dynamic">
+    <mat-label>Parroquia</mat-label>
+    <mat-select formControlName="parishCode">
+      @for (parish of parishes(); track parish.code) {
+        <mat-option [value]="parish.code">{{ parish.displayName }}</mat-option>
+      } @empty {
+        <mat-option disabled>Elija primero el cantón</mat-option>
+      }
+    </mat-select>
+    <mat-error>Elija la parroquia.</mat-error>
+  </mat-form-field>
+
+  <mat-form-field appearance="fill" subscriptSizing="dynamic">
+    <mat-label>Calle principal</mat-label>
+    <input matInput formControlName="mainStreet" autocomplete="off" />
+    @if (group().controls.mainStreet.hasError('required')) {
+      <mat-error>Ingrese la calle principal.</mat-error>
+    } @else {
+      <mat-error>Máximo 150 caracteres.</mat-error>
+    }
+  </mat-form-field>
+
+  <mat-form-field appearance="fill" subscriptSizing="dynamic">
+    <mat-label>Número (opcional)</mat-label>
+    <input matInput formControlName="streetNumber" autocomplete="off" placeholder="N12-34" />
+    <mat-error>Máximo 20 caracteres.</mat-error>
+  </mat-form-field>
+
+  <mat-form-field appearance="fill" subscriptSizing="dynamic">
+    <mat-label>Calle secundaria</mat-label>
+    <input matInput formControlName="crossStreet" autocomplete="off" />
+    @if (group().controls.crossStreet.hasError('required')) {
+      <mat-error>Ingrese la calle secundaria.</mat-error>
+    } @else {
+      <mat-error>Máximo 150 caracteres.</mat-error>
+    }
+  </mat-form-field>
+
+  <mat-form-field appearance="fill" subscriptSizing="dynamic" class="full">
+    <mat-label>Referencia</mat-label>
+    <input
+      matInput
+      formControlName="reference"
+      autocomplete="off"
+      placeholder="Frente al parque central"
+    />
+    @if (group().controls.reference.hasError('required')) {
+      <mat-error>Ingrese una referencia.</mat-error>
+    } @else {
+      <mat-error>Máximo 255 caracteres.</mat-error>
+    }
+  </mat-form-field>
+</div>

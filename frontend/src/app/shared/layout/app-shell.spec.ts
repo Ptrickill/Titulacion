@@ -63,7 +63,7 @@ describe('AppShell', () => {
     expect(menuLabels()).toEqual([
       'Inicio',
       'Gestión de Usuarios',
-      'Registro de Pacientes',
+      'Registro de Usuarios',
       'Auditoría',
     ]);
     fixture.destroy();

@@ -14,7 +14,12 @@ import { PatientSummary } from './patient-api';
 import { PatientRegistry } from './patient-registry';
 import { fakePatient } from './patient-testing';
 
-function summary(id: number, firstName: string, lastName: string): PatientSummary {
+function summary(
+  id: number,
+  firstName: string,
+  lastName: string,
+  needsCompletion = false,
+): PatientSummary {
   return {
     id,
     nationalId: '1710034065',
@@ -22,8 +27,9 @@ function summary(id: number, firstName: string, lastName: string): PatientSummar
     firstName,
     lastName,
     age: 30,
-    phone: '+593 98 765 4321',
+    phone: '0987654321',
     email: `paciente${id}@correo.ec`,
+    needsCompletion,
   };
 }
 
@@ -80,7 +86,7 @@ describe('PatientRegistry', () => {
     request.flush(page([summary(1, 'Juan Carlos', 'Pérez Gómez')], 0, 12));
     await fixture.whenStable();
 
-    expect(element.querySelector('h1')?.textContent).toContain('Registro y Control de Pacientes');
+    expect(element.querySelector('h1')?.textContent).toContain('Registro de Usuarios');
     expect(rowNames()).toEqual(['Juan Carlos Pérez Gómez']);
     const row = element.querySelector('tbody tr')!.textContent!;
     expect(row).toContain('Cédula: 1710034065 • 30 años');
@@ -91,6 +97,20 @@ describe('PatientRegistry', () => {
     expect(element.querySelector('.range')?.textContent?.replace(/\s+/g, ' ')).toContain(
       'de 12 pacientes',
     );
+  });
+
+  it('tags the patients with data to complete (MEJ-03)', async () => {
+    searchRequest().flush(
+      page([
+        summary(1, 'Juan Carlos', 'Pérez Gómez'),
+        summary(2, 'Rosa Elena', 'Ortiz Vega', true),
+      ]),
+    );
+    await fixture.whenStable();
+
+    const rows = Array.from(element.querySelectorAll('tbody tr'));
+    expect(rows[0].textContent).not.toContain('Datos por completar');
+    expect(rows[1].querySelector('app-status-badge')?.textContent).toContain('Datos por completar');
   });
 
   it('searches as the user types, from the first page', async () => {

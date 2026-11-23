@@ -1,5 +1,6 @@
 package ec.rehabelite.patients.web;
 
+import ec.rehabelite.patients.application.AddressText;
 import ec.rehabelite.patients.application.PatientManagementService;
 import ec.rehabelite.patients.application.PatientRegistrationService;
 import ec.rehabelite.patients.application.PortalAccountService;
@@ -44,6 +45,7 @@ class PatientController {
     private final PatientManagementService managementService;
     private final PortalAccountService portalAccountService;
     private final PatientWebMapper mapper;
+    private final AddressText addressText;
     private final Clock clock;
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -66,7 +68,7 @@ class PatientController {
     ResponseEntity<PatientResponse> register(@Valid @RequestBody RegisterPatientRequest request) {
         Patient patient = registrationService.register(request.toCommand());
         return ResponseEntity.created(URI.create("/api/patients/" + patient.getId()))
-                .body(mapper.toResponse(patient, ClinicCalendar.today(clock)));
+                .body(mapper.toResponse(patient, ClinicCalendar.today(clock), addressText));
     }
 
     @GetMapping
@@ -107,7 +109,7 @@ class PatientController {
                     schema = @Schema(implementation = ProblemDetail.class)))
     PatientResponse update(@PathVariable Long id, @Valid @RequestBody UpdatePatientRequest request) {
         Patient patient = managementService.update(id, request.admissionDate(), request.toPersonalData());
-        return mapper.toResponse(patient, ClinicCalendar.today(clock));
+        return mapper.toResponse(patient, ClinicCalendar.today(clock), addressText);
     }
 
     @GetMapping("/{id}")
@@ -118,7 +120,7 @@ class PatientController {
     @ApiResponse(responseCode = "404", description = "El paciente no existe", content = @Content(
             mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = ProblemDetail.class)))
     PatientResponse findById(@PathVariable Long id) {
-        return mapper.toResponse(registrationService.findById(id), ClinicCalendar.today(clock));
+        return mapper.toResponse(registrationService.findById(id), ClinicCalendar.today(clock), addressText);
     }
 
     @GetMapping("/portal-candidates")

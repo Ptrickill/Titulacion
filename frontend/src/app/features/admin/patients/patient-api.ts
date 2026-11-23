@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Page } from '../../../core/http/page';
+import { AddressValue } from '../../../shared/forms/location-catalog';
 
 export type Sex = 'MALE' | 'FEMALE';
 
@@ -15,19 +16,43 @@ export interface RegisterPatientRequest {
   /** ISO date (yyyy-MM-dd). */
   birthDate: string;
   sex: Sex;
+  /** Mobile 09XXXXXXXX or landline with its province code (MEJ-03). */
   phone: string;
   email: string;
-  address: string;
+  /** Structured address (MEJ-03): codes of INEC's catalog and the streets. */
+  address: AddressValue;
   occupation: string;
   educationLevel: string;
-  healthInsurance: string;
+  /** "¿Tiene seguro de salud?" (MEJ-03). */
+  hasHealthInsurance: boolean;
   ethnicSelfIdentification: string | null;
   religion: string | null;
 }
 
+/** Address of a patient as the API returns it, with the place names and the composed text (MEJ-03). */
+export interface PatientAddress {
+  /** Null while the address of a patient registered before MEJ-03 is incomplete. */
+  provinceCode: string | null;
+  provinceName: string | null;
+  cantonCode: string | null;
+  cantonName: string | null;
+  parishCode: string | null;
+  parishName: string | null;
+  mainStreet: string | null;
+  streetNumber: string | null;
+  crossStreet: string | null;
+  /** For a patient registered before MEJ-03, its former free-text address. */
+  reference: string | null;
+  formatted: string;
+  complete: boolean;
+}
+
 /** Patient as returned by the API; never includes clinical data. */
-export interface Patient extends RegisterPatientRequest {
+export interface Patient extends Omit<RegisterPatientRequest, 'address'> {
   id: number;
+  address: PatientAddress;
+  /** "Datos por completar": incomplete address or phone outside the rule (MEJ-03). */
+  needsCompletion: boolean;
   /** Equal to the national ID. */
   medicalRecordNumber: string;
   /** Completed years, calculated by the server from the birth date. */
@@ -50,6 +75,8 @@ export interface PatientSummary {
   age: number;
   phone: string;
   email: string;
+  /** "Datos por completar" (MEJ-03). */
+  needsCompletion: boolean;
 }
 
 /** Property of the 409 problem response with the id of the patient that has the national ID. */

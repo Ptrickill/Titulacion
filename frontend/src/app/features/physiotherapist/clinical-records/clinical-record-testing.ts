@@ -70,12 +70,15 @@ export function fakeClinicalRecord(
       birthDate: '1981-03-15',
       age: 45,
       sex: 'MALE',
-      phone: '+593 98 765 4321',
+      phone: '0987654321',
       email: 'juan.perez@correo.ec',
-      address: 'Av. Amazonas N32-12, Quito',
+      address:
+        'Av. Amazonas N32-12 y Av. Naciones Unidas, Iñaquito, Distrito Metropolitano de Quito, Pichincha. ' +
+        'Referencia: Edificio de prueba',
+      addressComplete: true,
       occupation: 'Ingeniero civil',
       educationLevel: 'Superior',
-      healthInsurance: 'IESS',
+      hasHealthInsurance: true,
       admissionDate: '2026-07-08',
     },
     clinicalRecord: {

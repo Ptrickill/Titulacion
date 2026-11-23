@@ -1,11 +1,13 @@
 package ec.rehabelite.patients.domain;
 
+import ec.rehabelite.shared.domain.NameCase;
 import java.time.LocalDate;
 import java.util.Locale;
 
 /**
- * Personal (non-clinical) data of a patient. Text is stored trimmed, the email in lower case, and blank optional
- * values (ethnic self-identification, religion) as null.
+ * Personal (non-clinical) data of a patient. Names and surnames are stored without extra spaces and with a capital
+ * initial (MEJ-03, {@link NameCase}), text is stored trimmed, the email in lower case, and blank optional values
+ * (ethnic self-identification, religion) as null.
  */
 public record PersonalData(
         String firstName,
@@ -14,22 +16,20 @@ public record PersonalData(
         Sex sex,
         String phone,
         String email,
-        String address,
+        PatientAddress address,
         String occupation,
         String educationLevel,
-        String healthInsurance,
+        boolean hasHealthInsurance,
         String ethnicSelfIdentification,
         String religion) {
 
     public PersonalData {
-        firstName = strip(firstName);
-        lastName = strip(lastName);
+        firstName = NameCase.of(firstName);
+        lastName = NameCase.of(lastName);
         phone = strip(phone);
         email = email == null ? null : email.strip().toLowerCase(Locale.ROOT);
-        address = strip(address);
         occupation = strip(occupation);
         educationLevel = strip(educationLevel);
-        healthInsurance = strip(healthInsurance);
         ethnicSelfIdentification = blankToNull(ethnicSelfIdentification);
         religion = blankToNull(religion);
     }

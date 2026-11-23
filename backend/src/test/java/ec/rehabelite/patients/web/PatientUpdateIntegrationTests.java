@@ -61,13 +61,17 @@ class PatientUpdateIntegrationTests extends AbstractIntegrationTest {
 
     @Test
     void updatesPersonalDataRecordsWhoAndWhenAndAuditsIt() throws Exception {
-        update(adminToken, patientId, body(Map.of("phone", "+593 99 111 2233", "religion", "Católica")))
+        update(adminToken, patientId, body(Map.of("phone", "0991112233", "religion", "Católica")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(patientId))
                 .andExpect(jsonPath("$.firstName").value("Rosa Elena"))
                 .andExpect(jsonPath("$.lastName").value("Ortiz Vega"))
-                .andExpect(jsonPath("$.phone").value("+593 99 111 2233"))
-                .andExpect(jsonPath("$.address").value("Av. 6 de Diciembre N34-12, Quito"))
+                .andExpect(jsonPath("$.phone").value("0991112233"))
+                .andExpect(jsonPath("$.address.formatted").value("Av. 6 de Diciembre N34-12 y Av. Portugal, Iñaquito, "
+                        + "Distrito Metropolitano de Quito, Pichincha. Referencia: Edificio azul"))
+                .andExpect(jsonPath("$.address.complete").value(true))
+                .andExpect(jsonPath("$.hasHealthInsurance").value(true))
+                .andExpect(jsonPath("$.needsCompletion").value(false))
                 .andExpect(jsonPath("$.religion").value("Católica"))
                 .andExpect(jsonPath("$.admissionDate").value("2026-01-15"))
                 .andExpect(jsonPath("$.age").isNumber())
@@ -75,10 +79,12 @@ class PatientUpdateIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.nationalId").value(nationalId));
 
         Map<String, Object> row = jdbc.queryForMap("""
-                SELECT phone, address, admission_date, updated_by, updated_at, national_id, medical_record_number
+                SELECT phone, parish_code, address_reference, admission_date, updated_by, updated_at, national_id,
+                       medical_record_number
                 FROM patients WHERE id = ?""", patientId);
-        assertThat(row).containsEntry("phone", "+593 99 111 2233")
-                .containsEntry("address", "Av. 6 de Diciembre N34-12, Quito")
+        assertThat(row).containsEntry("phone", "0991112233")
+                .containsEntry("parish_code", "170112")
+                .containsEntry("address_reference", "Edificio azul")
                 .containsEntry("updated_by", admin.getId())
                 .containsEntry("national_id", nationalId)
                 .containsEntry("medical_record_number", nationalId);
@@ -168,13 +174,19 @@ class PatientUpdateIntegrationTests extends AbstractIntegrationTest {
                 Map.entry("sex", "FEMALE"),
                 Map.entry("phone", "0990000000"),
                 Map.entry("email", "rosa.ortiz@correo.ec"),
-                Map.entry("address", "Av. 6 de Diciembre N34-12, Quito"),
+                Map.entry("address", """
+                        {"provinceCode":"17","cantonCode":"1701","parishCode":"170112",\
+                        "mainStreet":"Av. 6 de Diciembre","streetNumber":"N34-12","crossStreet":"Av. Portugal",\
+                        "reference":"Edificio azul"}"""),
                 Map.entry("occupation", "Contadora"),
                 Map.entry("educationLevel", "Superior"),
-                Map.entry("healthInsurance", "IESS")));
+                Map.entry("hasHealthInsurance", "true")));
         fields.putAll(overrides);
+        // Objects and booleans go as they are; everything else as a JSON string
         return fields.entrySet().stream()
-                .map(e -> "\"%s\":\"%s\"".formatted(e.getKey(), e.getValue()))
+                .map(e -> e.getValue().startsWith("{") || e.getValue().equals("true") || e.getValue().equals("false")
+                        ? "\"%s\":%s".formatted(e.getKey(), e.getValue())
+                        : "\"%s\":\"%s\"".formatted(e.getKey(), e.getValue()))
                 .collect(Collectors.joining(",", "{", "}"));
     }
 

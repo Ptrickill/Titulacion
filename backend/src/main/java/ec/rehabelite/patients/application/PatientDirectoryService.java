@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 class PatientDirectoryService implements PatientDirectory {
 
     private final PatientRepository patientRepository;
+    private final AddressText addressText;
 
     @Override
     @Transactional(readOnly = true)
@@ -38,7 +39,7 @@ class PatientDirectoryService implements PatientDirectory {
     @Override
     @Transactional(readOnly = true)
     public Optional<PatientProfile> findProfile(Long patientId) {
-        return patientRepository.findById(patientId).map(PatientDirectoryService::toProfile);
+        return patientRepository.findById(patientId).map(this::toProfile);
     }
 
     @Override
@@ -63,11 +64,13 @@ class PatientDirectoryService implements PatientDirectory {
                 patient.getFirstName(), patient.getLastName(), patient.getBirthDate());
     }
 
-    private static PatientProfile toProfile(Patient patient) {
+    private PatientProfile toProfile(Patient patient) {
+        AddressView address = addressText.view(patient.getAddress());
         return new PatientProfile(patient.getId(), patient.getNationalId(), patient.getMedicalRecordNumber(),
                 patient.getFirstName(), patient.getLastName(), patient.getBirthDate(), patient.getSex().name(),
-                patient.getPhone(), patient.getEmail(), patient.getAddress(), patient.getOccupation(),
-                patient.getEducationLevel(), patient.getHealthInsurance(), patient.getAdmissionDate());
+                patient.getPhone(), patient.getEmail(), address.formatted(), address.complete(),
+                patient.getOccupation(), patient.getEducationLevel(), patient.isHasHealthInsurance(),
+                patient.getAdmissionDate());
     }
 
 }

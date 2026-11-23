@@ -104,10 +104,11 @@ final class ClinicalRecordResponses {
             @Schema(allowableValues = {"MALE", "FEMALE"}) String sex,
             String phone,
             String email,
-            String address,
+            @Schema(description = "Dirección compuesta con los nombres del catálogo del INEC (MEJ-03)") String address,
+            @Schema(description = "Si la dirección tiene parroquia, cantón, provincia y calles") boolean addressComplete,
             String occupation,
             String educationLevel,
-            String healthInsurance,
+            @Schema(description = "¿Tiene seguro de salud?") boolean hasHealthInsurance,
             LocalDate admissionDate) {
 
         @Override

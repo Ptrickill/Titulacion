@@ -18,9 +18,12 @@ public final class TestPatients {
         String nationalId = randomNationalId();
         return jdbc.queryForObject("""
                 INSERT INTO patients (national_id, medical_record_number, first_name, last_name, birth_date, sex,
-                                      phone, email, address, occupation, education_level, health_insurance)
+                                      phone, email, province_code, canton_code, parish_code, main_street,
+                                      cross_street, address_reference, occupation, education_level,
+                                      has_health_insurance)
                 VALUES (?, ?, ?, ?, DATE '1985-04-12', 'FEMALE', '0990000000', 'paciente@rehabelite.test',
-                        'Dirección de prueba', 'Ocupación de prueba', 'Superior', 'Ninguno')
+                        '17', '1701', '170156', 'Calle de prueba', 'Calle secundaria de prueba', 'Referencia de prueba',
+                        'Ocupación de prueba', 'Superior', false)
                 RETURNING id""", Long.class, nationalId, nationalId, firstName, lastName);
     }
 

@@ -80,6 +80,7 @@ Paquete base `ec.rehabelite`. Módulos (Spring Modulith):
 | `portal` | Portal del paciente (solo lectura) |
 | `reports` | Reportes para la dirección operativa |
 | `audit` | Registro de auditoría |
+| `catalogs` | Datos de referencia (MEJ-03): división político-administrativa del Ecuador (INEC) |
 | `shared` | Módulo abierto: `config` (`AppProperties`, locale, reloj, validación), `domain` (excepciones base, `ClinicCalendar`), `web` (`GlobalExceptionHandler`) |
 
 Cada módulo tiene:
@@ -104,7 +105,7 @@ Reglas:
     - `patients` puede depender de `auth`, pero `auth` nunca de `patients`.
   - `ec.rehabelite.patients.PatientDirectory` (HU-07):
     - `find(id)` y `search(q, pageable)` devuelven `PatientCard` (id, cédula, número de historia, nombres, apellidos, fecha de nacimiento y `ageOn(fecha)`).
-    - `findProfile(id)` (HU-09) devuelve `PatientProfile`: además, sexo, contacto, ocupación, instrucción, seguro y fecha de ingreso. Sin etnia ni religión.
+    - `findProfile(id)` (HU-09) devuelve `PatientProfile`: además, sexo, contacto, ocupación, instrucción, seguro y fecha de ingreso. Sin etnia ni religión. Desde MEJ-03, `address` es la dirección compuesta (con los nombres del catálogo del INEC; en un paciente antiguo, su texto anterior), `addressComplete` dice si tiene parroquia y calles, y `hasHealthInsurance` es Sí/No.
     - `findByPortalUser(userId)` (HU-12) devuelve el `PatientCard` del paciente vinculado a una cuenta de portal (`patients.portal_user_id`), o vacío si la cuenta no tiene paciente.
     - `fullNames(ids)` (HU-14) devuelve solo "nombres apellidos" de cada paciente, en una sentencia que no lee otros datos personales (proyección `PatientName`). Es lo único que los reportes saben del paciente (minimización de datos, LOPDP).
     - Es la única forma en que otros módulos (`clinicalrecords`, `sessions`, `portal`, ...) consultan pacientes.
@@ -135,6 +136,7 @@ Reglas:
     - `countsByResponsibleAndStatus(treatmentIds, responsibleId, from, to)` (HU-14, HU-15) cuenta las sesiones de esos tratamientos por fisioterapeuta que las registró (`therapy_sessions.responsible_id`) y por estado, como `SessionCount` (responsable, estado y total). Con `responsibleId`, solo las que registró ese fisioterapeuta, sea quien sea el responsable vigente del tratamiento. Con `from` o `to`, solo las de `session_date` entre esos días, ambos incluidos (ya es la fecha de Quito). Es una sentencia nativa: los ids van como un arreglo (`= ANY(CAST(:ids AS bigint[]))`), para no llegar al límite de parámetros de PostgreSQL con muchos tratamientos, y los nulos con `CAST(:x AS tipo) IS NULL`.
     - Qué cuenta como sesión realizada lo decide `sessions` (`completed`). Las lecturas por este puerto no se auditan aquí: audita quien llama.
     - Es la única forma en que otros módulos (`portal`, `reports`, ...) leen sesiones.
+  - `ec.rehabelite.catalogs.LocationCatalog` (MEJ-03): provincias, cantones y parroquias del Clasificador Geográfico Estadístico 2025 del INEC (corte al 31/12/2024), leídos de `catalogs/ec-locations-cge2025.json` al arrancar (`ResourceLocationCatalog`). `isConsistent(provincia, cantón, parroquia)` valida una dirección y `findParish(código)` devuelve el `Place` con los nombres oficiales (en mayúsculas, como los publica el INEC) y `displayName()` con mayúscula inicial. Fuente, reglas y conteos en `docs/catalogs/ubicaciones.md`; el JSON se genera con `tools/catalogs/inec_cge_to_json.py`. Ningún dato sale de la aplicación.
   - `ec.rehabelite.audit.EntityVersionHistory` (HU-10): `versionsOf(clase, id)` devuelve las versiones de Envers de una entidad `@Audited`, de la más antigua a la más reciente. Cada `EntityVersion` trae la entidad, la revisión, el tipo (`CREATE`, `UPDATE`, `DELETE`), la fecha y el autor (o `null`). Así ningún módulo usa `AuditRevision` ni Envers directamente.
 - Seguridad: JWT HS256 emitido por `POST /api/auth/login` (claims `sub` = id, `email`, `fullName`, `role` y `sv`, la versión de sesión de MEJ-01; el rol da la autoridad `ROLE_<rol>`). Públicos solo login, los enlaces de las cuentas (`POST /api/auth/activate`, `/forgot-password` y `/reset-password`, MEJ-01), `/actuator/health` y la documentación OpenAPI. El reloj se inyecta como bean `Clock` (`shared.config`).
 - Estado de cuentas (HU-03):
@@ -166,6 +168,13 @@ Reglas:
   - Cada registro audita `CREATE Patient`.
   - `GET /api/patients/{id}` devuelve solo datos personales y no se audita: la auditoría `READ` es para datos clínicos.
   - Validador de cédula: `patients.domain.NationalId` (10 dígitos, provincia 01–24 o 30, tercer dígito menor que 6, módulo 10), con la anotación `@ValidNationalId` en los requests.
+  - **Campos de registro (MEJ-03, Jira RHE-86)**, iguales en `POST` y `PUT`:
+    - **Nombres y apellidos** se guardan sin espacios sobrantes y con mayúscula inicial (`shared.domain.NameCase`: "MARÍA  josé" → "María José"; de, del, la, las, los e y en minúscula salvo al inicio). El frontend aplica la misma regla (`shared/text/name-case.ts`). Un nombre antiguo en mayúsculas cuenta como cambio al guardarlo.
+    - **Teléfono** (`patients.domain.PhoneNumber`, `@ValidPhone`): celular `09` y 8 dígitos o fijo `0`, código de provincia de 2 a 7 y 7 dígitos; solo dígitos. Mensaje: "Ingrese un celular (09XXXXXXXX) o un teléfono fijo con código de provincia".
+    - **Dirección estructurada** (`address`, `AddressRequest`, embebida como `PatientAddress`): `provinceCode` (2 dígitos), `cantonCode` (4), `parishCode` (6) del catálogo del INEC, `mainStreet`, `streetNumber` (opcional), `crossStreet` y `reference`. La parroquia debe pertenecer al cantón y el cantón a la provincia (`@ConsistentPlace`, 400 en `address.parishCode`: "la parroquia debe pertenecer al cantón y el cantón a la provincia"). La dirección nunca se envía a un servicio externo.
+    - **Seguro de salud:** `hasHealthInsurance` (Sí/No), obligatorio.
+    - Las respuestas traen `address` con los códigos, los nombres con mayúscula inicial, `formatted` ("Av. Ilaló N12-34 y Río Pita, Conocoto, Distrito Metropolitano de Quito, Pichincha. Referencia: …", `AddressText`) y `complete`, y `needsCompletion` ("Datos por completar"): dirección registrada antes de MEJ-03 o teléfono fuera de la regla (`Patient.needsCompletion()`). `PatientSummaryResponse` también trae `needsCompletion`.
+    - **Pacientes anteriores a MEJ-03:** V6 guardó su dirección de texto en `address_reference` y la dejó incompleta (sin parroquia ni calles), y su teléfono se conserva aunque no cumpla la regla. Al editarlos, el formulario exige la dirección completa y un teléfono válido.
 - Búsqueda y actualización de pacientes (HU-06), en `PatientManagementService`:
   - `GET /api/patients?q=&page=&size=`:
     - Si `q` son solo dígitos, busca las cédulas que empiezan así.
@@ -325,6 +334,7 @@ Reglas:
     | `PATCH /api/treatments/{id}/status` | `STATUS_CHANGE Treatment` |
     | `GET /api/physio/patients` | `READ ClinicalRecord` por cada historial de la página (`PhysioPatientService`, `recordAll`) |
     | `GET /api/icd10-diagnoses`, `GET /api/physio/physiotherapists` | ninguna (catálogo y personal) |
+    | `GET /api/catalogs/locations` (MEJ-03) | ninguna (catálogo público del INEC) |
     | `POST /api/treatments/{id}/therapy-sessions` | `CREATE TherapySession` |
     | `GET /api/treatments/{id}/therapy-sessions` | `READ Treatment` |
     | `GET /api/therapy-sessions/{id}`, `GET /api/therapy-sessions/{id}/versions` | `READ TherapySession` |
@@ -412,7 +422,7 @@ Reglas:
 
 En inglés, plural, kebab-case, bajo `/api`:
 
-`/api/auth`, `/api/users`, `/api/patients`, `/api/clinical-records`, `/api/treatments`, `/api/therapy-sessions`, `/api/ai-summaries`, `/api/reports`, `/api/audit-logs`, `/api/portal`, `/api/icd10-diagnoses`.
+`/api/auth`, `/api/users`, `/api/patients`, `/api/clinical-records`, `/api/treatments`, `/api/therapy-sessions`, `/api/ai-summaries`, `/api/reports`, `/api/audit-logs`, `/api/portal`, `/api/icd10-diagnoses`, `/api/catalogs` (MEJ-03: `GET /api/catalogs/locations`, cualquier usuario autenticado, `Cache-Control: max-age=86400, private`).
 
 Excepciones acordadas en HU-07 (fuera del patrón de recurso plural):
 - `POST`, `GET` (HU-09) y `PUT` (HU-09) `/api/patients/{patientId}/clinical-record`: singular, porque es el único historial del paciente.
@@ -428,7 +438,7 @@ Ejemplos: `GET /api/patients?query=...`, `PATCH /api/treatments/{id}/status`, `P
 
 ## Modelo de datos
 
-Fuente de verdad: `backend/src/main/resources/db/migration/` (`V1__initial_schema.sql`, `V2__icd10_initial_catalog.sql`, `V3__envers_audit_tables.sql`: `revinfo`, `treatments_aud`, `therapy_sessions_aud` e índice `ix_audit_logs_occurred_at`; `V4__audit_logs_export_action.sql` (HU-15): agrega `EXPORT` a `ck_audit_logs_action`; `V5__account_activation.sql` (MEJ-01): `users.password_hash` admite nulos, `users.email_verified_at` y `users.session_version`, la tabla `account_tokens` y las acciones nuevas de auditoría; las cuentas existentes quedan verificadas desde su creación). `FlywayMigrationTests` comprueba que `ck_audit_logs_action` admite exactamente los valores de `AuditAction`.
+Fuente de verdad: `backend/src/main/resources/db/migration/` (`V1__initial_schema.sql`, `V2__icd10_initial_catalog.sql`, `V3__envers_audit_tables.sql`: `revinfo`, `treatments_aud`, `therapy_sessions_aud` e índice `ix_audit_logs_occurred_at`; `V4__audit_logs_export_action.sql` (HU-15): agrega `EXPORT` a `ck_audit_logs_action`; `V5__account_activation.sql` (MEJ-01): `users.password_hash` admite nulos, `users.email_verified_at` y `users.session_version`, la tabla `account_tokens` y las acciones nuevas de auditoría; las cuentas existentes quedan verificadas desde su creación; `V6__patient_address_and_insurance.sql` (MEJ-03): `patients.has_health_insurance` (`'Ninguno'` → `false`, lo demás → `true`) en lugar de `health_insurance`, y la dirección estructurada `province_code`, `canton_code`, `parish_code`, `main_street`, `street_number`, `cross_street` y `address_reference` en lugar de `address`, cuyo texto queda en `address_reference`; `ck_patients_address_parts` exige el lugar y las calles juntos o ninguno, y `ck_patients_address_codes`, los códigos anidados). `FlywayMigrationTests` comprueba que `ck_audit_logs_action` admite exactamente los valores de `AuditAction`.
 
 - Tablas en inglés, plural, snake_case: `users`, `patients`, `clinical_records`, `icd10_diagnoses`, `treatments`, `responsible_assignments`, `treatment_status_changes`, `therapy_sessions`, `ai_summaries`, `audit_logs`, `account_tokens` (MEJ-01).
 - Prefijos: `pk_`, `fk_`, `uq_`, `ck_`, `ix_`; triggers `trg_`.
@@ -592,11 +602,25 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
   - `national-id.ts` aplica las mismas reglas de cédula que el backend: `nationalIdValidator` da `{ nationalId: regla }` y `NATIONAL_ID_MESSAGES` tiene el mensaje de cada regla.
   - `password.ts` (MEJ-01): `PASSWORD_VALIDATORS` (la regla de la API), `passwordsMatchValidator` (marca `mismatch` en la confirmación) y `passwordRules()`, las reglas visibles con su estado.
   - `date-range.ts` (HU-15): `dateRangeValidator`, validador de un grupo con `from` y `to` (`yyyy-MM-dd`) que da `{ range: true }` si "Desde" es posterior a "Hasta", y `DATE_RANGE_MESSAGE`, el mismo texto de la API. Lo usan la auditoría y los reportes.
-- Pacientes del administrador (HU-05, HU-06):
-  - `/admin/patients` (`PatientRegistry`) busca con espera de 300 ms y muestra una tabla paginada en el servidor con identificación y contacto. Las columnas de sesiones y estado del prototipo son datos clínicos y no se muestran.
-  - `PatientFormDialog` (`openPatientFormDialog(dialog, paciente?)`) registra un paciente o, si recibe uno, edita sus datos con la cédula en solo lectura y `PUT`.
-  - `/admin/patients/:id` (`PatientDetail`) muestra la ficha con la última actualización y el botón "Editar datos". Se abre tras registrar y desde el aviso de cédula existente.
-  - Fechas con `<input type="date">` (valor `yyyy-MM-dd`); la edad del formulario se calcula con `ageOn()` de `patient-age.ts`.
+- Pacientes del administrador (HU-05, HU-06, MEJ-03):
+  - El menú del administrador dice "Registro de Usuarios" (MEJ-03; MEJ-02 agregará el personal) y la ruta sigue siendo `/admin/patients`. La página se titula "Registro de Usuarios", con el subtítulo de pacientes.
+  - `/admin/patients` (`PatientRegistry`) busca con espera de 300 ms y muestra una tabla paginada en el servidor con identificación y contacto, y la etiqueta "Datos por completar" en los pacientes con `needsCompletion`. Las columnas de sesiones y estado del prototipo son datos clínicos y no se muestran.
+  - `PatientFormDialog` (`openPatientFormDialog(dialog, paciente?)`), "Registrar usuario" con el subtítulo "Paciente" (o "Editar usuario"), es un `mat-stepper` lineal de cuatro pasos con Anterior y Siguiente fijos al pie; Siguiente marca los campos del paso y avanza solo si es válido, y Enter en un campo equivale a Siguiente:
+    1. **Identificación:** la cédula primero, validada mientras se escribe, con el N.º de historia clínica en vivo. Una validación asíncrona (pausa de 300 ms) busca con `GET /api/patients?q=` y, solo si alguna cédula del resultado es exactamente igual, muestra el aviso con "Ver registro existente" y bloquea el paso. El 409 del servidor sigue como respaldo y vuelve a este paso.
+    2. **Datos personales y contacto:** nombres, apellidos, fecha de nacimiento con la edad al lado, sexo, teléfono, correo y la dirección estructurada.
+    3. **Datos de admisión:** fecha de ingreso (hoy), ocupación, nivel de instrucción, "¿Tiene seguro de salud?" (Sí/No) y el panel plegable "Datos opcionales" (etnia y religión, con la nota de que son opcionales).
+    4. **Revisión:** cada sección con su resumen y "Editar", y el botón "Registrar".
+    - Los errores aparecen solo después de tocar el campo o de pulsar Siguiente, nunca al abrir el diálogo.
+    - En edición, el stepper no es lineal, la cédula es de solo lectura y un paciente con datos por completar muestra el aviso; el formulario no guarda hasta completar la dirección y el teléfono.
+  - `/admin/patients/:id` (`PatientDetail`) muestra la ficha con la dirección compuesta (o "Dirección incompleta"), "Seguro de salud: Sí/No", la última actualización y el botón "Editar datos". Se abre tras registrar y desde el aviso de cédula existente.
+  - La edad del formulario se calcula con `ageOn()` de `patient-age.ts`.
+- Campos compartidos de formularios (MEJ-03), en `src/app/shared/forms`, usados en el registro y en la edición:
+  - `app-date-field` (`DateField`): `mat-datepicker` con escritura y calendario, dd/mm/aaaa; el control guarda `yyyy-MM-dd`, el formato de la API. `EcDateAdapter` (`ec-date-adapter.ts`, registrado en `app.config.ts` con `provideEcDates()`: `DateAdapter`, `MAT_DATE_FORMATS` y `MAT_DATE_LOCALE` `es-EC`) lee estricto: una fecha inexistente (31/02, 29/02 de un año no bisiesto) o un año de dos dígitos es inválida (`invalidDate`), nunca se corrige.
+  - `app-phone-field` con `phoneValidator` y `PHONE_MESSAGE` (`phone.ts`), la misma regla del backend.
+  - `app-address-fields` (`createAddressForm`, `addressValueOf`): provincia, cantón y parroquia en listas dependientes (otra provincia vacía cantón y parroquia; otro cantón, la parroquia), calle principal, número (opcional), calle secundaria y referencia. `LocationCatalogApi` (`location-catalog.ts`) pide el catálogo una vez por sesión (`shareReplay`; un error no queda en caché) y `formatAddress()` compone la dirección igual que el backend. Muestra los `displayName`.
+  - `app-yes-no-toggle`: pregunta Sí/No con `mat-button-toggle`.
+  - `field-errors.ts`: mensajes por error y un `ErrorStateMatcher` que solo muestra errores tras tocar el campo.
+  - En pruebas, `FAKE_LOCATIONS` (`features/admin/patients/patient-testing.ts`) es un pedazo del catálogo con códigos reales. Las pruebas que esperan la validación asíncrona usan tiempo real (`setTimeout`), no temporizadores falsos: estos detienen la detección de cambios de la aplicación sin zona.
 - Indentación de 2 espacios (ver `.editorconfig`).
 
 ## Convenciones de repositorio

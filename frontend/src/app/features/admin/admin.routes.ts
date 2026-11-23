@@ -13,7 +13,7 @@ export const ADMIN_ROUTES: Routes = [
   },
   {
     path: 'patients',
-    title: 'Registro de Pacientes | Rehab Elite',
+    title: 'Registro de Usuarios | Rehab Elite',
     loadComponent: () => import('./patients/patient-registry').then((m) => m.PatientRegistry),
   },
   {

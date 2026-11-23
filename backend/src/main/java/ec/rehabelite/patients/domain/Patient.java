@@ -2,6 +2,7 @@ package ec.rehabelite.patients.domain;
 
 import ec.rehabelite.shared.domain.BusinessRuleException;
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -63,8 +64,9 @@ public class Patient {
     @Column(nullable = false, length = 254)
     private String email;
 
-    @Column(nullable = false, length = 255)
-    private String address;
+    /** Structured address (MEJ-03); only the reference for a patient registered before it. */
+    @Embedded
+    private PatientAddress address;
 
     @Column(nullable = false, length = 100)
     private String occupation;
@@ -72,8 +74,9 @@ public class Patient {
     @Column(name = "education_level", nullable = false, length = 50)
     private String educationLevel;
 
-    @Column(name = "health_insurance", nullable = false, length = 100)
-    private String healthInsurance;
+    /** "¿Tiene seguro de salud?" (MEJ-03). */
+    @Column(name = "has_health_insurance", nullable = false)
+    private boolean hasHealthInsurance;
 
     @Column(name = "ethnic_self_identification", length = 50)
     private String ethnicSelfIdentification;
@@ -123,7 +126,9 @@ public class Patient {
      * @throws BusinessRuleException if the birth date is after the admission date
      */
     public boolean update(LocalDate admissionDate, PersonalData data, Long updatedBy, Instant now) {
-        if (admissionDate.equals(this.admissionDate) && data.equals(personalData())) {
+        // personalData() capitalizes the stored names again: a name stored before MEJ-03 must still count as a change
+        if (admissionDate.equals(this.admissionDate) && data.equals(personalData())
+                && data.firstName().equals(firstName) && data.lastName().equals(lastName)) {
             return false;
         }
         apply(admissionDate, data);
@@ -134,7 +139,7 @@ public class Patient {
 
     public PersonalData personalData() {
         return new PersonalData(firstName, lastName, birthDate, sex, phone, email, address, occupation,
-                educationLevel, healthInsurance, ethnicSelfIdentification, religion);
+                educationLevel, hasHealthInsurance, ethnicSelfIdentification, religion);
     }
 
     private void apply(LocalDate admissionDate, PersonalData data) {
@@ -151,9 +156,17 @@ public class Patient {
         address = data.address();
         occupation = data.occupation();
         educationLevel = data.educationLevel();
-        healthInsurance = data.healthInsurance();
+        hasHealthInsurance = data.hasHealthInsurance();
         ethnicSelfIdentification = data.ethnicSelfIdentification();
         religion = data.religion();
+    }
+
+    /**
+     * Data to complete (MEJ-03): an address registered before the structured address, or a phone outside the rule
+     * of {@link PhoneNumber}. Both are completed when the patient is edited.
+     */
+    public boolean needsCompletion() {
+        return address == null || !address.isComplete() || !PhoneNumber.isValid(phone);
     }
 
     /** Completed years on the given date. */
