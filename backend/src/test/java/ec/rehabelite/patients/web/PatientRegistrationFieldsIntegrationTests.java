@@ -188,8 +188,10 @@ class PatientRegistrationFieldsIntegrationTests extends AbstractIntegrationTest 
     @Test
     void anOldNameInCapitalsCountsAsAChangeWhenItIsSavedAgain() throws Exception {
         Long patientId = TestPatients.insert(jdbc, "ROSA ELENA", "ORTIZ VEGA");
-        String admissionDate = jdbc.queryForObject("SELECT admission_date::text FROM patients WHERE id = ?",
-                String.class, patientId);
+        // A fixed past date: the helper takes CURRENT_DATE of the database (UTC), which after 19:00 in Quito is
+        // already tomorrow there and would be rejected as a future admission date
+        String admissionDate = "2026-01-15";
+        jdbc.update("UPDATE patients SET admission_date = DATE '2026-01-15' WHERE id = ?", patientId);
         // The same data the helper stored; only the capitalization of the names differs
         String sameData = updateBody(Map.of("admissionDate", admissionDate, "firstName", "ROSA ELENA",
                 "lastName", "ORTIZ VEGA", "birthDate", "1985-04-12", "phone", "0990000000",
