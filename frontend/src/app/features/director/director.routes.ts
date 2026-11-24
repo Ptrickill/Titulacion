@@ -8,6 +8,11 @@ export const DIRECTOR_ROUTES: Routes = [
     loadComponent: () => import('./reports/operations-report').then((m) => m.OperationsReport),
   },
   {
+    path: 'schedules',
+    title: 'Horarios y asignaciones | Rehab Elite',
+    loadComponent: () => import('./schedules/schedules-page').then((m) => m.SchedulesPage),
+  },
+  {
     path: 'audit',
     title: 'Auditoría | Rehab Elite',
     loadComponent: () => import('../audit/audit-log-list').then((m) => m.AuditLogList),

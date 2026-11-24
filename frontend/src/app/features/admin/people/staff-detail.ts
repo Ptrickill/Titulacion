@@ -21,6 +21,7 @@ import {
 } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth-service';
 import { EmptyState } from '../../../shared/ui/empty-state';
+import { StaffSchedulePanel } from '../../../shared/schedules/staff-schedule-panel';
 import { FormSection } from '../../../shared/ui/form-section';
 import { PageHeader } from '../../../shared/ui/page-header';
 import { StatusBadge } from '../../../shared/ui/status-badge';
@@ -40,7 +41,8 @@ type DetailState =
 
 /**
  * Record of a staff member (MEJ-02): its personal data, its role and its account. "Editar datos" opens the form in
- * edit mode; a record of an account that existed before MEJ-02 shows "Datos por completar" until it is edited.
+ * edit mode; a record of an account that existed before MEJ-02 shows "Datos por completar" until it is edited. A
+ * physiotherapist's record also has its weekly schedule, "Horario" (MEJ-04).
  */
 @Component({
   selector: 'app-staff-detail',
@@ -55,6 +57,7 @@ type DetailState =
     EmptyState,
     StatusBadge,
     PersonAccountCard,
+    StaffSchedulePanel,
   ],
   templateUrl: './staff-detail.html',
   styleUrl: '../patients/patient-detail.scss',

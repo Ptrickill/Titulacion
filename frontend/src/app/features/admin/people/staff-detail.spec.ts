@@ -7,6 +7,7 @@ import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { of } from 'rxjs';
 import { logInForTest } from '../../../core/auth/auth-testing';
+import { fakeSchedule } from '../../../shared/schedules/schedule-testing';
 import { fakeUser } from './user-testing';
 import { fakeAccount, fakeStaff, legacyStaff } from './people-testing';
 import { StaffDetail } from './staff-detail';
@@ -22,7 +23,18 @@ describe('StaffDetail (MEJ-02)', () => {
     await harness.navigateByUrl(`/admin/people/staff/${staff.id}`, StaffDetail);
     element = harness.routeNativeElement as HTMLElement;
     backend.expectOne(`/api/staff/${staff.id}`).flush(staff);
+    // MEJ-04: a physiotherapist's record also loads its schedule. A pending rxResource never lets the page become
+    // stable, so the request is sent (tick) and answered before waiting
+    harness.detectChanges();
+    flushSchedule(staff.id);
     await settle();
+  }
+
+  function flushSchedule(staffId: number): void {
+    TestBed.tick();
+    backend
+      .match(`/api/staff/${staffId}/schedule`)
+      .forEach((request) => request.flush(fakeSchedule(staffId)));
   }
 
   async function settle(): Promise<void> {
@@ -111,10 +123,53 @@ describe('StaffDetail (MEJ-02)', () => {
     } as never);
 
     button('Editar datos')!.click();
+    harness.detectChanges();
+    flushSchedule(5);
     await settle();
 
     expect(element.querySelector('.completion-notice')).toBeNull();
     expect(element.textContent).toContain('1702000165');
+  });
+
+  describe('schedule (MEJ-04)', () => {
+    it('shows the weekly schedule of a physiotherapist', async () => {
+      await loaded(fakeStaff(4));
+
+      const section = element.querySelector('app-staff-schedule-panel')!;
+      expect(element.textContent).toContain('Horario');
+      expect(section.textContent).toContain('Jornada de la clínica: 07:00 a 20:00');
+      expect(section.textContent).toContain('08:00 – 13:00');
+      expect(section.textContent).toContain('Sin atención');
+      expect(section.textContent).toContain('Total semanal: 16 h');
+    });
+
+    it('edits the schedule and shows the saved week', async () => {
+      await loaded(fakeStaff(4));
+      const saved = fakeSchedule(4, {
+        slots: [{ day: 'SATURDAY', start: '08:00', end: '12:00' }],
+      });
+      const open = vi.spyOn(TestBed.inject(MatDialog), 'open').mockReturnValue({
+        afterClosed: () => of(saved),
+      } as never);
+      const snackBar = vi.spyOn(TestBed.inject(MatSnackBar), 'open');
+
+      button('Editar horario')!.click();
+      await settle();
+
+      expect(open).toHaveBeenCalled();
+      const section = element.querySelector('app-staff-schedule-panel')!;
+      expect(section.textContent).toContain('Total semanal: 4 h');
+      expect(snackBar).toHaveBeenCalledWith('Horario guardado correctamente.', 'Cerrar', {
+        duration: 5000,
+      });
+    });
+
+    it('has no schedule for the administration nor the operations director', async () => {
+      await loaded(fakeStaff(4, { role: 'OPERATIONS_DIRECTOR' }));
+
+      expect(element.querySelector('app-staff-schedule-panel')).toBeNull();
+      backend.expectNone('/api/staff/4/schedule');
+    });
   });
 
   it('tells when the record does not exist', async () => {

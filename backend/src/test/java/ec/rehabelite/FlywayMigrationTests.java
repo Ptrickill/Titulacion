@@ -35,9 +35,9 @@ class FlywayMigrationTests extends AbstractIntegrationTest {
     }
 
     @Test
-    void appliesV1ToV7() {
+    void appliesV1ToV8() {
         assertThat(Arrays.stream(flyway.info().applied()).map(MigrationInfo::getVersion).map(Object::toString))
-                .containsExactly("1", "2", "3", "4", "5", "6", "7");
+                .containsExactly("1", "2", "3", "4", "5", "6", "7", "8");
         assertThat(flyway.info().applied()).allMatch(migration -> migration.getState().isApplied());
         assertThat(flyway.info().pending()).isEmpty();
     }
@@ -277,6 +277,47 @@ class FlywayMigrationTests extends AbstractIntegrationTest {
                 INSERT INTO account_tokens (user_id, purpose, token_hash, expires_at)
                 VALUES (?, 'EMAIL_CHANGE', ?, now() + interval '48 hours')""", first,
                 UUID.randomUUID().toString().replace("-", "").repeat(2));
+    }
+
+    /**
+     * MEJ-04: V8 on a database with V7 data (a fresh database in the same container, migrated to V7, then to V8). The
+     * existing records keep their data and start without slots; btree_gist and the time range make the EXCLUDE
+     * constraint work there too.
+     */
+    @Test
+    void v8AddsTheScheduleSlotsToADatabaseWithStaffRecords() {
+        String database = "mej04_" + UUID.randomUUID().toString().replace("-", "");
+        jdbc.execute("CREATE DATABASE " + database);
+        try {
+            String url = POSTGRES.getJdbcUrl().replaceFirst("/[^/?]+(\\?|$)", "/" + database + "$1");
+            DriverManagerDataSource dataSource = new DriverManagerDataSource(url, POSTGRES.getUsername(),
+                    POSTGRES.getPassword());
+            JdbcTemplate other = new JdbcTemplate(dataSource);
+            Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").target("7").load().migrate();
+            Long userId = other.queryForObject("""
+                    INSERT INTO users (email, password_hash, full_name, role, email_verified_at)
+                    VALUES ('fisio@rehabelite.test', '$2a$10$hash', 'Lucía Mora', 'PHYSIOTHERAPIST', now())
+                    RETURNING id""", Long.class);
+            Long staffId = other.queryForObject("""
+                    INSERT INTO staff_records (user_id, first_name, last_name, email)
+                    VALUES (?, 'Lucía', 'Mora', 'fisio@rehabelite.test') RETURNING id""", Long.class, userId);
+
+            Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").load().migrate();
+
+            assertThat(other.queryForObject("SELECT first_name || ' ' || last_name FROM staff_records WHERE id = ?",
+                    String.class, staffId)).isEqualTo("Lucía Mora");
+            assertThat(other.queryForObject("SELECT count(*) FROM staff_schedule_slots", Integer.class)).isZero();
+            assertThat(other.queryForObject("SELECT count(*) FROM pg_extension WHERE extname = 'btree_gist'",
+                    Integer.class)).isEqualTo(1);
+            String slot = "INSERT INTO staff_schedule_slots (staff_record_id, day_of_week, start_time, end_time) "
+                    + "VALUES (?, 1, CAST(? AS time), CAST(? AS time))";
+            other.update(slot, staffId, "08:00", "12:00");
+            other.update(slot, staffId, "12:00", "14:00");
+            assertThatThrownBy(() -> other.update(slot, staffId, "13:00", "15:00"))
+                    .rootCause().hasMessageContaining("ex_staff_schedule_slots_overlap");
+        } finally {
+            jdbc.execute("DROP DATABASE IF EXISTS " + database + " WITH (FORCE)");
+        }
     }
 
     private Long insertAccount(String role) {

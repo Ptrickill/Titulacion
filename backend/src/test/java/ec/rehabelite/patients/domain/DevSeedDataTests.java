@@ -42,9 +42,12 @@ class DevSeedDataTests {
         assertThat(nationalIds).hasSize(15).doesNotHaveDuplicates();
     }
 
-    /** MEJ-02: complete staff records with valid national IDs, none of them a patient's, and valid phones. */
+    /**
+     * MEJ-02: complete staff records with valid national IDs, none of them a patient's, and valid phones. MEJ-04
+     * adds a third physiotherapist (Paredes).
+     */
     @Test
-    void theThreeStaffRecordsHaveValidNationalIdsThatNoPatientHas() {
+    void theFourStaffRecordsHaveValidNationalIdsThatNoPatientHas() {
         Matcher row = Pattern.compile(
                 "\\('([^']+@dev-seed\\.rehabelite\\.test)', '(\\d{10})', '[^']+', '[^']+', DATE '[\\d-]+',\\s+'[A-Z]+', "
                         + "'(\\d+)'").matcher(script);
@@ -61,7 +64,7 @@ class DevSeedDataTests {
             patientIds.add(patients.group(1));
         }
 
-        assertThat(nationalIds).hasSize(3).doesNotHaveDuplicates().doesNotContainAnyElementsOf(patientIds);
+        assertThat(nationalIds).hasSize(4).doesNotHaveDuplicates().doesNotContainAnyElementsOf(patientIds);
         assertThat(script).contains("ON CONFLICT (user_id) DO UPDATE", "WHERE staff_records.national_id IS NULL");
     }
 
@@ -79,13 +82,19 @@ class DevSeedDataTests {
             accounts.add(emails.group(1));
         }
 
-        assertThat(accounts).hasSize(6).allMatch(email -> email.endsWith("@dev-seed.rehabelite.test"));
+        assertThat(accounts).hasSize(7).allMatch(email -> email.endsWith("@dev-seed.rehabelite.test"));
     }
 
     @Test
     void everyStatementIsIdempotent() {
         assertThat(script).contains("ON CONFLICT (email) DO NOTHING", "ON CONFLICT (national_id) DO NOTHING",
-                "AND p.portal_user_id IS NULL");
+                "AND p.portal_user_id IS NULL",
+                // MEJ-04: schedules, clinical records, treatments, responsibles and the closure, each only once
+                "WHERE NOT EXISTS (SELECT 1 FROM staff_schedule_slots existing",
+                "ON CONFLICT (patient_id) DO NOTHING",
+                "WHERE NOT EXISTS (SELECT 1 FROM treatments other",
+                "AND NOT EXISTS (SELECT 1 FROM responsible_assignments other",
+                "AND NOT EXISTS (SELECT 1 FROM treatment_status_changes other");
     }
 
 }

@@ -143,6 +143,12 @@
           }
         </div>
       </app-form-section>
+
+      @if (staff.role === 'PHYSIOTHERAPIST') {
+        <app-form-section [step]="3" title="Horario">
+          <app-staff-schedule-panel class="full" [staffId]="staff.id" />
+        </app-form-section>
+      }
     </section>
   }
 }

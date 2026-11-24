@@ -520,6 +520,44 @@ class ClinicalAuditIntegrationTests extends AbstractIntegrationTest {
                 .containsEntry("entity_id", null));
     }
 
+    // ----- schedules and assignments (MEJ-04) -----
+
+    @Test
+    void theDirectorsTreatmentListIsAuditedAsReadOfEachTreatmentAndTheReassignmentAsUpdate() throws Exception {
+        User director = createUser(Role.OPERATIONS_DIRECTOR);
+        User other = createUser(Role.PHYSIOTHERAPIST);
+        // Starts years ahead, so it is on the first page of a list ordered by the most recent start
+        Long treatmentId = TestTreatments.insert(jdbc, "ACTIVE", LocalDate.now().plusYears(5));
+        TestTreatments.assignResponsible(jdbc, treatmentId, physio.getId());
+
+        String body = perform(director, get("/api/operations/treatments").param("size", "50"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        int listed = JsonPath.<List<?>>read(body, "$.content").size();
+        assertSingleEntry(director, "READ", "Treatment", treatmentId);
+        assertThat(entriesOf(director)).hasSize(listed);
+
+        perform(director, put("/api/operations/treatments/{id}/responsible", treatmentId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"physiotherapistId\":%d}".formatted(other.getId())))
+                .andExpect(status().isOk());
+        assertSingleEntry(director, "UPDATE", "Treatment", treatmentId);
+        assertThat(entriesOf(director)).hasSize(listed + 1);
+    }
+
+    @Test
+    void schedulesBoardAndAvailabilityHoldNoClinicalDataAndAreNotAudited() throws Exception {
+        User director = createUser(Role.OPERATIONS_DIRECTOR);
+
+        perform(director, get("/api/operations/schedules")).andExpect(status().isOk());
+        perform(director, get("/api/operations/availability").param("day", "MONDAY").param("from", "08:00")
+                .param("to", "09:00")).andExpect(status().isOk());
+        perform(physio, get("/api/physio/schedule")).andExpect(status().isNotFound());
+
+        assertThat(entriesOf(director)).isEmpty();
+        assertThat(entriesOf(physio)).isEmpty();
+    }
+
     // ----- helpers -----
 
     /** A new patient linked to the portal account; returns the patient id. */

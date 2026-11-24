@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.jayway.jsonpath.JsonPath;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
@@ -32,6 +33,28 @@ public final class TestStaff {
     public static ResultActions register(MockMvc mockMvc, String adminToken, String body) throws Exception {
         return mockMvc.perform(post("/api/staff").header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON).content(body));
+    }
+
+    /**
+     * The staff record of an existing account, inserted with SQL and without audit entries, for tests that only need
+     * it to exist (MEJ-04: a physiotherapist's schedule); returns its id. The names must be unique to sort by them.
+     */
+    public static Long insertRecord(JdbcTemplate jdbc, Long userId, String firstName, String lastName) {
+        return jdbc.queryForObject("""
+                INSERT INTO staff_records (user_id, first_name, last_name, email)
+                SELECT id, ?, ?, email FROM users WHERE id = ? RETURNING id""", Long.class, firstName, lastName,
+                userId);
+    }
+
+    /** Slots of a schedule, inserted with SQL; each slot is "day start end" with the ISO day, e.g. "1 08:00 12:00". */
+    public static void insertSlots(JdbcTemplate jdbc, Long staffId, String... slots) {
+        for (String slot : slots) {
+            String[] parts = slot.split(" ");
+            jdbc.update("""
+                    INSERT INTO staff_schedule_slots (staff_record_id, day_of_week, start_time, end_time)
+                    VALUES (?, ?, CAST(? AS time), CAST(? AS time))""", staffId, Integer.parseInt(parts[0]), parts[1],
+                    parts[2]);
+        }
     }
 
     /** Registers a staff member and returns the id of its new account (pending activation). */

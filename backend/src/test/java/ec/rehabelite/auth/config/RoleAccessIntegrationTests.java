@@ -65,6 +65,12 @@ class RoleAccessIntegrationTests extends AbstractIntegrationTest {
             // MEJ-02: people registry, staff records and the portal account created from a patient's record
             new Area("/api/people", "people", null, ADMINISTRATOR),
             new Area("/api/staff/4", "staff", 4L, ADMINISTRATOR),
+            // MEJ-04: a physiotherapist's schedule (also the director), "Mi horario" and the director's assignments
+            new Area("/api/staff/4/schedule", "staff", 4L, ADMINISTRATOR, OPERATIONS_DIRECTOR),
+            new Area("/api/physio/schedule", "physio", null, PHYSIOTHERAPIST),
+            new Area("/api/operations/schedules", "operations", null, OPERATIONS_DIRECTOR),
+            new Area("/api/operations/availability", "operations", null, OPERATIONS_DIRECTOR),
+            new Area("/api/operations/treatments", "operations", null, OPERATIONS_DIRECTOR),
             new Area("/api/patients/12/portal-account", "patients", 12L, ADMINISTRATOR),
             new Area("/api/patients/12/clinical-record", "patients", 12L, PHYSIOTHERAPIST),
             new Area("/api/icd10-diagnoses", "icd10-diagnoses", null, PHYSIOTHERAPIST),
@@ -240,6 +246,41 @@ class RoleAccessIntegrationTests extends AbstractIntegrationTest {
             assertThat(accessDeniedEntries(user)).extracting(entry -> entry.get("entity_type"))
                     .containsExactlyInAnyOrder("treatments", "therapy-sessions");
         }
+    }
+
+    /**
+     * MEJ-04: the administrator and the director edit a schedule; a physiotherapist only reads its own, and the
+     * director alone reassigns treatments from /api/operations.
+     */
+    @ParameterizedTest(name = "PUT de horario y reasignación → {0}")
+    @MethodSource("roles")
+    void onlyTheAdministratorAndTheDirectorEditSchedulesAndOnlyTheDirectorReassigns(Role role) throws Exception {
+        User user = createUser(role);
+        String token = tokenService.issue(user, Instant.now()).token();
+
+        var schedule = mockMvc.perform(put("/api/staff/4/schedule")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON).content("{}"));
+        var reassign = mockMvc.perform(put("/api/operations/treatments/3/responsible")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON).content("{}"));
+
+        if (role == ADMINISTRATOR || role == OPERATIONS_DIRECTOR) {
+            schedule.andExpect(status().isBadRequest());
+        } else {
+            schedule.andExpect(status().isForbidden());
+        }
+        if (role == OPERATIONS_DIRECTOR) {
+            reassign.andExpect(status().isBadRequest());
+        } else {
+            reassign.andExpect(status().isForbidden());
+        }
+        assertThat(accessDeniedEntries(user)).extracting(entry -> entry.get("entity_type")).containsExactlyInAnyOrder(
+                switch (role) {
+                    case ADMINISTRATOR -> new Object[] {"operations/treatments"};
+                    case OPERATIONS_DIRECTOR -> new Object[] {};
+                    case PHYSIOTHERAPIST, PATIENT -> new Object[] {"staff", "operations/treatments"};
+                });
     }
 
     static Stream<Role> roles() {

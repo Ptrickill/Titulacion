@@ -39,6 +39,7 @@ describe('AppShell', () => {
       'Gestión de Pacientes',
       'Historial Clínico',
       'Línea de Tiempo',
+      'Mi Horario',
       'Asistente Clínico IA',
     ]);
     expect(element.querySelector('.panel-label')?.textContent?.trim()).toBe(
@@ -64,7 +65,7 @@ describe('AppShell', () => {
     fixture.destroy();
 
     await renderAs('OPERATIONS_DIRECTOR');
-    expect(menuLabels()).toEqual(['Reportes Consolidados', 'Auditoría']);
+    expect(menuLabels()).toEqual(['Reportes Consolidados', 'Horarios y asignaciones', 'Auditoría']);
     fixture.destroy();
 
     await renderAs('PATIENT');

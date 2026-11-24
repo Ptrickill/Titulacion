@@ -1,0 +1,113 @@
+<p class="legend">
+  Jornada de la clínica: <strong>{{ board().openingTime }}</strong> a
+  <strong>{{ board().closingTime }}</strong
+  >, de lunes a sábado.
+</p>
+
+@if (rows().length === 0) {
+  <p class="empty">No hay fisioterapeutas registrados.</p>
+} @else {
+  <!-- Wide screens: one row per physiotherapist -->
+  <div class="table-view">
+    <table class="board">
+      <caption class="re-visually-hidden">
+        Horario semanal de los fisioterapeutas
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col" class="who">Fisioterapeuta</th>
+          @for (day of days; track day) {
+            <th scope="col">
+              <abbr [title]="dayLabels[day]">{{ dayShortLabels[day] }}</abbr>
+            </th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.physiotherapist.staffId) {
+          <tr [class.inactive]="!row.physiotherapist.active">
+            <th scope="row" class="who">
+              <span class="name">{{ row.physiotherapist.fullName }}</span>
+              <span class="badges">
+                <app-status-badge
+                  [label]="loadLabel(row.physiotherapist)"
+                  [tone]="row.physiotherapist.activeTreatments > 0 ? 'teal' : 'neutral'"
+                />
+                @if (!row.physiotherapist.active) {
+                  <app-status-badge label="Cuenta inactiva" tone="danger" />
+                }
+              </span>
+              <button
+                mat-button
+                type="button"
+                class="edit"
+                (click)="edit.emit(row.physiotherapist)"
+                [attr.aria-label]="'Editar horario de ' + row.physiotherapist.fullName"
+              >
+                <mat-icon aria-hidden="true">edit_calendar</mat-icon>
+                Editar horario
+              </button>
+            </th>
+            @for (day of days; track day) {
+              <td>
+                @if (row.byDay[day].length > 0) {
+                  <div class="track" aria-hidden="true">
+                    @for (slot of row.byDay[day]; track slot.start) {
+                      <span class="block" [style]="blockStyle(slot)"></span>
+                    }
+                  </div>
+                  <ul class="ranges">
+                    @for (slot of row.byDay[day]; track slot.start) {
+                      <li>{{ formatRange(slot) }}</li>
+                    }
+                  </ul>
+                } @else {
+                  <span class="off">
+                    <span aria-hidden="true">—</span>
+                    <span class="re-visually-hidden">Sin atención</span>
+                  </span>
+                }
+              </td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Narrow screens: the same data as a list per day -->
+  <div class="day-view">
+    @for (day of days; track day) {
+      <section class="day" [attr.aria-label]="dayLabels[day]">
+        <h3>{{ dayLabels[day] }}</h3>
+        @for (entry of byDay()[day]; track entry.physiotherapist.staffId) {
+          <div class="entry" [class.inactive]="!entry.physiotherapist.active">
+            <div class="entry-name">
+              <span class="name">{{ entry.physiotherapist.fullName }}</span>
+              <span class="load">{{ loadLabel(entry.physiotherapist) }}</span>
+              @if (!entry.physiotherapist.active) {
+                <app-status-badge label="Cuenta inactiva" tone="danger" />
+              }
+            </div>
+            <span class="entry-ranges">
+              @for (slot of entry.slots; track slot.start) {
+                <span class="range">{{ formatRange(slot) }}</span>
+              }
+            </span>
+          </div>
+        } @empty {
+          <p class="none">Nadie atiende este día.</p>
+        }
+      </section>
+    }
+    <div class="edit-list">
+      <h3>Editar horario</h3>
+      @for (row of rows(); track row.physiotherapist.staffId) {
+        <button mat-stroked-button type="button" (click)="edit.emit(row.physiotherapist)">
+          <mat-icon aria-hidden="true">edit_calendar</mat-icon>
+          {{ row.physiotherapist.fullName }}
+        </button>
+      }
+    </div>
+  </div>
+}

@@ -5,6 +5,8 @@ import ec.rehabelite.audit.AuditLogService;
 import ec.rehabelite.auth.CurrentUserProvider;
 import ec.rehabelite.auth.StaffDirectory;
 import ec.rehabelite.auth.StaffMember;
+import ec.rehabelite.clinicalrecords.ActiveTreatment;
+import ec.rehabelite.clinicalrecords.TreatmentResponsibles;
 import ec.rehabelite.clinicalrecords.domain.ResponsibleAssignment;
 import ec.rehabelite.clinicalrecords.domain.ResponsibleAssignmentRepository;
 import ec.rehabelite.clinicalrecords.domain.Treatment;
@@ -32,7 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @RequiredArgsConstructor
-public class TreatmentService {
+public class TreatmentService implements TreatmentResponsibles {
 
     static final String TREATMENT_NOT_FOUND = "El tratamiento no existe.";
     static final String RESPONSIBLE_NOT_ACTIVE_PHYSIOTHERAPIST =
@@ -100,6 +102,22 @@ public class TreatmentService {
      */
     @Transactional
     public TreatmentHistory changeResponsible(Long treatmentId, Long physiotherapistId) {
+        return historyOf(reassignResponsible(treatmentId, physiotherapistId));
+    }
+
+    /**
+     * The operations director's reassignment (MEJ-04), with the same logic as {@link #changeResponsible}: only the
+     * result differs, the treatment without its clinical content.
+     */
+    @Override
+    @Transactional
+    public ActiveTreatment reassign(Long treatmentId, Long physiotherapistId) {
+        Treatment treatment = reassignResponsible(treatmentId, physiotherapistId);
+        return new ActiveTreatment(treatment.getId(), treatment.getClinicalRecord().getPatientId(),
+                treatment.getStartDate(), physiotherapistId);
+    }
+
+    private Treatment reassignResponsible(Long treatmentId, Long physiotherapistId) {
         Treatment treatment = lockedTreatment(treatmentId);
         if (staffDirectory.findActivePhysiotherapist(physiotherapistId).isEmpty()) {
             throw new BusinessRuleException(RESPONSIBLE_NOT_ACTIVE_PHYSIOTHERAPIST);
@@ -116,7 +134,7 @@ public class TreatmentService {
             log.info("Treatment responsible changed treatmentId={} assignmentId={} changedBy={}", treatmentId,
                     next.get().getId(), userId);
         }
-        return historyOf(treatment);
+        return treatment;
     }
 
     /**
