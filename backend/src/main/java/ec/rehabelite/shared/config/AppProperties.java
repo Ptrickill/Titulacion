@@ -1,6 +1,7 @@
 package ec.rehabelite.shared.config;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -8,9 +9,11 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import java.time.Duration;
+import java.time.LocalTime;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.validation.annotation.Validated;
 
 /**
@@ -27,7 +30,8 @@ public record AppProperties(
         DevSeed devSeed,
         @NotBlank String frontendUrl,
         @Valid @NotNull Mail mail,
-        @Valid @DefaultValue Tokens tokens) {
+        @Valid @DefaultValue Tokens tokens,
+        @Valid @DefaultValue Clinic clinic) {
 
     /**
      * Base URL of the Angular application (APP_FRONTEND_URL), without the trailing slash: the emailed links
@@ -63,6 +67,28 @@ public record AppProperties(
     public record Tokens(
             @DefaultValue("48h") @NotNull Duration activationTtl,
             @DefaultValue("1h") @NotNull Duration resetTtl) {
+    }
+
+    /**
+     * Clinic hours (MEJ-04): every slot of a physiotherapist's schedule lies between them. V8 fixes the widest hours,
+     * 07:00 to 20:00 (ck_staff_schedule_slots_clinic_hours): these properties may narrow them, never widen them
+     * (that needs a new migration), and the application does not start otherwise.
+     */
+    public record Clinic(
+            @DefaultValue("07:00") @DateTimeFormat(pattern = "HH:mm") @NotNull LocalTime openingTime,
+            @DefaultValue("20:00") @DateTimeFormat(pattern = "HH:mm") @NotNull LocalTime closingTime) {
+
+        /** The bounds of ck_staff_schedule_slots_clinic_hours (V8). */
+        public static final LocalTime EARLIEST_OPENING = LocalTime.of(7, 0);
+        public static final LocalTime LATEST_CLOSING = LocalTime.of(20, 0);
+
+        @AssertTrue(message = "app.clinic.opening-time must be before closing-time, both within 07:00 and 20:00")
+        public boolean isWithinDatabaseBounds() {
+            return openingTime == null || closingTime == null
+                    || (!openingTime.isBefore(EARLIEST_OPENING) && !closingTime.isAfter(LATEST_CLOSING)
+                            && openingTime.isBefore(closingTime));
+        }
+
     }
 
     /** Synthetic development data (dev profile only, otherwise null): password of the seed accounts. */

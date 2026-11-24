@@ -101,3 +101,8 @@ app:
   tokens:
     activation-ttl: 48h
     reset-ttl: 1h
+  # MEJ-04: clinic hours that bound the physiotherapists' schedules. V8 allows at most 07:00 to 20:00; these values
+  # may only narrow that range (checked at startup)
+  clinic:
+    opening-time: "07:00"
+    closing-time: "20:00"

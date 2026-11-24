@@ -1,0 +1,70 @@
+<header class="heading">
+  <div>
+    <h2 class="title">Tratamientos activos ({{ page().totalElements }})</h2>
+    <p class="subtitle">
+      Solo el nombre del paciente, el responsable y las fechas: sin diagnóstico ni datos clínicos.
+    </p>
+  </div>
+  <mat-button-toggle-group
+    class="filter"
+    aria-label="Filtrar tratamientos"
+    [value]="onlyInactiveResponsible()"
+    (change)="filterChange.emit($event.value)"
+  >
+    <mat-button-toggle [value]="false">Todos</mat-button-toggle>
+    <mat-button-toggle [value]="true">Responsable inactivo</mat-button-toggle>
+  </mat-button-toggle-group>
+</header>
+
+<app-data-table
+  [columns]="columns"
+  [rows]="page().content"
+  [totalItems]="page().totalElements"
+  [pageSize]="pageSize()"
+  [pageIndex]="page().page"
+  (pageIndexChange)="pageChange.emit($event)"
+  caption="Tratamientos activos para asignar"
+  itemLabel="tratamientos"
+  [emptyMessage]="
+    onlyInactiveResponsible()
+      ? 'Ningún tratamiento activo tiene un responsable inactivo.'
+      : 'No hay tratamientos activos.'
+  "
+>
+  <ng-template appDataTableCell="patientName" [appDataTableCellOf]="page().content" let-t>
+    <div class="patient wrap">{{ t.patientName }}</div>
+    <div class="meta">Inicio: {{ t.startDate | date: 'dd/MM/yyyy' }}</div>
+  </ng-template>
+
+  <ng-template appDataTableCell="responsible" [appDataTableCellOf]="page().content" let-t>
+    <div class="wrap">{{ t.responsible?.fullName ?? 'Sin responsable' }}</div>
+    @if (t.responsibleInactive) {
+      <app-status-badge label="Responsable inactivo" tone="danger" />
+    }
+  </ng-template>
+
+  <ng-template appDataTableCell="scheduleDays" [appDataTableCellOf]="page().content" let-t>
+    @if (t.scheduleDays.length > 0) {
+      <span class="days" [attr.aria-label]="daysLabel(t.scheduleDays)">
+        @for (day of t.scheduleDays; track day) {
+          <span class="day" aria-hidden="true">{{ dayShortLabels[day] }}</span>
+        }
+      </span>
+    } @else {
+      <span class="meta">Sin horario</span>
+    }
+  </ng-template>
+
+  <ng-template appDataTableCell="id" [appDataTableCellOf]="page().content" let-t>
+    <button
+      mat-stroked-button
+      type="button"
+      class="reassign"
+      [attr.aria-label]="'Reasignar el tratamiento de ' + t.patientName"
+      (click)="reassign.emit(t)"
+    >
+      <mat-icon aria-hidden="true">swap_horiz</mat-icon>
+      Reasignar
+    </button>
+  </ng-template>
+</app-data-table>

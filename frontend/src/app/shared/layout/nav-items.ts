@@ -16,6 +16,8 @@ export const NAV_ITEMS: Record<Role, readonly NavItem[]> = {
     { label: 'Gestión de Pacientes', icon: 'group', route: '/physio/patients' },
     { label: 'Historial Clínico', icon: 'description', route: '/physio/clinical-records' },
     { label: 'Línea de Tiempo', icon: 'schedule', route: '/physio/timeline' },
+    // MEJ-04: read only; the administrator and the operations director edit it
+    { label: 'Mi Horario', icon: 'calendar_month', route: '/physio/schedule' },
     { label: 'Asistente Clínico IA', icon: 'neurology', route: '/physio/ai-assistant' },
   ],
   ADMINISTRATOR: [
@@ -27,6 +29,8 @@ export const NAV_ITEMS: Record<Role, readonly NavItem[]> = {
   ],
   OPERATIONS_DIRECTOR: [
     { label: 'Reportes Consolidados', icon: 'bar_chart', route: '/director/reports' },
+    // MEJ-04: weekly schedules board and reassignment of treatments by availability
+    { label: 'Horarios y asignaciones', icon: 'event_available', route: '/director/schedules' },
     { label: 'Auditoría', icon: 'policy', route: '/director/audit' },
   ],
   PATIENT: [{ label: 'Mi Tratamiento', icon: 'home', route: '/patient', exact: true }],

@@ -33,7 +33,11 @@ final class RoleAccessRules {
             new Rule("/api/users/**", Role.ADMINISTRATOR),
             // People registry (MEJ-02): staff records and the unified list of patients and staff
             new Rule("/api/people/**", Role.ADMINISTRATOR),
+            // A physiotherapist's weekly schedule (MEJ-04): also the operations director, so before /api/staff/**
+            new Rule("/api/staff/*/schedule", Role.ADMINISTRATOR, Role.OPERATIONS_DIRECTOR),
             new Rule("/api/staff/**", Role.ADMINISTRATOR),
+            // Schedules board, availability and reassignment of treatments (MEJ-04): no clinical data
+            new Rule("/api/operations/**", Role.OPERATIONS_DIRECTOR),
             // Portal account of a patient, created from its record (MEJ-02).
             // More specific than /api/patients/**, so it must stay before it (first match wins)
             new Rule("/api/patients/*/portal-account", Role.ADMINISTRATOR),

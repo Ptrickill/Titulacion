@@ -86,9 +86,38 @@ class DevSeedIntegrationTests {
     }
 
     @Test
-    void seedsTwoPhysiotherapistsOneDirectorAndThreePatientAccounts() {
+    void seedsThreePhysiotherapistsOneDirectorAndThreePatientAccounts() {
         assertThat(seedAccountsByRole()).containsOnly(
-                Map.entry("PHYSIOTHERAPIST", 2L), Map.entry("OPERATIONS_DIRECTOR", 1L), Map.entry("PATIENT", 3L));
+                Map.entry("PHYSIOTHERAPIST", 3L), Map.entry("OPERATIONS_DIRECTOR", 1L), Map.entry("PATIENT", 3L));
+    }
+
+    /**
+     * MEJ-04: every seed physiotherapist has a schedule, Paredes a partial one, and their loads differ (4, 2 and 1
+     * active treatments); every seed treatment has its responsible and no record has two active treatments.
+     */
+    @Test
+    void seedsSchedulesAndTreatmentsWithDifferentLoads() {
+        assertThat(jdbc.queryForList("""
+                SELECT u.email || ':' || count(*) FROM staff_schedule_slots s
+                JOIN staff_records r ON r.id = s.staff_record_id JOIN users u ON u.id = r.user_id
+                GROUP BY u.email ORDER BY u.email""", String.class)).containsExactly(
+                "fisio.andrade@dev-seed.rehabelite.test:10", "fisio.cevallos@dev-seed.rehabelite.test:4",
+                "fisio.paredes@dev-seed.rehabelite.test:2");
+        assertThat(jdbc.queryForList("""
+                SELECT u.email || ':' || count(*) FROM treatments t
+                JOIN responsible_assignments a ON a.treatment_id = t.id AND a.valid_to IS NULL
+                JOIN users u ON u.id = a.physiotherapist_id
+                WHERE t.status = 'ACTIVE' GROUP BY u.email ORDER BY u.email""", String.class)).containsExactly(
+                "fisio.andrade@dev-seed.rehabelite.test:4", "fisio.cevallos@dev-seed.rehabelite.test:2",
+                "fisio.paredes@dev-seed.rehabelite.test:1");
+        assertThat(jdbc.queryForObject("""
+                SELECT count(*) FROM treatments t
+                WHERE NOT EXISTS (SELECT 1 FROM responsible_assignments a WHERE a.treatment_id = t.id)""",
+                Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("""
+                SELECT count(*) FROM (SELECT clinical_record_id FROM treatments WHERE status = 'ACTIVE'
+                                      GROUP BY clinical_record_id HAVING count(*) > 1) AS twice""", Integer.class))
+                .isZero();
     }
 
     @Test
@@ -108,7 +137,7 @@ class DevSeedIntegrationTests {
     @Test
     void seedAccountsLogInWithTheDevSeedPassword() throws Exception {
         assertThat(jdbc.queryForList("SELECT password_hash FROM users WHERE email LIKE '%@dev-seed.rehabelite.test'",
-                String.class)).hasSize(6).allMatch(hash -> hash.startsWith("$2"));
+                String.class)).hasSize(7).allMatch(hash -> hash.startsWith("$2"));
 
         login("fisio.andrade@dev-seed.rehabelite.test", SEED_PASSWORD)
                 .andExpect(status().isOk())
@@ -124,6 +153,7 @@ class DevSeedIntegrationTests {
     void runningTheSeedAndTheInitializerAgainChangesNothing() {
         Integer users = jdbc.queryForObject("SELECT count(*) FROM users", Integer.class);
         Integer patients = jdbc.queryForObject("SELECT count(*) FROM patients", Integer.class);
+        String clinical = clinicalCounts();
         String hash = jdbc.queryForObject(
                 "SELECT password_hash FROM users WHERE email = 'fisio.cevallos@dev-seed.rehabelite.test'", String.class);
 
@@ -132,11 +162,20 @@ class DevSeedIntegrationTests {
 
         assertThat(jdbc.queryForObject("SELECT count(*) FROM users", Integer.class)).isEqualTo(users);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM patients", Integer.class)).isEqualTo(patients);
+        assertThat(clinicalCounts()).isEqualTo(clinical).isEqualTo("16|8|8|8|1");
         assertThat(jdbc.queryForObject("SELECT count(*) FROM patients WHERE portal_user_id IS NOT NULL",
                 Integer.class)).isEqualTo(3);
         assertThat(jdbc.queryForObject(
                 "SELECT password_hash FROM users WHERE email = 'fisio.cevallos@dev-seed.rehabelite.test'",
                 String.class)).isEqualTo(hash);
+    }
+
+    /** Slots, clinical records, treatments, responsible assignments and status changes (MEJ-04). */
+    private String clinicalCounts() {
+        return jdbc.queryForObject("""
+                SELECT (SELECT count(*) FROM staff_schedule_slots) || '|' || (SELECT count(*) FROM clinical_records)
+                       || '|' || (SELECT count(*) FROM treatments) || '|' || (SELECT count(*) FROM responsible_assignments)
+                       || '|' || (SELECT count(*) FROM treatment_status_changes)""", String.class);
     }
 
     private Map<String, Long> seedAccountsByRole() {

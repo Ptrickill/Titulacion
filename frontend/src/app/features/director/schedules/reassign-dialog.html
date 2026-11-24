@@ -1,0 +1,151 @@
+<header class="header">
+  <div class="icon-tile" aria-hidden="true">
+    <mat-icon>swap_horiz</mat-icon>
+  </div>
+  <div>
+    <h2 mat-dialog-title class="title">Reasignar fisioterapeuta</h2>
+    <p class="subtitle">
+      {{ treatment.patientName }} · Responsable vigente:
+      {{ treatment.responsible?.fullName ?? 'sin asignar' }}
+      @if (treatment.responsibleInactive) {
+        (cuenta inactiva)
+      }
+    </p>
+  </div>
+</header>
+
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <mat-dialog-content>
+    <fieldset class="range">
+      <legend>¿Cuándo debe atender al paciente?</legend>
+      <mat-form-field appearance="fill" subscriptSizing="dynamic">
+        <mat-label>Día</mat-label>
+        <mat-select formControlName="day">
+          @for (day of days; track day) {
+            <mat-option [value]="day">{{ dayLabels[day] }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" subscriptSizing="dynamic">
+        <mat-label>Desde</mat-label>
+        <input
+          matInput
+          formControlName="from"
+          [matTimepicker]="fromPicker"
+          [matTimepickerMin]="minTime"
+          [matTimepickerMax]="maxTime"
+        />
+        <mat-timepicker-toggle matIconSuffix [for]="fromPicker" />
+        <mat-timepicker #fromPicker interval="30m" />
+        @if (form.controls.from.invalid) {
+          <mat-error>Indique una hora válida de la jornada.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" subscriptSizing="dynamic">
+        <mat-label>Hasta</mat-label>
+        <input
+          matInput
+          formControlName="to"
+          [matTimepicker]="toPicker"
+          [matTimepickerMin]="minTime"
+          [matTimepickerMax]="maxTime"
+        />
+        <mat-timepicker-toggle matIconSuffix [for]="toPicker" />
+        <mat-timepicker #toPicker interval="30m" />
+        @if (form.controls.to.invalid) {
+          <mat-error>Indique una hora válida de la jornada.</mat-error>
+        }
+      </mat-form-field>
+
+      <button
+        mat-stroked-button
+        type="button"
+        class="search"
+        [disabled]="searching() || !!rangeProblem()"
+        (click)="search()"
+      >
+        <mat-icon aria-hidden="true">search</mat-icon>
+        Buscar disponibles
+      </button>
+    </fieldset>
+
+    @if (rangeProblem(); as problem) {
+      <p class="error range-problem" role="alert">
+        <mat-icon aria-hidden="true">warning</mat-icon>
+        <span>{{ problem }}</span>
+      </p>
+    }
+
+    @if (searching()) {
+      <mat-progress-bar mode="indeterminate" aria-label="Buscando fisioterapeutas disponibles" />
+    } @else if (searchError(); as message) {
+      <p class="error" role="alert">
+        <mat-icon aria-hidden="true">error</mat-icon>
+        <span>{{ message }}</span>
+      </p>
+    } @else if (available(); as found) {
+      @if (found.length === 0) {
+        <p class="notice" role="status">
+          <mat-icon aria-hidden="true">event_busy</mat-icon>
+          <span
+            >Nadie está disponible el {{ dayLabels[searchedDay()].toLowerCase() }} en ese horario.
+            Pruebe otro día o rango.</span
+          >
+        </p>
+      } @else {
+        <div class="results">
+          <p class="results-title" id="available-title">
+            Disponibles ({{ found.length }}), de menor a mayor carga
+          </p>
+          <mat-radio-group
+            formControlName="physiotherapistId"
+            aria-labelledby="available-title"
+            class="options"
+          >
+            @for (physiotherapist of found; track physiotherapist.physiotherapistId) {
+              <mat-radio-button
+                [value]="physiotherapist.physiotherapistId"
+                [disabled]="isCurrent(physiotherapist)"
+                class="option"
+              >
+                <span class="option-name">
+                  {{ physiotherapist.fullName }}
+                  @if (isCurrent(physiotherapist)) {
+                    <span class="current">(responsable vigente)</span>
+                  }
+                </span>
+                <span class="option-meta">
+                  {{ loadLabel(physiotherapist) }} ·
+                  @for (slot of physiotherapist.slots; track slot.start; let last = $last) {
+                    {{ formatRange(slot) }}{{ last ? '' : ', ' }}
+                  }
+                </span>
+              </mat-radio-button>
+            }
+          </mat-radio-group>
+        </div>
+      }
+    }
+
+    @if (errorMessage(); as message) {
+      <div class="error" role="alert">
+        <mat-icon aria-hidden="true">error</mat-icon>
+        <span>{{ message }}</span>
+      </div>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button type="button" mat-dialog-close [disabled]="submitting()">
+      Cancelar
+    </button>
+    <button mat-flat-button type="submit" [disabled]="submitting() || searching()">
+      @if (submitting()) {
+        <mat-spinner diameter="18" aria-label="Guardando" />
+      }
+      Reasignar
+    </button>
+  </mat-dialog-actions>
+</form>

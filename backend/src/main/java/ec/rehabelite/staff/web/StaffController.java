@@ -1,8 +1,10 @@
 package ec.rehabelite.staff.web;
 
 import ec.rehabelite.catalogs.AddressFormatter;
+import ec.rehabelite.shared.config.AppProperties;
 import ec.rehabelite.shared.domain.ClinicCalendar;
 import ec.rehabelite.staff.application.StaffRegistrationService;
+import ec.rehabelite.staff.application.StaffScheduleService;
 import ec.rehabelite.staff.domain.StaffRecord;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -27,10 +29,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping(path = "/api/staff", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
-@Tag(name = "Personal", description = "Registro del personal y su cuenta (MEJ-02, solo administrador)")
+@Tag(name = "Personal", description = "Registro del personal y su cuenta (MEJ-02, solo administrador) y horario de "
+        + "los fisioterapeutas (MEJ-04, administrador y dirección operativa)")
 class StaffController {
 
     private final StaffRegistrationService registrationService;
+    private final StaffScheduleService scheduleService;
+    private final AppProperties properties;
     private final StaffWebMapper mapper;
     private final AddressFormatter addressFormatter;
     private final Clock clock;
@@ -93,6 +98,44 @@ class StaffController {
                     schema = @Schema(implementation = ProblemDetail.class)))
     StaffResponse update(@PathVariable Long id, @Valid @RequestBody UpdateStaffRequest request) {
         return toResponse(registrationService.update(id, request.nationalId(), request.toPersonalData()));
+    }
+
+    @GetMapping("/{id}/schedule")
+    @Operation(summary = "Consultar horario de un fisioterapeuta",
+            description = "Franjas semanales (lunes a sábado) del fisioterapeuta, ordenadas por día y hora, con la "
+                    + "jornada de la clínica. Administrador y dirección operativa (MEJ-04). No se audita.")
+    @ApiResponse(responseCode = "200", description = "Horario del fisioterapeuta")
+    @ApiResponse(responseCode = "403", description = "El rol no es administrador ni dirección operativa",
+            content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                    schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "404", description = "El registro no existe", content = @Content(
+            mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "422", description = "El registro no es de un fisioterapeuta", content = @Content(
+            mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = ProblemDetail.class)))
+    ScheduleResponse schedule(@PathVariable Long id) {
+        return ScheduleResponse.of(scheduleService.schedule(id), properties.clinic());
+    }
+
+    @PutMapping(path = "/{id}/schedule", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Reemplazar horario de un fisioterapeuta",
+            description = "Reemplaza la semana completa con la lista enviada (una lista vacía deja al fisioterapeuta "
+                    + "sin horario). Cada franja va de lunes a sábado, en horas y minutos, dentro de la jornada de la "
+                    + "clínica, y no se superpone con otra del mismo día; las franjas contiguas se unen (08:00-12:00 y "
+                    + "12:00-14:00 quedan como 08:00-14:00). Administrador y dirección operativa (MEJ-04). Queda "
+                    + "auditado como UPDATE StaffRecord, solo si cambia algo.")
+    @ApiResponse(responseCode = "200", description = "Horario guardado, con las franjas contiguas unidas")
+    @ApiResponse(responseCode = "400", description = "Franja fuera de la jornada, superpuesta, en domingo, con "
+            + "segundos o con la hora de inicio posterior a la de fin", content = @Content(
+            mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "403", description = "El rol no es administrador ni dirección operativa",
+            content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                    schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "404", description = "El registro no existe", content = @Content(
+            mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "422", description = "El registro no es de un fisioterapeuta", content = @Content(
+            mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = ProblemDetail.class)))
+    ScheduleResponse replaceSchedule(@PathVariable Long id, @Valid @RequestBody ScheduleRequest request) {
+        return ScheduleResponse.of(scheduleService.replace(id, request.toSlots()), properties.clinic());
     }
 
     private StaffResponse toResponse(StaffRecord staff) {

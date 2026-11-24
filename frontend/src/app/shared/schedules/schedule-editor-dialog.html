@@ -1,0 +1,122 @@
+<header class="header">
+  <div class="icon-tile" aria-hidden="true">
+    <mat-icon>edit_calendar</mat-icon>
+  </div>
+  <div>
+    <h2 mat-dialog-title class="title">Editar horario</h2>
+    <p class="subtitle">
+      {{ schedule.fullName }} · Jornada de la clínica: {{ schedule.openingTime }} a
+      {{ schedule.closingTime }}
+    </p>
+  </div>
+</header>
+
+<form [formGroup]="form" (ngSubmit)="save()" novalidate>
+  <mat-dialog-content>
+    <p class="hint">
+      <mat-icon aria-hidden="true">info</mat-icon>
+      <span>
+        De lunes a sábado. Las franjas seguidas del mismo día se unen al guardar (08:00–12:00 y
+        12:00–14:00 quedan como 08:00–14:00).
+      </span>
+    </p>
+
+    <div class="slots" formArrayName="slots">
+      @for (slot of slots.controls; track slot; let i = $index) {
+        <fieldset class="slot" [formGroupName]="i" [class.invalid]="!!problems()[i]">
+          <legend class="re-visually-hidden">Franja {{ i + 1 }}</legend>
+          <mat-form-field appearance="fill" subscriptSizing="dynamic" class="day">
+            <mat-label>Día</mat-label>
+            <mat-select formControlName="day">
+              @for (day of days; track day) {
+                <mat-option [value]="day">{{ dayLabels[day] }}</mat-option>
+              }
+            </mat-select>
+            @if (slot.controls.day.hasError('required')) {
+              <mat-error>Elija el día.</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="fill" subscriptSizing="dynamic" class="time">
+            <mat-label>Desde</mat-label>
+            <input
+              matInput
+              formControlName="start"
+              [matTimepicker]="startPicker"
+              [matTimepickerMin]="minTime"
+              [matTimepickerMax]="maxTime"
+            />
+            <mat-timepicker-toggle matIconSuffix [for]="startPicker" />
+            <mat-timepicker #startPicker interval="30m" />
+            @if (slot.controls.start.hasError('required')) {
+              <mat-error>Indique la hora.</mat-error>
+            } @else if (slot.controls.start.invalid) {
+              <mat-error>Hora no válida.</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="fill" subscriptSizing="dynamic" class="time">
+            <mat-label>Hasta</mat-label>
+            <input
+              matInput
+              formControlName="end"
+              [matTimepicker]="endPicker"
+              [matTimepickerMin]="minTime"
+              [matTimepickerMax]="maxTime"
+            />
+            <mat-timepicker-toggle matIconSuffix [for]="endPicker" />
+            <mat-timepicker #endPicker interval="30m" />
+            @if (slot.controls.end.hasError('required')) {
+              <mat-error>Indique la hora.</mat-error>
+            } @else if (slot.controls.end.invalid) {
+              <mat-error>Hora no válida.</mat-error>
+            }
+          </mat-form-field>
+
+          <button
+            mat-icon-button
+            type="button"
+            class="remove"
+            [attr.aria-label]="'Quitar franja ' + (i + 1)"
+            (click)="removeSlot(i)"
+          >
+            <mat-icon>delete</mat-icon>
+          </button>
+
+          @if (problems()[i]; as problem) {
+            <p class="problem" role="alert">
+              <mat-icon aria-hidden="true">warning</mat-icon>
+              <span>{{ problem }}</span>
+            </p>
+          }
+        </fieldset>
+      } @empty {
+        <p class="empty">Sin franjas: el fisioterapeuta quedará sin horario.</p>
+      }
+    </div>
+
+    <button mat-stroked-button type="button" class="add" (click)="addSlot()">
+      <mat-icon aria-hidden="true">add</mat-icon>
+      Agregar franja
+    </button>
+
+    @if (errorMessage(); as message) {
+      <div class="error" role="alert">
+        <mat-icon aria-hidden="true">error</mat-icon>
+        <span>{{ message }}</span>
+      </div>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button type="button" mat-dialog-close [disabled]="submitting()">
+      Cancelar
+    </button>
+    <button mat-flat-button type="submit" [disabled]="submitting()">
+      @if (submitting()) {
+        <mat-spinner diameter="18" aria-label="Guardando" />
+      }
+      Guardar horario
+    </button>
+  </mat-dialog-actions>
+</form>

@@ -13,8 +13,9 @@
 -- stores the BCrypt hash of DEV_SEED_PASSWORD at startup. No password or
 -- hash is ever written in this file.
 --
--- No clinical data and no audit entries: this is bootstrap data, not an
--- action of a user.
+-- No audit entries: this is bootstrap data, not an action of a user.
+-- MEJ-04 adds the physiotherapists' schedules and a few synthetic clinical
+-- records and treatments, so each physiotherapist has a different load.
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
@@ -24,6 +25,7 @@
 INSERT INTO users (email, password_hash, full_name, role, email_verified_at)
 VALUES ('fisio.andrade@dev-seed.rehabelite.test', 'dev-seed:password-set-at-startup', 'Valeria Andrade Mora', 'PHYSIOTHERAPIST', now()),
        ('fisio.cevallos@dev-seed.rehabelite.test', 'dev-seed:password-set-at-startup', 'Martín Cevallos Ruiz', 'PHYSIOTHERAPIST', now()),
+       ('fisio.paredes@dev-seed.rehabelite.test', 'dev-seed:password-set-at-startup', 'Andrés Paredes Salinas', 'PHYSIOTHERAPIST', now()),
        ('direccion@dev-seed.rehabelite.test', 'dev-seed:password-set-at-startup', 'Paula Herrera Vásconez', 'OPERATIONS_DIRECTOR', now()),
        ('paciente.ortiz@dev-seed.rehabelite.test', 'dev-seed:password-set-at-startup', 'Rosa Elena Ortiz Vega', 'PATIENT', now()),
        ('paciente.quishpe@dev-seed.rehabelite.test', 'dev-seed:password-set-at-startup', 'Luis Alberto Quishpe Tipán', 'PATIENT', now()),
@@ -46,6 +48,9 @@ FROM (VALUES ('fisio.andrade@dev-seed.rehabelite.test', '1702000165', 'Valeria',
              ('fisio.cevallos@dev-seed.rehabelite.test', '1702000249', 'Martín', 'Cevallos Ruiz', DATE '1987-08-02',
               'MALE', '0990000202', '17', '1701', '170112', 'Av. Imaginaria', '210', 'Calle Ejemplo',
               'Casa esquinera de prueba'),
+             ('fisio.paredes@dev-seed.rehabelite.test', '1702000405', 'Andrés', 'Paredes Salinas', DATE '1993-01-19',
+              'MALE', '0990000203', '17', '1701', '170157', 'Calle Ficticia', 'S4-12', 'Pasaje Ejemplo',
+              'Junto a la farmacia de prueba'),
              ('direccion@dev-seed.rehabelite.test', '1702000322', 'Paula', 'Herrera Vásconez', DATE '1979-11-25',
               'FEMALE', '022345201', '17', '1701', '170108', 'Pasaje Ficticio', 'E3-45', 'Calle de Prueba',
               'Frente a la plaza de prueba'))
@@ -129,3 +134,105 @@ FROM (VALUES ('paciente.ortiz@dev-seed.rehabelite.test', '1750000018'),
 WHERE p.national_id = link.national_id
   AND p.portal_user_id IS NULL
   AND NOT EXISTS (SELECT 1 FROM patients other WHERE other.portal_user_id = u.id);
+
+-- ---------------------------------------------------------------------
+-- Weekly schedules (MEJ-04), Monday (1) to Saturday (6): Andrade works every weekday morning and afternoon, Cevallos
+-- three long days and Saturday morning, and Paredes only two afternoons (a partial schedule, so the availability
+-- filter shows a difference). Only for a physiotherapist that has no slots yet
+-- ---------------------------------------------------------------------
+INSERT INTO staff_schedule_slots (staff_record_id, day_of_week, start_time, end_time)
+SELECT s.id, slot.day_of_week, slot.start_time, slot.end_time
+FROM (VALUES ('fisio.andrade@dev-seed.rehabelite.test', 1, TIME '08:00', TIME '13:00'),
+             ('fisio.andrade@dev-seed.rehabelite.test', 1, TIME '14:00', TIME '17:00'),
+             ('fisio.andrade@dev-seed.rehabelite.test', 2, TIME '08:00', TIME '13:00'),
+             ('fisio.andrade@dev-seed.rehabelite.test', 2, TIME '14:00', TIME '17:00'),
+             ('fisio.andrade@dev-seed.rehabelite.test', 3, TIME '08:00', TIME '13:00'),
+             ('fisio.andrade@dev-seed.rehabelite.test', 3, TIME '14:00', TIME '17:00'),
+             ('fisio.andrade@dev-seed.rehabelite.test', 4, TIME '08:00', TIME '13:00'),
+             ('fisio.andrade@dev-seed.rehabelite.test', 4, TIME '14:00', TIME '17:00'),
+             ('fisio.andrade@dev-seed.rehabelite.test', 5, TIME '08:00', TIME '13:00'),
+             ('fisio.andrade@dev-seed.rehabelite.test', 5, TIME '14:00', TIME '17:00'),
+             ('fisio.cevallos@dev-seed.rehabelite.test', 1, TIME '07:00', TIME '15:00'),
+             ('fisio.cevallos@dev-seed.rehabelite.test', 3, TIME '07:00', TIME '15:00'),
+             ('fisio.cevallos@dev-seed.rehabelite.test', 5, TIME '07:00', TIME '15:00'),
+             ('fisio.cevallos@dev-seed.rehabelite.test', 6, TIME '08:00', TIME '12:00'),
+             ('fisio.paredes@dev-seed.rehabelite.test', 2, TIME '13:00', TIME '19:00'),
+             ('fisio.paredes@dev-seed.rehabelite.test', 4, TIME '13:00', TIME '19:00'))
+         AS slot (email, day_of_week, start_time, end_time)
+         JOIN users u ON u.email = slot.email
+         JOIN staff_records s ON s.user_id = u.id
+WHERE NOT EXISTS (SELECT 1 FROM staff_schedule_slots existing WHERE existing.staff_record_id = s.id);
+
+-- ---------------------------------------------------------------------
+-- Clinical records and treatments (MEJ-04): eight patients, so the loads differ. Andrade is the responsible of four
+-- active treatments, Cevallos of two active ones and a completed one, Paredes of one. All the clinical text is
+-- generic and synthetic. A record is created only for a patient without one, a treatment only for a record without
+-- treatments, and a responsible only for a treatment without one, so the script never adds a second active treatment
+-- ---------------------------------------------------------------------
+INSERT INTO clinical_records (patient_id, habits, physical_activity, allergies, current_medication, personal_history,
+                              surgical_history, family_history, created_by)
+SELECT p.id, 'No fuma. Consumo ocasional de café.', 'Camina 30 minutos tres veces por semana.', 'Ninguna conocida.',
+       'Ninguna.', 'Sin antecedentes relevantes (dato sintético).', 'Ninguno.', 'Ninguno.', u.id
+FROM (VALUES ('1750000018', 'fisio.andrade@dev-seed.rehabelite.test'),
+             ('1750000042', 'fisio.andrade@dev-seed.rehabelite.test'),
+             ('0950000067', 'fisio.andrade@dev-seed.rehabelite.test'),
+             ('1350000095', 'fisio.andrade@dev-seed.rehabelite.test'),
+             ('1750000026', 'fisio.cevallos@dev-seed.rehabelite.test'),
+             ('1750000059', 'fisio.cevallos@dev-seed.rehabelite.test'),
+             ('0150000081', 'fisio.cevallos@dev-seed.rehabelite.test'),
+             ('1750000034', 'fisio.paredes@dev-seed.rehabelite.test'))
+         AS rec (national_id, email)
+         JOIN patients p ON p.national_id = rec.national_id
+         JOIN users u ON u.email = rec.email
+ON CONFLICT (patient_id) DO NOTHING;
+
+INSERT INTO treatments (clinical_record_id, diagnosis_code, chief_complaint, current_illness, referring_physician,
+                        complementary_tests, severity, pain_type, pain_location, initial_pain_score, pain_frequency,
+                        session_frequency, goal, planned_sessions, status, start_date, created_by)
+SELECT r.id, t.diagnosis_code, t.chief_complaint, 'Cuadro sintético de varias semanas de evolución.',
+       'Médico de prueba', 'Sin exámenes (dato sintético).', t.severity, t.pain_type, t.pain_location, t.pain_score,
+       'Intermitente', '3 por semana', 'Reducir el dolor y recuperar la funcionalidad.', t.planned_sessions, t.status,
+       t.start_date, u.id
+FROM (VALUES ('1750000018', 'fisio.andrade@dev-seed.rehabelite.test', 'M54.5', 'Dolor lumbar', 'MODERATE', 'Punzante',
+              'Zona lumbar', 7, 12, 'ACTIVE', DATE '2026-09-08'),
+             ('1750000042', 'fisio.andrade@dev-seed.rehabelite.test', 'M17.9', 'Dolor de rodilla', 'MODERATE',
+              'Sordo', 'Rodilla derecha', 6, 10, 'ACTIVE', DATE '2026-09-29'),
+             ('0950000067', 'fisio.andrade@dev-seed.rehabelite.test', 'M75.1', 'Dolor de hombro', 'SEVERE',
+              'Punzante', 'Hombro izquierdo', 8, 15, 'ACTIVE', DATE '2026-10-12'),
+             ('1350000095', 'fisio.andrade@dev-seed.rehabelite.test', 'M54.2', 'Dolor cervical', 'MILD', 'Tensional',
+              'Cuello', 5, 8, 'ACTIVE', DATE '2026-10-20'),
+             ('1750000026', 'fisio.cevallos@dev-seed.rehabelite.test', 'M51.1', 'Dolor lumbar irradiado', 'SEVERE',
+              'Quemante', 'Zona lumbar', 8, 15, 'ACTIVE', DATE '2026-09-15'),
+             ('1750000059', 'fisio.cevallos@dev-seed.rehabelite.test', 'M77.1', 'Dolor de codo', 'MILD', 'Sordo',
+              'Codo derecho', 4, 8, 'ACTIVE', DATE '2026-10-06'),
+             ('0150000081', 'fisio.cevallos@dev-seed.rehabelite.test', 'M75.0', 'Rigidez de hombro', 'MODERATE',
+              'Sordo', 'Hombro derecho', 6, 10, 'COMPLETED', DATE '2026-10-08'),
+             ('1750000034', 'fisio.paredes@dev-seed.rehabelite.test', 'M22.2', 'Dolor de rodilla al subir gradas',
+              'MILD', 'Punzante', 'Rodilla izquierda', 5, 10, 'ACTIVE', DATE '2026-10-22'))
+         AS t (national_id, email, diagnosis_code, chief_complaint, severity, pain_type, pain_location, pain_score,
+               planned_sessions, status, start_date)
+         JOIN patients p ON p.national_id = t.national_id
+         JOIN clinical_records r ON r.patient_id = p.id
+         JOIN users u ON u.email = t.email
+WHERE NOT EXISTS (SELECT 1 FROM treatments other WHERE other.clinical_record_id = r.id);
+
+-- The physiotherapist who created each record of the seed is the current responsible of its treatment. A treatment
+-- created through the API always has its responsible, so only the seed's treatments lack one
+INSERT INTO responsible_assignments (treatment_id, physiotherapist_id, valid_from)
+SELECT t.id, r.created_by, t.created_at
+FROM treatments t
+         JOIN clinical_records r ON r.id = t.clinical_record_id
+         JOIN users u ON u.id = r.created_by
+WHERE u.email LIKE '%@dev-seed.rehabelite.test'
+  AND NOT EXISTS (SELECT 1 FROM responsible_assignments other WHERE other.treatment_id = t.id);
+
+-- The completed treatment keeps its closure, as a status change made through the API would
+INSERT INTO treatment_status_changes (treatment_id, user_id, previous_status, new_status, reason, changed_at)
+SELECT t.id, r.created_by, 'ACTIVE', 'COMPLETED', 'Alta por objetivos cumplidos (dato sintético).',
+       TIMESTAMPTZ '2026-10-30 17:00:00-05'
+FROM treatments t
+         JOIN clinical_records r ON r.id = t.clinical_record_id
+         JOIN patients p ON p.id = r.patient_id
+WHERE p.national_id = '0150000081'
+  AND t.status = 'COMPLETED'
+  AND NOT EXISTS (SELECT 1 FROM treatment_status_changes other WHERE other.treatment_id = t.id);

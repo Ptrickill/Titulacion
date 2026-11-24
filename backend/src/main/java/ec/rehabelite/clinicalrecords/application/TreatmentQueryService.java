@@ -2,17 +2,20 @@ package ec.rehabelite.clinicalrecords.application;
 
 import static java.util.stream.Collectors.toMap;
 
+import ec.rehabelite.clinicalrecords.ActiveTreatment;
 import ec.rehabelite.clinicalrecords.PatientTreatment;
 import ec.rehabelite.clinicalrecords.TreatmentFilter;
 import ec.rehabelite.clinicalrecords.TreatmentQueryPort;
 import ec.rehabelite.clinicalrecords.TreatmentSummary;
 import ec.rehabelite.clinicalrecords.domain.ResponsibleAssignment;
 import ec.rehabelite.clinicalrecords.domain.ResponsibleAssignmentRepository;
+import ec.rehabelite.clinicalrecords.domain.ResponsibleLoad;
 import ec.rehabelite.clinicalrecords.domain.Treatment;
 import ec.rehabelite.clinicalrecords.domain.TreatmentListRow;
 import ec.rehabelite.clinicalrecords.domain.TreatmentReportQueries.ReportCriteria;
 import ec.rehabelite.clinicalrecords.domain.TreatmentRepository;
 import ec.rehabelite.clinicalrecords.domain.TreatmentStatus;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -21,6 +24,7 @@ import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -105,6 +109,26 @@ class TreatmentQueryService implements TreatmentQueryPort {
         return treatmentRepository.findReportRows(criteriaOf(filter)).stream()
                 .map(TreatmentQueryService::patientTreatmentOf)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Long, Long> activeLoadByResponsible() {
+        return treatmentRepository.countByCurrentResponsible(TreatmentStatus.ACTIVE).stream()
+                .collect(toMap(ResponsibleLoad::physiotherapistId, ResponsibleLoad::treatments));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ActiveTreatment> activeTreatments(Collection<Long> responsibleIds, Pageable pageable) {
+        Pageable unsorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+        if (responsibleIds == null) {
+            return treatmentRepository.findWithCurrentResponsible(TreatmentStatus.ACTIVE, unsorted);
+        }
+        if (responsibleIds.isEmpty()) {
+            return Page.empty(unsorted);
+        }
+        return treatmentRepository.findWithCurrentResponsibleIn(TreatmentStatus.ACTIVE, responsibleIds, unsorted);
     }
 
     private static ReportCriteria criteriaOf(TreatmentFilter filter) {

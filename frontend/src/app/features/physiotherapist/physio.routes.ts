@@ -83,6 +83,12 @@ export const PHYSIO_ROUTES: Routes = [
     title: 'Línea de Tiempo | Rehab Elite',
     loadComponent: () => import('./sessions/timeline-entry').then((m) => m.TimelineEntry),
   },
+  // MEJ-04: the physiotherapist's own weekly schedule, read only
+  {
+    path: 'schedule',
+    title: 'Mi Horario | Rehab Elite',
+    loadComponent: () => import('./schedule/my-schedule').then((m) => m.MySchedule),
+  },
   {
     path: 'ai-assistant',
     title: 'Asistente Clínico IA | Rehab Elite',

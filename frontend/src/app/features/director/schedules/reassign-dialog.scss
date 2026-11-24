@@ -1,0 +1,71 @@
+@use '../../../shared/ui/dialog';
+
+.range {
+  display: grid;
+  grid-template-columns: minmax(130px, 1.2fr) minmax(110px, 1fr) minmax(110px, 1fr);
+  gap: 10px;
+  align-items: start;
+  margin: 0;
+  padding: 0;
+  border: none;
+
+  legend {
+    margin-bottom: 8px;
+    padding: 0;
+    color: var(--re-text);
+    font-size: 13px;
+    font-weight: 700;
+  }
+}
+
+.search {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+.results-title {
+  margin: 0 0 8px;
+  color: var(--re-text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.option {
+  padding: 6px 8px;
+  border: 1px solid var(--re-gray-200);
+  border-radius: var(--re-radius-sm);
+}
+
+.option-name {
+  display: block;
+  color: var(--re-text);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.current {
+  color: var(--re-text-muted);
+  font-weight: 400;
+}
+
+.option-meta {
+  display: block;
+  color: var(--re-text-muted);
+  font-size: 12px;
+}
+
+@media (max-width: 599.98px) {
+  .range {
+    grid-template-columns: 1fr 1fr;
+
+    mat-form-field:first-of-type {
+      grid-column: 1 / -1;
+    }
+  }
+}

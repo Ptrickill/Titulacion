@@ -1,0 +1,46 @@
+:host {
+  display: block;
+}
+
+.mode-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  color: var(--re-info);
+  font-size: 13px;
+  background: var(--re-info-bg);
+  border: 1px solid var(--re-info-border);
+  border-radius: var(--re-radius-sm);
+
+  mat-icon {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+  }
+}
+
+.card {
+  min-width: 0;
+  margin-bottom: 20px;
+  padding: 20px 24px;
+  background: var(--re-card);
+  border: 1px solid var(--re-gray-200);
+  border-radius: var(--re-radius-lg);
+  box-shadow: var(--re-shadow-sm);
+}
+
+.card-title {
+  margin: 0 0 8px;
+  color: var(--re-text);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+@media (max-width: 599.98px) {
+  .card {
+    padding: 16px 12px;
+  }
+}

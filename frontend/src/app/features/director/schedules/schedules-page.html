@@ -1,0 +1,58 @@
+<app-page-header
+  title="Horarios y asignaciones"
+  subtitle="Horario semanal de los fisioterapeutas y reasignación de tratamientos según su disponibilidad"
+/>
+
+<p class="mode-notice" role="note">
+  <mat-icon aria-hidden="true">shield</mat-icon>
+  <span>
+    Esta vista no muestra datos clínicos: solo el nombre del paciente, el responsable y las fechas.
+  </span>
+</p>
+
+@if (board.error()) {
+  <app-empty-state
+    icon="cloud_off"
+    title="No se pudieron cargar los horarios"
+    message="Revise su conexión e intente nuevamente."
+  >
+    <button mat-stroked-button type="button" (click)="board.reload()">Reintentar</button>
+  </app-empty-state>
+} @else if (board.hasValue()) {
+  @let current = board.value();
+  <section class="card" aria-labelledby="board-title">
+    <h2 id="board-title" class="card-title">Horario semanal</h2>
+    @if (board.isLoading()) {
+      <mat-progress-bar mode="indeterminate" aria-label="Actualizando horarios" />
+    }
+    <app-schedule-board [board]="current" (edit)="editSchedule($event, current)" />
+  </section>
+
+  <section class="card" aria-label="Tratamientos activos">
+    @if (treatments.error()) {
+      <app-empty-state
+        icon="cloud_off"
+        title="No se pudieron cargar los tratamientos"
+        message="Revise su conexión e intente nuevamente."
+      >
+        <button mat-stroked-button type="button" (click)="treatments.reload()">Reintentar</button>
+      </app-empty-state>
+    } @else if (treatments.hasValue()) {
+      @if (treatments.isLoading()) {
+        <mat-progress-bar mode="indeterminate" aria-label="Actualizando tratamientos" />
+      }
+      <app-assignment-list
+        [page]="treatments.value()"
+        [pageSize]="pageSize"
+        [onlyInactiveResponsible]="onlyInactiveResponsible()"
+        (pageChange)="pageIndex.set($event)"
+        (filterChange)="changeFilter($event)"
+        (reassign)="reassign($event, current)"
+      />
+    } @else {
+      <mat-progress-bar mode="indeterminate" aria-label="Cargando tratamientos" />
+    }
+  </section>
+} @else {
+  <mat-progress-bar mode="indeterminate" aria-label="Cargando horarios" />
+}

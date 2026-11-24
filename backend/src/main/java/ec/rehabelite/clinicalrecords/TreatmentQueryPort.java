@@ -1,5 +1,6 @@
 package ec.rehabelite.clinicalrecords;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -61,5 +62,19 @@ public interface TreatmentQueryPort {
      * @throws IllegalArgumentException if the status of the filter is not a treatment status
      */
     List<PatientTreatment> list(TreatmentFilter filter);
+
+    /**
+     * Number of ACTIVE treatments of each current responsible (MEJ-04: the load of each physiotherapist), in one
+     * statement (GROUP BY). A physiotherapist without active treatments is not a key.
+     */
+    Map<Long, Long> activeLoadByResponsible();
+
+    /**
+     * One page of the ACTIVE treatments (MEJ-04), from the most recent start date to the oldest, with their current
+     * responsible and no clinical content. With responsible ids, only the treatments whose current responsible is one
+     * of them (an empty collection gives an empty page); null means every active treatment. The pageable's sort is
+     * ignored. Two statements: the page and the total.
+     */
+    Page<ActiveTreatment> activeTreatments(Collection<Long> responsibleIds, Pageable pageable);
 
 }
