@@ -27,7 +27,7 @@ const ROLES: readonly [string, BadgeTone][] = [
   ['Fisioterapeuta', 'teal'],
   ['Administrador', 'purple'],
   ['Dirección Operativa', 'warning'],
-  ['Paciente (Portal)', 'info'],
+  ['Paciente', 'info'],
 ];
 
 /** Synthetic rows: names and e-mails are invented for the component gallery. */

@@ -5,7 +5,7 @@ import { BadgeTone } from '../../../shared/ui/status-badge';
 export const USER_ROLE_LABELS: Record<Role, string> = {
   PHYSIOTHERAPIST: 'Fisioterapeuta',
   ADMINISTRATOR: 'Administrador',
-  PATIENT: 'Paciente (Portal)',
+  PATIENT: 'Paciente',
   OPERATIONS_DIRECTOR: 'Dirección Operativa',
 };
 

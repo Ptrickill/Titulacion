@@ -80,7 +80,7 @@ describe('UserList', () => {
     await render();
 
     const patientsFilter = Array.from(element.querySelectorAll('mat-button-toggle button')).find(
-      (button) => button.textContent?.includes('Paciente (Portal)'),
+      (button) => button.textContent?.trim() === 'Paciente',
     ) as HTMLButtonElement;
     patientsFilter.click();
     await fixture.whenStable();
