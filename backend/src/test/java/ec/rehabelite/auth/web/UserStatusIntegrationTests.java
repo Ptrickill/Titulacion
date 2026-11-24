@@ -183,8 +183,9 @@ class UserStatusIntegrationTests extends AbstractIntegrationTest {
                 .content("{\"email\":\"%s\",\"password\":\"%s\"}".formatted(email, PASSWORD)));
     }
 
+    /** Any call of the administrator's area (MEJ-02: the people registry). */
     private ResultActions listUsers(String token) throws Exception {
-        return mockMvc.perform(get("/api/users").header(HttpHeaders.AUTHORIZATION, "Bearer " + token));
+        return mockMvc.perform(get("/api/people").header(HttpHeaders.AUTHORIZATION, "Bearer " + token));
     }
 
     private List<Long> statusChangeAuthors(Long userId) {

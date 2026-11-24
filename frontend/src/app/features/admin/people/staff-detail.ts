@@ -19,15 +19,15 @@ import {
   Subject,
   switchMap,
 } from 'rxjs';
-import { problemDetailMessage } from '../../../core/http/problem-detail';
+import { AuthService } from '../../../core/auth/auth-service';
 import { EmptyState } from '../../../shared/ui/empty-state';
 import { FormSection } from '../../../shared/ui/form-section';
 import { PageHeader } from '../../../shared/ui/page-header';
 import { StatusBadge } from '../../../shared/ui/status-badge';
 import { formatAge } from '../patients/patient-age';
 import { SEX_LABELS } from '../patients/patient-options';
-import { UserApi } from '../users/user-api';
 import { PERSON_ROLE_LABELS, PERSON_ROLE_TONES } from './people-labels';
+import { AccountActions } from './account-actions';
 import { PersonAccountCard } from './person-account-card';
 import { openPersonFormDialog } from './person-form-dialog';
 import { Staff, StaffApi } from './staff-api';
@@ -61,7 +61,8 @@ type DetailState =
 })
 export class StaffDetail {
   private readonly api = inject(StaffApi);
-  private readonly userApi = inject(UserApi);
+  private readonly accounts = inject(AccountActions);
+  private readonly auth = inject(AuthService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly saved = new Subject<Staff>();
@@ -101,36 +102,28 @@ export class StaffDetail {
       return;
     }
     this.accountBusy.set(true);
-    this.userApi
-      .resendInvitation(account.userId)
+    this.accounts
+      .resendOf(account, staff.email)
       .pipe(finalize(() => this.accountBusy.set(false)))
-      .subscribe({
-        next: (updated) => {
-          this.saved.next({
-            ...staff,
-            account: {
-              userId: updated.id,
-              status: updated.status,
-              emailChangePending: updated.emailChangePending,
-            },
-          });
-          this.snackBar.open(
-            updated.emailChangePending
-              ? `Enviamos un nuevo enlace de confirmación a ${staff.email}`
-              : `Enviamos un nuevo enlace de activación a ${staff.email}`,
-            'Cerrar',
-            { duration: 6000 },
-          );
-        },
-        error: (error: unknown) =>
-          this.snackBar.open(
-            problemDetailMessage(error, 'No se pudo reenviar el enlace. Intente nuevamente.'),
-            'Cerrar',
-            { duration: 6000 },
-          ),
-      });
+      .subscribe((updated) => this.saved.next({ ...staff, account: updated }));
   }
 
+  /** Activates or deactivates the account, after a confirmation; never the administrator's own. */
+  protected toggleStatus(staff: Staff): void {
+    const account = staff.account;
+    if (!account || this.accountBusy() || this.isOwnAccount(staff)) {
+      return;
+    }
+    this.accountBusy.set(true);
+    this.accounts
+      .toggleStatusOf(account, `${staff.firstName} ${staff.lastName}`)
+      .pipe(finalize(() => this.accountBusy.set(false)))
+      .subscribe((updated) => this.saved.next({ ...staff, account: updated }));
+  }
+
+  protected isOwnAccount(staff: Staff): boolean {
+    return staff.account !== null && staff.account.userId === this.auth.user()?.id;
+  }
   private load(id: number): Observable<DetailState> {
     if (!Number.isInteger(id) || id <= 0) {
       return of({ status: 'notFound' });

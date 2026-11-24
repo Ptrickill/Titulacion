@@ -41,7 +41,9 @@
       [email]="patient.email"
       [busy]="accountBusy()"
       (create)="createPortalAccount(patient)"
+      [lastLoginAt]="patient.portalAccount?.lastLoginAt ?? null"
       (resend)="resend(patient)"
+      (toggleStatus)="toggleStatus(patient)"
     />
 
     <section class="record" aria-label="Datos del paciente">

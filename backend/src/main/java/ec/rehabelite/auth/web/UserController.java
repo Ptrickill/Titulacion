@@ -7,11 +7,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,20 +20,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping(path = "/api/users", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
-@Tag(name = "Usuarios", description = "Gestión de cuentas y roles (solo administrador)")
+@Tag(name = "Usuarios", description = "Acciones sobre las cuentas desde el Registro de Usuarios (solo administrador)")
 class UserController {
 
     private final UserManagementService userManagementService;
     private final UserWebMapper mapper;
 
-    @GetMapping
-    @Operation(summary = "Listar usuarios", description = "Todas las cuentas ordenadas por nombre.")
-    @ApiResponse(responseCode = "200", description = "Listado de usuarios")
-    @ApiResponse(responseCode = "403", description = "El rol no es administrador", content = @Content(
-            mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = ProblemDetail.class)))
-    List<UserResponse> findAll() {
-        return mapper.toResponses(userManagementService.findAll());
-    }
 
     @PostMapping("/{id}/resend-invitation")
     @Operation(summary = "Reenviar la invitación",

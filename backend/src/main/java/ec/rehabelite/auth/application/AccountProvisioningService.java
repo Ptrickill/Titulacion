@@ -3,6 +3,8 @@ package ec.rehabelite.auth.application;
 import ec.rehabelite.audit.AuditAction;
 import ec.rehabelite.audit.AuditLogService;
 import ec.rehabelite.auth.AccountProvisioning;
+import ec.rehabelite.auth.AccountStatistics;
+import ec.rehabelite.auth.AccountStatus;
 import ec.rehabelite.auth.AccountSummary;
 import ec.rehabelite.auth.CurrentUserProvider;
 import ec.rehabelite.auth.Role;
@@ -147,6 +149,27 @@ class AccountProvisioningService implements AccountProvisioning {
     @Transactional(readOnly = true)
     public List<Long> idsWithRole(Role role) {
         return userRepository.findIdsByRole(role);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Long> idsWithStatus(AccountStatus status) {
+        return userRepository.findIdsByStatus(status.name());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AccountStatistics statistics() {
+        Map<Role, UserRepository.RoleCount> byRole = userRepository.countByRole().stream()
+                .collect(Collectors.toMap(UserRepository.RoleCount::getRole, Function.identity()));
+        long active = byRole.values().stream().mapToLong(UserRepository.RoleCount::getActive).sum();
+        return new AccountStatistics(active, accountsOf(byRole, Role.PHYSIOTHERAPIST),
+                accountsOf(byRole, Role.PATIENT), accountsOf(byRole, Role.ADMINISTRATOR));
+    }
+
+    private static long accountsOf(Map<Role, UserRepository.RoleCount> byRole, Role role) {
+        UserRepository.RoleCount count = byRole.get(role);
+        return count == null ? 0 : count.getAccounts();
     }
 
     private User find(Long userId) {

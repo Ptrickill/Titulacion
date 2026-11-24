@@ -4,6 +4,7 @@ import ec.rehabelite.auth.Role;
 import ec.rehabelite.staff.application.PeopleRegistryService.PersonEntry;
 import ec.rehabelite.staff.application.PeopleRegistryService.PersonType;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.time.Instant;
 
 /** A row of the people registry (MEJ-02): identification, contact and the status of the account. */
 @Schema(description = "Persona del Registro de Usuarios")
@@ -22,14 +23,17 @@ record PersonResponse(
         @Schema(description = "Id de la cuenta; null sin cuenta", example = "12") Long userId,
         @Schema(description = "Tiene un cambio de correo esperando confirmación", example = "false")
         boolean emailChangePending,
-        @Schema(description = "Datos por completar", example = "false") boolean needsCompletion) {
+        @Schema(description = "Datos por completar", example = "false") boolean needsCompletion,
+        @Schema(description = "Último inicio de sesión (UTC); null sin cuenta o si nunca ingresó")
+        Instant lastLoginAt) {
 
     static PersonResponse of(PersonEntry entry) {
         return new PersonResponse(entry.type(), entry.id(), entry.nationalId(), entry.firstName(), entry.lastName(),
                 entry.role(), entry.email(), entry.phone(),
                 entry.account() == null ? "NONE" : entry.account().status().name(),
                 entry.account() == null ? null : entry.account().userId(),
-                entry.account() != null && entry.account().emailChangePending(), entry.needsCompletion());
+                entry.account() != null && entry.account().emailChangePending(), entry.needsCompletion(),
+                entry.account() == null ? null : entry.account().lastLoginAt());
     }
 
     /** Never print personal data, e.g. in logs or debugger views. */

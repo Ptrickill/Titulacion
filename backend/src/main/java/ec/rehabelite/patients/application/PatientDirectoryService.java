@@ -7,6 +7,7 @@ import ec.rehabelite.patients.PatientDirectory;
 import ec.rehabelite.patients.PatientProfile;
 import ec.rehabelite.patients.PatientRegistryEntry;
 import ec.rehabelite.patients.PatientRegistrySlice;
+import ec.rehabelite.patients.PortalAccountFilter;
 import ec.rehabelite.patients.domain.Patient;
 import ec.rehabelite.patients.domain.PatientName;
 import ec.rehabelite.patients.domain.PatientRepository;
@@ -79,12 +80,12 @@ class PatientDirectoryService implements PatientDirectory {
 
     @Override
     @Transactional(readOnly = true)
-    public PatientRegistrySlice registry(String query, long offset, int limit) {
-        long total = patientRepository.countSearch(query);
+    public PatientRegistrySlice registry(String query, PortalAccountFilter accounts, long offset, int limit) {
+        long total = patientRepository.countSearch(query, accounts.withoutAccount(), accounts.accountIds());
         List<PatientRegistryEntry> content = limit <= 0 || offset >= total
                 ? List.of()
-                : patientRepository.searchSlice(query, offset, limit).stream()
-                        .map(PatientDirectoryService::toRegistryEntry).toList();
+                : patientRepository.searchSlice(query, accounts.withoutAccount(), accounts.accountIds(), offset,
+                        limit).stream().map(PatientDirectoryService::toRegistryEntry).toList();
         return new PatientRegistrySlice(content, total);
     }
 

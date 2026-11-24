@@ -18,6 +18,7 @@ export function fakePerson(id: number, overrides: Partial<PersonSummary> = {}): 
     userId: null,
     emailChangePending: false,
     needsCompletion: false,
+    lastLoginAt: null,
     ...overrides,
   };
 }
@@ -30,7 +31,13 @@ export function fakePeoplePage(
 }
 
 export function fakeAccount(overrides: Partial<PersonAccount> = {}): PersonAccount {
-  return { userId: 31, status: 'PENDING_ACTIVATION', emailChangePending: false, ...overrides };
+  return {
+    userId: 31,
+    status: 'PENDING_ACTIVATION',
+    emailChangePending: false,
+    lastLoginAt: null,
+    ...overrides,
+  };
 }
 
 export function fakeStaff(id: number, overrides: Partial<Staff> = {}): Staff {

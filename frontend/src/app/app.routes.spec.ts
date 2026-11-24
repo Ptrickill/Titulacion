@@ -35,7 +35,7 @@ describe('app routes', () => {
   it('redirects a role trying another panel back to its own panel', async () => {
     logInForTest('PHYSIOTHERAPIST');
 
-    for (const url of ['/admin/users', '/director/reports', '/patient']) {
+    for (const url of ['/admin/people', '/director/reports', '/patient']) {
       await harness.navigateByUrl(url);
       expect(router.url).toBe('/physio');
     }
@@ -49,9 +49,10 @@ describe('app routes', () => {
   it('lets each role into its own section', async () => {
     logInForTest('ADMINISTRATOR');
 
-    await harness.navigateByUrl('/admin/users');
+    // A light page of the section; the redirect of /admin/users is in admin.routes.spec.ts
+    await harness.navigateByUrl('/admin');
 
-    expect(router.url).toBe('/admin/users');
+    expect(router.url).toBe('/admin');
     expect(snackBarMessages()).toEqual([]);
   });
 

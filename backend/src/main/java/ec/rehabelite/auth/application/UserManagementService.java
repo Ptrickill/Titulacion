@@ -10,7 +10,6 @@ import ec.rehabelite.shared.domain.ExternalServiceException;
 import ec.rehabelite.shared.domain.ResourceNotFoundException;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,9 +17,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Account administration ("Gestión de Usuarios"): list accounts, activate or deactivate them (HU-03) and resend
- * their pending link (MEJ-01, MEJ-02). Since MEJ-02 accounts are created only from the people registry, with the
- * email and the name of a registered person ({@link ec.rehabelite.auth.AccountProvisioning}).
+ * Account administration, used from the people registry ("Registro de Usuarios") and the records of its people:
+ * activate or deactivate an account (HU-03) and resend its pending link (MEJ-01, MEJ-02). Accounts are created only
+ * from the people registry, with the email and the name of a registered person
+ * ({@link ec.rehabelite.auth.AccountProvisioning}); there is no list of accounts of its own since MEJ-02.
  */
 @Service
 @RequiredArgsConstructor
@@ -39,11 +39,6 @@ public class UserManagementService {
     private final CurrentUserProvider currentUserProvider;
     private final AuditLogService auditLogService;
     private final Clock clock;
-
-    @Transactional(readOnly = true)
-    public List<User> findAll() {
-        return userRepository.findAllByOrderByFullNameAsc();
-    }
 
     /**
      * Emails a new link to an enabled account that is waiting for its owner: the activation link while the account

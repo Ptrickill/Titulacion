@@ -17,10 +17,8 @@ describe('UserApi', () => {
 
   afterEach(() => backend.verify());
 
-  it('lists the accounts through /api/users and never creates one there (MEJ-02)', () => {
-    api.findAll().subscribe();
-    expect(backend.expectOne('/api/users').request.method).toBe('GET');
-
+  it('neither lists nor creates accounts: the people registry does (MEJ-02)', () => {
+    expect('findAll' in api).toBe(false);
     expect('create' in api).toBe(false);
   });
 

@@ -8,6 +8,37 @@
   </button>
 </app-page-header>
 
+<section class="stats" aria-label="Indicadores de las cuentas">
+  <app-stat-card
+    compact
+    label="Usuarios activos"
+    [value]="stats()?.activeAccounts ?? '—'"
+    icon="how_to_reg"
+    tone="teal"
+  />
+  <app-stat-card
+    compact
+    label="Fisioterapeutas"
+    [value]="stats()?.physiotherapists ?? '—'"
+    icon="groups"
+    tone="teal"
+  />
+  <app-stat-card
+    compact
+    label="Pacientes c/ portal"
+    [value]="stats()?.portalPatients ?? '—'"
+    icon="group"
+    tone="info"
+  />
+  <app-stat-card
+    compact
+    label="Administradores"
+    [value]="stats()?.administrators ?? '—'"
+    icon="shield"
+    tone="purple"
+  />
+</section>
+
 <section class="filters" aria-label="Búsqueda y filtros del registro">
   <mat-form-field appearance="fill" subscriptSizing="dynamic" class="search">
     <mat-icon matPrefix aria-hidden="true">search</mat-icon>
@@ -49,6 +80,21 @@
       </mat-select>
     </mat-form-field>
   }
+
+  <mat-form-field appearance="fill" subscriptSizing="dynamic" class="account-filter">
+    <mat-label>Estado de la cuenta</mat-label>
+    <mat-select
+      id="people-account-filter"
+      [value]="search().accountStatus ?? ''"
+      (selectionChange)="onAccountStatusChange($event.value)"
+    >
+      <mat-option value="">Todos</mat-option>
+      <mat-option value="NONE">Sin cuenta</mat-option>
+      <mat-option value="PENDING_ACTIVATION">Pendiente de activación</mat-option>
+      <mat-option value="ACTIVE">Activa</mat-option>
+      <mat-option value="INACTIVE">Inactiva</mat-option>
+    </mat-select>
+  </mat-form-field>
 </section>
 
 @if (loading()) {
@@ -74,7 +120,7 @@
     caption="Personas registradas"
     itemLabel="personas"
     [emptyMessage]="
-      search().query || search().type
+      search().query || search().type || search().accountStatus
         ? 'Ninguna persona coincide con la búsqueda.'
         : 'Aún no hay personas registradas.'
     "
@@ -116,8 +162,55 @@
       @if (person.emailChangePending) {
         <div class="email-pending">Correo por confirmar</div>
       }
+      @if (person.userId !== null) {
+        <div class="last-access">Último acceso: {{ formatLastAccess(person.lastLoginAt) }}</div>
+      }
     </ng-template>
     <ng-template appDataTableCell="id" [appDataTableCellOf]="page.content" let-person>
+      @let busy = pendingKeys().has(keyOf(person));
+      @let fullName = person.firstName + ' ' + person.lastName;
+      @if (
+        person.accountStatus === 'PENDING_ACTIVATION' ||
+        (person.accountStatus === 'ACTIVE' && person.emailChangePending)
+      ) {
+        @let resendLabel =
+          person.accountStatus === 'PENDING_ACTIVATION'
+            ? 'Reenviar invitación'
+            : 'Reenviar verificación';
+        <button
+          mat-icon-button
+          type="button"
+          class="resend-action"
+          [disabled]="busy"
+          [matTooltip]="resendLabel"
+          [attr.aria-label]="resendLabel + ' a ' + fullName"
+          (click)="resend(person)"
+        >
+          <mat-icon aria-hidden="true">forward_to_inbox</mat-icon>
+        </button>
+      }
+      @if (person.userId !== null) {
+        @let ownAccount = isOwnAccount(person);
+        @let statusAction =
+          person.accountStatus === 'INACTIVE' ? 'Activar cuenta' : 'Desactivar cuenta';
+        <button
+          mat-icon-button
+          type="button"
+          class="status-action"
+          [class.deactivate]="person.accountStatus !== 'INACTIVE'"
+          disabledInteractive
+          [disabled]="busy || ownAccount"
+          [matTooltip]="ownAccount ? 'No puede desactivar su propia cuenta' : statusAction"
+          [attr.aria-label]="
+            ownAccount ? 'No puede desactivar su propia cuenta' : statusAction + ' de ' + fullName
+          "
+          (click)="toggleStatus(person)"
+        >
+          <mat-icon aria-hidden="true">{{
+            person.accountStatus === 'INACTIVE' ? 'lock_open' : 'lock'
+          }}</mat-icon>
+        </button>
+      }
       <button
         mat-stroked-button
         type="button"

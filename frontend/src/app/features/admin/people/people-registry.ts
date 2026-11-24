@@ -30,10 +30,12 @@ import { PageHeader } from '../../../shared/ui/page-header';
 import { StatusBadge } from '../../../shared/ui/status-badge';
 import { PatientApi } from '../patients/patient-api';
 import {
-  OPEN_REGISTER_STATE,
   PeopleApi,
   PeopleFilter,
+  PeopleStats,
   personLink,
+  PersonAccount,
+  PersonAccountStatus,
   PersonSummary,
   PersonType,
   StaffRole,
@@ -46,6 +48,11 @@ import {
 } from './people-labels';
 import { openPersonFormDialog, PersonFormDialogData, PersonFormResult } from './person-form-dialog';
 import { StaffApi } from './staff-api';
+import { AccountActions } from './account-actions';
+import { formatLastAccess } from './last-access';
+import { AuthService } from '../../../core/auth/auth-service';
+import { StatCard } from '../../../shared/ui/stat-card';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 const PAGE_SIZE = 10;
 
@@ -54,9 +61,12 @@ interface SearchState extends PeopleFilter {
 }
 
 /**
- * "Registro de Usuarios" (HU-05, HU-06, MEJ-02): patients and staff in one list, staff first, with the filters by
- * type and role and the status of each person's account ("Sin cuenta", "Pendiente de activación", "Activa",
- * "Inactiva"). "Registrar usuario" opens {@link PersonFormDialog}, which asks first for the type of person. Only
+ * "Registro de Usuarios" (HU-02, HU-03, HU-05, HU-06, MEJ-02): the one page of the administrator for people and
+ * their accounts. Four indicators (active accounts, physiotherapists, patients with portal and administrators), and
+ * patients and staff in one list, staff first, with the filters by type, role and status of the account ("Sin
+ * cuenta", "Pendiente de activación", "Activa", "Inactiva"). Each row shows the account with its last access and the
+ * actions that "Gestión de Usuarios" had: resend the pending link and activate or deactivate (never the
+ * administrator's own account), besides "Editar". "Registrar usuario" opens {@link PersonFormDialog}. Only
  * identification and contact data are shown, never clinical data.
  */
 @Component({
@@ -70,7 +80,9 @@ interface SearchState extends PeopleFilter {
     MatProgressBarModule,
     MatProgressSpinnerModule,
     MatSelectModule,
+    MatTooltipModule,
     PageHeader,
+    StatCard,
     StatusBadge,
     DataTable,
     DataTableCell,
@@ -86,6 +98,8 @@ export class PeopleRegistry {
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly router = inject(Router);
+  private readonly accounts = inject(AccountActions);
+  private readonly auth = inject(AuthService);
 
   protected readonly pageSize = PAGE_SIZE;
   protected readonly staffRoles = STAFF_ROLES;
@@ -93,6 +107,7 @@ export class PeopleRegistry {
   protected readonly roleTones = PERSON_ROLE_TONES;
   protected readonly accountBadges = ACCOUNT_STATUS_BADGES;
   protected readonly link = personLink;
+  protected readonly formatLastAccess = formatLastAccess;
   protected readonly columns: DataTableColumn<PersonSummary>[] = [
     // The role goes under the name: the contact column needs the width for long emails
     { key: 'lastName', header: 'Persona y rol' },
@@ -102,7 +117,16 @@ export class PeopleRegistry {
   ];
 
   /** Filters and page of the shown results; every new value loads them. */
-  protected readonly search = signal<SearchState>({ query: '', type: null, role: null, page: 0 });
+  protected readonly search = signal<SearchState>({
+    query: '',
+    type: null,
+    role: null,
+    accountStatus: null,
+    page: 0,
+  });
+  protected readonly stats = signal<PeopleStats | null>(null);
+  /** Rows whose account action is in flight; their buttons stay disabled. */
+  protected readonly pendingKeys = signal<ReadonlySet<string>>(new Set());
   protected readonly results = signal<Page<PersonSummary> | null>(null);
   protected readonly loading = signal(true);
   protected readonly loadError = signal(false);
@@ -136,11 +160,7 @@ export class PeopleRegistry {
         }
       });
 
-    // "Crear usuario" in "Gestión de Usuarios" brings here with the dialog to open, without a URL parameter
-    const state = this.router.currentNavigation()?.extras.state ?? history.state;
-    if ((state as Record<string, unknown> | null)?.[OPEN_REGISTER_STATE] === true) {
-      queueMicrotask(() => this.openRegisterDialog());
-    }
+    this.loadStats();
   }
 
   protected onSearch(event: Event): void {
@@ -155,6 +175,86 @@ export class PeopleRegistry {
       role: type === 'STAFF' ? state.role : null,
       page: 0,
     }));
+  }
+
+  protected onAccountStatusChange(accountStatus: PersonAccountStatus | ''): void {
+    this.search.update((state) => ({ ...state, accountStatus: accountStatus || null, page: 0 }));
+  }
+
+  /** The logged-in administrator cannot deactivate the own account. */
+  protected isOwnAccount(person: PersonSummary): boolean {
+    return person.userId !== null && person.userId === this.auth.user()?.id;
+  }
+
+  /** Resends the activation link of a pending account, or the confirmation of a new email. */
+  protected resend(person: PersonSummary): void {
+    this.runAccountAction(person, (account) => this.accounts.resendOf(account, person.email));
+  }
+
+  /** Activates or deactivates the account, after a confirmation. */
+  protected toggleStatus(person: PersonSummary): void {
+    if (this.isOwnAccount(person)) {
+      return;
+    }
+    this.runAccountAction(person, (account) =>
+      this.accounts.toggleStatusOf(account, `${person.firstName} ${person.lastName}`),
+    );
+  }
+
+  private runAccountAction(
+    person: PersonSummary,
+    action: (account: PersonAccount) => Observable<PersonAccount>,
+  ): void {
+    const key = this.keyOf(person);
+    if (person.userId === null || this.pendingKeys().has(key)) {
+      return;
+    }
+    const account: PersonAccount = {
+      userId: person.userId,
+      status: person.accountStatus as PersonAccount['status'],
+      emailChangePending: person.emailChangePending,
+      lastLoginAt: person.lastLoginAt,
+    };
+    this.setPending(key, true);
+    action(account)
+      .pipe(finalize(() => this.setPending(key, false)))
+      .subscribe((updated) => {
+        this.results.update((page) =>
+          page
+            ? {
+                ...page,
+                content: page.content.map((row) =>
+                  this.keyOf(row) === key
+                    ? {
+                        ...row,
+                        accountStatus: updated.status,
+                        emailChangePending: updated.emailChangePending,
+                        lastLoginAt: updated.lastLoginAt,
+                      }
+                    : row,
+                ),
+              }
+            : page,
+        );
+        this.loadStats();
+      });
+  }
+
+  private setPending(key: string, pending: boolean): void {
+    this.pendingKeys.update((keys) => {
+      const next = new Set(keys);
+      if (pending) {
+        next.add(key);
+      } else {
+        next.delete(key);
+      }
+      return next;
+    });
+  }
+
+  /** The indicators do not block the list: without them the cards stay empty. */
+  private loadStats(): void {
+    this.api.stats().subscribe({ next: (stats) => this.stats.set(stats), error: () => undefined });
   }
 
   protected onRoleChange(role: StaffRole | ''): void {

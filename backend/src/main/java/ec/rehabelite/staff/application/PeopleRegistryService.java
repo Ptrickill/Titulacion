@@ -1,21 +1,26 @@
 package ec.rehabelite.staff.application;
 
 import ec.rehabelite.auth.AccountProvisioning;
+import ec.rehabelite.auth.AccountStatistics;
+import ec.rehabelite.auth.AccountStatus;
 import ec.rehabelite.auth.AccountSummary;
 import ec.rehabelite.auth.Role;
 import ec.rehabelite.patients.PatientDirectory;
 import ec.rehabelite.patients.PatientRegistryEntry;
 import ec.rehabelite.patients.PatientRegistrySlice;
+import ec.rehabelite.patients.PortalAccountFilter;
 import ec.rehabelite.shared.domain.InvalidRequestException;
 import ec.rehabelite.staff.domain.StaffRecord;
 import ec.rehabelite.staff.domain.StaffRecordRepository;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -35,6 +40,14 @@ public class PeopleRegistryService {
     private final StaffRecordRepository staffRepository;
     private final PatientDirectory patients;
     private final AccountProvisioning accounts;
+
+    /** Filter by the status of the account: NONE is a person without account. */
+    public enum AccountFilter {
+        NONE,
+        PENDING_ACTIVATION,
+        ACTIVE,
+        INACTIVE
+    }
 
     /** Who a person is in the registry. */
     public enum PersonType {
@@ -57,28 +70,38 @@ public class PeopleRegistryService {
     /**
      * One page of the registry: the staff first and then the patients, each by last name and first name, so a page is
      * the concatenation of two searches with a fixed number of statements (staff count and slice, patient count and
-     * slice, the role's accounts and the accounts of the page), whatever the page.
+     * slice, the accounts of the role or of the status when filtered, and the accounts of the page), whatever the page.
      *
      * @param type only patients or only staff; null for both
      * @param role only the staff with that role (it implies the staff); null for every role
+     * @param accountStatus only the people whose account has that status, or without account (NONE: only patients,
+     *        because every staff member has one); null for any
      * @throws InvalidRequestException if a role is combined with the patients
      */
     @Transactional(readOnly = true)
-    public PeoplePage list(String query, PersonType type, Role role, int page, int size) {
+    public PeoplePage list(String query, PersonType type, Role role, AccountFilter accountStatus, int page,
+            int size) {
         if (role != null && (type == PersonType.PATIENT || role == Role.PATIENT)) {
             throw new InvalidRequestException(ROLE_ONLY_FOR_STAFF);
         }
-        boolean withStaff = type != PersonType.PATIENT;
+        boolean withStaff = type != PersonType.PATIENT && accountStatus != AccountFilter.NONE;
         boolean withPatients = type != PersonType.STAFF && role == null;
         long offset = (long) page * size;
 
-        Collection<Long> roleAccounts = role == null ? null : accounts.idsWithRole(role);
-        long staffTotal = withStaff ? staffRepository.countSearch(query, roleAccounts) : 0;
+        Collection<Long> statusAccounts = accountStatus == null || accountStatus == AccountFilter.NONE
+                ? null
+                : accounts.idsWithStatus(AccountStatus.valueOf(accountStatus.name()));
+        Collection<Long> staffAccounts = intersection(role == null ? null : accounts.idsWithRole(role),
+                statusAccounts);
+        long staffTotal = withStaff ? staffRepository.countSearch(query, staffAccounts) : 0;
         List<StaffRecord> staff = withStaff && offset < staffTotal
-                ? staffRepository.searchSlice(query, roleAccounts, offset, size)
+                ? staffRepository.searchSlice(query, staffAccounts, offset, size)
                 : List.of();
+        PortalAccountFilter patientAccounts = accountStatus == AccountFilter.NONE
+                ? PortalAccountFilter.noAccount()
+                : statusAccounts == null ? PortalAccountFilter.ANY : PortalAccountFilter.accounts(statusAccounts);
         PatientRegistrySlice patientSlice = withPatients
-                ? patients.registry(query, Math.max(0, offset - staffTotal), size - staff.size())
+                ? patients.registry(query, patientAccounts, Math.max(0, offset - staffTotal), size - staff.size())
                 : new PatientRegistrySlice(List.of(), 0);
 
         List<Long> userIds = Stream.concat(staff.stream().map(StaffRecord::getUserId),
@@ -98,6 +121,12 @@ public class PeopleRegistryService {
                 patient.phone(), patient.needsCompletion(),
                 patient.portalUserId() == null ? null : accountsById.get(patient.portalUserId()))));
         return new PeoplePage(content, staffTotal + patientSlice.total());
+    }
+
+    /** The indicators of the registry: active accounts and accounts per role (MEJ-02). One statement. */
+    @Transactional(readOnly = true)
+    public AccountStatistics statistics() {
+        return accounts.statistics();
     }
 
     /**
@@ -133,6 +162,16 @@ public class PeopleRegistryService {
                     new PersonMatch(PersonType.PATIENT, patientId, names.get(patientId), "email")));
         }
         return List.copyOf(found.values());
+    }
+
+    /** Accounts in both lists, or the one list given; null when neither filters. */
+    private static Collection<Long> intersection(Collection<Long> first, Collection<Long> second) {
+        if (first == null || second == null) {
+            return first == null ? second : first;
+        }
+        Set<Long> both = new HashSet<>(first);
+        both.retainAll(second);
+        return both;
     }
 
     private static void add(Map<String, PersonMatch> found, PersonMatch match) {

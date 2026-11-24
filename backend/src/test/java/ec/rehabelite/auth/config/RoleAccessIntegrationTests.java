@@ -254,7 +254,7 @@ class RoleAccessIntegrationTests extends AbstractIntegrationTest {
         String tampered = valid.substring(0, valid.length() - 2) + (valid.endsWith("A") ? "BB" : "AA");
 
         for (String token : List.of(expired, tampered, "not-a-jwt")) {
-            mockMvc.perform(get("/api/users").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+            mockMvc.perform(get("/api/people").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                     .andExpect(status().isUnauthorized())
                     .andExpect(jsonPath("$.title").value("No autenticado"));
         }

@@ -60,12 +60,7 @@ describe('AppShell', () => {
 
   it('shows the administrator, director and patient menus', async () => {
     await renderAs('ADMINISTRATOR');
-    expect(menuLabels()).toEqual([
-      'Inicio',
-      'Gestión de Usuarios',
-      'Registro de Usuarios',
-      'Auditoría',
-    ]);
+    expect(menuLabels()).toEqual(['Inicio', 'Registro de Usuarios', 'Auditoría']);
     fixture.destroy();
 
     await renderAs('OPERATIONS_DIRECTOR');

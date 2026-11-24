@@ -537,6 +537,23 @@ describe('PersonFormDialog (MEJ-03, MEJ-02)', () => {
       );
     });
 
+    it('points an inactive account to the registry before changing its email', async () => {
+      await create({
+        patient: fakePatient(15, { portalAccount: fakeAccount({ status: 'INACTIVE' }) }),
+      });
+
+      component()['personal'].controls.email.setValue('nuevo@correo.ec');
+      await pause();
+      answerMatches('email');
+      await fixture.whenStable();
+
+      const notice = element.querySelector('.email-change')?.textContent;
+      expect(notice).toContain(
+        'La cuenta está desactivada: actívela desde la columna Cuenta o desde la ficha antes de cambiar el correo.',
+      );
+      expect(notice).not.toContain('Gestión de Usuarios');
+    });
+
     it('lets a staff record to be completed receive its national ID and saves it with PUT', async () => {
       await create({ staff: legacyStaff(5) });
 

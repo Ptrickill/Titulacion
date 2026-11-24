@@ -4,6 +4,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -32,14 +33,15 @@ class PatientSearchImpl implements PatientSearch {
 
     @Override
     public Page<Patient> search(String query, Pageable pageable) {
-        List<Patient> content = searchSlice(query, pageable.getOffset(), pageable.getPageSize());
-        return new PageImpl<>(content, pageable, countSearch(query));
+        List<Patient> content = searchSlice(query, false, null, pageable.getOffset(), pageable.getPageSize());
+        return new PageImpl<>(content, pageable, countSearch(query, false, null));
     }
 
     @Override
-    public List<Patient> searchSlice(String query, long offset, int limit) {
-        List<String> parameters = new ArrayList<>();
-        String where = whereClause(sanitize(query), parameters);
+    public List<Patient> searchSlice(String query, boolean withoutPortalAccount, Collection<Long> portalUserIds,
+            long offset, int limit) {
+        List<Object> parameters = new ArrayList<>();
+        String where = whereClause(sanitize(query), withoutPortalAccount, portalUserIds, parameters);
         Query select = entityManager.createNativeQuery(
                 "SELECT p.* FROM patients p" + where + ORDER_BY, Patient.class);
         bind(select, parameters);
@@ -51,37 +53,43 @@ class PatientSearchImpl implements PatientSearch {
     }
 
     @Override
-    public long countSearch(String query) {
-        List<String> parameters = new ArrayList<>();
-        String where = whereClause(sanitize(query), parameters);
+    public long countSearch(String query, boolean withoutPortalAccount, Collection<Long> portalUserIds) {
+        List<Object> parameters = new ArrayList<>();
+        String where = whereClause(sanitize(query), withoutPortalAccount, portalUserIds, parameters);
         Query count = entityManager.createNativeQuery("SELECT count(*) FROM patients p" + where);
         bind(count, parameters);
         return ((Number) count.getSingleResult()).longValue();
     }
 
-    private static String whereClause(String query, List<String> parameters) {
-        if (query.isEmpty()) {
-            return "";
-        }
-        if (query.chars().allMatch(c -> c >= '0' && c <= '9')) {
-            parameters.add(query);
-            return " WHERE p.national_id LIKE ?1 || '%'";
-        }
+    /** Only the criteria sent become conditions; the account ids go as one array parameter. */
+    private static String whereClause(String query, boolean withoutPortalAccount, Collection<Long> portalUserIds,
+            List<Object> parameters) {
         List<String> conditions = new ArrayList<>();
-        Arrays.stream(query.split("\\s+")).limit(MAX_WORDS).forEach(word -> {
-            parameters.add(word);
-            conditions.add(NAME + " LIKE '%' || normalize_text(?" + parameters.size() + ") || '%'");
-        });
-        return " WHERE " + String.join(" AND ", conditions);
+        if (withoutPortalAccount) {
+            conditions.add("p.portal_user_id IS NULL");
+        } else if (portalUserIds != null) {
+            parameters.add(portalUserIds.toArray(Long[]::new));
+            conditions.add("p.portal_user_id = ANY (CAST(?" + parameters.size() + " AS bigint[]))");
+        }
+        if (!query.isEmpty()) {
+            if (query.chars().allMatch(c -> c >= '0' && c <= '9')) {
+                parameters.add(query);
+                conditions.add("p.national_id LIKE ?" + parameters.size() + " || '%'");
+            } else {
+                Arrays.stream(query.split("\\s+")).limit(MAX_WORDS).forEach(word -> {
+                    parameters.add(word);
+                    conditions.add(NAME + " LIKE '%' || normalize_text(?" + parameters.size() + ") || '%'");
+                });
+            }
+        }
+        return conditions.isEmpty() ? "" : " WHERE " + String.join(" AND ", conditions);
     }
 
-    private static void bind(Query query, List<String> parameters) {
+    private static void bind(Query query, List<Object> parameters) {
         for (int i = 0; i < parameters.size(); i++) {
             query.setParameter(i + 1, parameters.get(i));
         }
     }
-
-    /** LIKE wildcards typed by the user are removed so they match literally nothing special. */
     private static String sanitize(String query) {
         return query == null ? "" : query.replaceAll("[%_\\\\]", "").strip();
     }
