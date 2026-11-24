@@ -314,7 +314,7 @@ export class PersonFormDialog {
       case 'PENDING_ACTIVATION':
         return 'La cuenta aún no se activó: el enlace de activación se enviará al nuevo correo y el anterior dejará de servir.';
       case 'INACTIVE':
-        return 'La cuenta está desactivada: reactívela en "Gestión de Usuarios" antes de cambiar el correo.';
+        return 'La cuenta está desactivada: actívela desde la columna Cuenta o desde la ficha antes de cambiar el correo.';
       default:
         return 'Se enviará un enlace de confirmación al nuevo correo y un aviso al correo anterior. Hasta que se confirme, la cuenta seguirá ingresando con el correo actual y la misma contraseña.';
     }
