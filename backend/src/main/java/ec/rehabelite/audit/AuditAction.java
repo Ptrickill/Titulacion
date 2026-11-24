@@ -21,5 +21,12 @@ public enum AuditAction {
     /** MEJ-01: password reset requested (with the account id, or without it for an unknown email). */
     RESET_REQUEST,
     /** MEJ-01: password changed through a reset link. */
-    PASSWORD_RESET
+    PASSWORD_RESET,
+    /**
+     * MEJ-02: the email of an account was changed by editing its person; neither address is recorded. Added by V7,
+     * like the one below.
+     */
+    EMAIL_CHANGE,
+    /** MEJ-02: the owner confirmed the new email through the emailed link. */
+    EMAIL_CONFIRMATION
 }

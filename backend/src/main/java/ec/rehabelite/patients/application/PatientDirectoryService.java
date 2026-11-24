@@ -1,12 +1,18 @@
 package ec.rehabelite.patients.application;
 
+import ec.rehabelite.catalogs.AddressFormatter;
+import ec.rehabelite.catalogs.AddressView;
 import ec.rehabelite.patients.PatientCard;
 import ec.rehabelite.patients.PatientDirectory;
 import ec.rehabelite.patients.PatientProfile;
+import ec.rehabelite.patients.PatientRegistryEntry;
+import ec.rehabelite.patients.PatientRegistrySlice;
 import ec.rehabelite.patients.domain.Patient;
 import ec.rehabelite.patients.domain.PatientName;
 import ec.rehabelite.patients.domain.PatientRepository;
 import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -22,7 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 class PatientDirectoryService implements PatientDirectory {
 
     private final PatientRepository patientRepository;
-    private final AddressText addressText;
+    private final AddressFormatter addressFormatter;
 
     @Override
     @Transactional(readOnly = true)
@@ -59,13 +65,42 @@ class PatientDirectoryService implements PatientDirectory {
                         name -> name.getFirstName() + " " + name.getLastName()));
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Long> findIdByNationalId(String nationalId) {
+        return patientRepository.findByNationalId(nationalId).map(Patient::getId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Long> idsWithEmail(String email) {
+        return email == null ? List.of() : patientRepository.findIdsByEmail(email.strip().toLowerCase(Locale.ROOT));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PatientRegistrySlice registry(String query, long offset, int limit) {
+        long total = patientRepository.countSearch(query);
+        List<PatientRegistryEntry> content = limit <= 0 || offset >= total
+                ? List.of()
+                : patientRepository.searchSlice(query, offset, limit).stream()
+                        .map(PatientDirectoryService::toRegistryEntry).toList();
+        return new PatientRegistrySlice(content, total);
+    }
+
     private static PatientCard toCard(Patient patient) {
         return new PatientCard(patient.getId(), patient.getNationalId(), patient.getMedicalRecordNumber(),
                 patient.getFirstName(), patient.getLastName(), patient.getBirthDate());
     }
 
+    private static PatientRegistryEntry toRegistryEntry(Patient patient) {
+        return new PatientRegistryEntry(patient.getId(), patient.getNationalId(), patient.getFirstName(),
+                patient.getLastName(), patient.getEmail(), patient.getPhone(), patient.needsCompletion(),
+                patient.getPortalUserId());
+    }
+
     private PatientProfile toProfile(Patient patient) {
-        AddressView address = addressText.view(patient.getAddress());
+        AddressView address = addressFormatter.view(patient.getAddress());
         return new PatientProfile(patient.getId(), patient.getNationalId(), patient.getMedicalRecordNumber(),
                 patient.getFirstName(), patient.getLastName(), patient.getBirthDate(), patient.getSex().name(),
                 patient.getPhone(), patient.getEmail(), address.formatted(), address.complete(),

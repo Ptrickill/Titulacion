@@ -97,10 +97,11 @@ class ClinicalAuditIntegrationTests extends AbstractIntegrationTest {
     void linkingAPortalAccountIsAuditedAsAnUpdateOfThePatient() throws Exception {
         Long patientId = TestPatients.insert(jdbc, "Luis Alberto", "Quishpe Tipán");
 
-        perform(admin, post("/api/users").contentType(MediaType.APPLICATION_JSON).content("""
-                {"email":"portal-%s@rehabelite.test","fullName":"Luis Alberto Quishpe Tipán","role":"PATIENT",
-                 "patientId":%d}""".formatted(UUID.randomUUID(), patientId)))
-                .andExpect(status().isCreated());
+        jdbc.update("UPDATE patients SET email = ? WHERE id = ?",
+                "portal-" + UUID.randomUUID() + "@rehabelite.test", patientId);
+
+        // MEJ-02: the account is created from the patient's record, without typing its email or name
+        perform(admin, post("/api/patients/{id}/portal-account", patientId)).andExpect(status().isCreated());
 
         assertSingleEntry(admin, "UPDATE", "Patient", patientId);
     }
@@ -111,7 +112,10 @@ class ClinicalAuditIntegrationTests extends AbstractIntegrationTest {
 
         perform(physio, get("/api/patients/{id}", patientId)).andExpect(status().isOk());
         perform(physio, get("/api/patients").param("q", "mora")).andExpect(status().isOk());
-        perform(admin, get("/api/patients/portal-candidates")).andExpect(status().isOk());
+        // MEJ-02: the people registry and its lookup are personal data too
+        perform(admin, get("/api/people").param("q", "mora")).andExpect(status().isOk());
+        perform(admin, get("/api/people/matches").param("nationalId", TestPatients.nationalIdOf(jdbc, patientId)))
+                .andExpect(status().isOk());
 
         assertThat(entriesOf(physio)).isEmpty();
         assertThat(entriesOf(admin)).isEmpty();

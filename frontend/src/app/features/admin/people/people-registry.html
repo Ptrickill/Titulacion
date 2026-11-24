@@ -1,0 +1,138 @@
+<app-page-header
+  title="Registro de Usuarios"
+  subtitle="Pacientes y personal: datos personales, contacto y cuenta de acceso"
+>
+  <button mat-flat-button actions type="button" class="register" (click)="openRegisterDialog()">
+    <mat-icon aria-hidden="true">person_add</mat-icon>
+    Registrar usuario
+  </button>
+</app-page-header>
+
+<section class="filters" aria-label="Búsqueda y filtros del registro">
+  <mat-form-field appearance="fill" subscriptSizing="dynamic" class="search">
+    <mat-icon matPrefix aria-hidden="true">search</mat-icon>
+    <input
+      matInput
+      type="search"
+      placeholder="Buscar por nombres o cédula..."
+      aria-label="Buscar por nombres o cédula"
+      autocomplete="off"
+      (input)="onSearch($event)"
+    />
+  </mat-form-field>
+
+  <mat-form-field appearance="fill" subscriptSizing="dynamic" class="type-filter">
+    <mat-label>Tipo</mat-label>
+    <mat-select
+      id="people-type-filter"
+      [value]="search().type ?? ''"
+      (selectionChange)="onTypeChange($event.value)"
+    >
+      <mat-option value="">Todos</mat-option>
+      <mat-option value="PATIENT">Pacientes</mat-option>
+      <mat-option value="STAFF">Personal</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  @if (search().type === 'STAFF') {
+    <mat-form-field appearance="fill" subscriptSizing="dynamic" class="role-filter">
+      <mat-label>Rol</mat-label>
+      <mat-select
+        id="people-role-filter"
+        [value]="search().role ?? ''"
+        (selectionChange)="onRoleChange($event.value)"
+      >
+        <mat-option value="">Todos los roles</mat-option>
+        @for (role of staffRoles; track role) {
+          <mat-option [value]="role">{{ roleLabels[role] }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  }
+</section>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Cargando el registro" />
+}
+
+@if (loadError()) {
+  <app-empty-state
+    icon="cloud_off"
+    title="No se pudo cargar el registro"
+    message="Revise su conexión e intente nuevamente."
+  >
+    <button mat-stroked-button type="button" (click)="reload()">Reintentar</button>
+  </app-empty-state>
+} @else if (results(); as page) {
+  <app-data-table
+    [columns]="columns"
+    [rows]="page.content"
+    [totalItems]="page.totalElements"
+    [pageSize]="pageSize"
+    [pageIndex]="search().page"
+    (pageIndexChange)="goToPage($event)"
+    caption="Personas registradas"
+    itemLabel="personas"
+    [emptyMessage]="
+      search().query || search().type
+        ? 'Ninguna persona coincide con la búsqueda.'
+        : 'Aún no hay personas registradas.'
+    "
+  >
+    <ng-template appDataTableCell="lastName" [appDataTableCellOf]="page.content" let-person>
+      <div class="person">
+        <span class="avatar" [class.staff]="person.type === 'STAFF'" aria-hidden="true">{{
+          initials(person)
+        }}</span>
+        <div>
+          <a class="name-link" [routerLink]="link(person.type, person.id)">
+            {{ person.firstName }} {{ person.lastName }}
+          </a>
+          <div class="meta">Cédula: {{ person.nationalId ?? 'por completar' }}</div>
+          <div class="tags">
+            <app-status-badge
+              class="role"
+              [label]="roleLabels[person.role]"
+              [tone]="roleTones[person.role]"
+            />
+            @if (person.needsCompletion) {
+              <app-status-badge class="pending" label="Datos por completar" tone="warning" />
+            }
+          </div>
+        </div>
+      </div>
+    </ng-template>
+    <ng-template appDataTableCell="phone" [appDataTableCellOf]="page.content" let-person>
+      <div class="phone">{{ person.phone ?? '—' }}</div>
+      @let email = emailParts(person.email);
+      <div class="email">{{ email[0] }}<wbr />{{ email[1] }}</div>
+    </ng-template>
+    <ng-template appDataTableCell="accountStatus" [appDataTableCellOf]="page.content" let-person>
+      <app-status-badge
+        class="account"
+        [label]="accountBadges[person.accountStatus].label"
+        [tone]="accountBadges[person.accountStatus].tone"
+      />
+      @if (person.emailChangePending) {
+        <div class="email-pending">Correo por confirmar</div>
+      }
+    </ng-template>
+    <ng-template appDataTableCell="id" [appDataTableCellOf]="page.content" let-person>
+      <button
+        mat-stroked-button
+        type="button"
+        class="edit"
+        [disabled]="openingKey() === keyOf(person)"
+        [attr.aria-label]="'Editar datos de ' + person.firstName + ' ' + person.lastName"
+        (click)="edit(person)"
+      >
+        @if (openingKey() === keyOf(person)) {
+          <mat-spinner diameter="16" aria-hidden="true" />
+        } @else {
+          <mat-icon aria-hidden="true">edit</mat-icon>
+        }
+        Editar
+      </button>
+    </ng-template>
+  </app-data-table>
+}

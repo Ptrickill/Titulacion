@@ -11,16 +11,25 @@ export const ADMIN_ROUTES: Routes = [
     title: 'Gestión de Usuarios | Rehab Elite',
     loadComponent: () => import('./users/user-list').then((m) => m.UserList),
   },
+  // MEJ-02: "Registro de Usuarios", patients and staff in one registry
   {
-    path: 'patients',
+    path: 'people',
     title: 'Registro de Usuarios | Rehab Elite',
-    loadComponent: () => import('./patients/patient-registry').then((m) => m.PatientRegistry),
+    loadComponent: () => import('./people/people-registry').then((m) => m.PeopleRegistry),
   },
   {
-    path: 'patients/:id',
+    path: 'people/patients/:id',
     title: 'Paciente | Rehab Elite',
     loadComponent: () => import('./patients/patient-detail').then((m) => m.PatientDetail),
   },
+  {
+    path: 'people/staff/:id',
+    title: 'Personal | Rehab Elite',
+    loadComponent: () => import('./people/staff-detail').then((m) => m.StaffDetail),
+  },
+  // The registry lived at /admin/patients until MEJ-02: old links and bookmarks keep working
+  { path: 'patients', pathMatch: 'full', redirectTo: 'people' },
+  { path: 'patients/:id', redirectTo: 'people/patients/:id' },
   {
     path: 'audit',
     title: 'Auditoría | Rehab Elite',

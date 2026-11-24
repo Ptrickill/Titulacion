@@ -61,6 +61,7 @@ export function fakePatient(id: number, overrides: Partial<Patient> = {}): Patie
     ethnicSelfIdentification: 'Mestizo',
     religion: null,
     needsCompletion: false,
+    portalAccount: null,
     createdAt: '2026-10-29T15:00:00Z',
     updatedAt: null,
     ...overrides,

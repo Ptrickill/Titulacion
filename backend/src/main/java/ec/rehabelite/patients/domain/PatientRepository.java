@@ -18,18 +18,8 @@ public interface PatientRepository extends JpaRepository<Patient, Long>, Patient
     @Query("SELECT p.id AS id, p.firstName AS firstName, p.lastName AS lastName FROM Patient p WHERE p.id IN :ids")
     List<PatientName> findNamesByIdIn(@Param("ids") Collection<Long> ids);
 
-    /**
-     * Patients without a portal account whose name (accent- and case-insensitive, via normalize_text) or
-     * national ID prefix matches the query; an empty query matches every patient.
-     */
-    @Query(nativeQuery = true, value = """
-            SELECT p.* FROM patients p
-            WHERE p.portal_user_id IS NULL
-              AND (normalize_text(p.last_name || ' ' || p.first_name) LIKE '%' || normalize_text(:query) || '%'
-                   OR normalize_text(p.first_name || ' ' || p.last_name) LIKE '%' || normalize_text(:query) || '%'
-                   OR p.national_id LIKE :query || '%')
-            ORDER BY p.last_name, p.first_name
-            LIMIT :limit""")
-    List<Patient> findPortalCandidates(@Param("query") String query, @Param("limit") int limit);
+    /** Patients with that email, already normalized (MEJ-02); patients may share one. */
+    @Query("SELECT p.id FROM Patient p WHERE p.email = :email ORDER BY p.id")
+    List<Long> findIdsByEmail(@Param("email") String email);
 
 }

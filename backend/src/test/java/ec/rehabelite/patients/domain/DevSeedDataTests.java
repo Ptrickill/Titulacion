@@ -1,5 +1,6 @@
 package ec.rehabelite.patients.domain;
 
+import ec.rehabelite.shared.domain.NationalId;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
@@ -39,6 +40,29 @@ class DevSeedDataTests {
         }
 
         assertThat(nationalIds).hasSize(15).doesNotHaveDuplicates();
+    }
+
+    /** MEJ-02: complete staff records with valid national IDs, none of them a patient's, and valid phones. */
+    @Test
+    void theThreeStaffRecordsHaveValidNationalIdsThatNoPatientHas() {
+        Matcher row = Pattern.compile(
+                "\\('([^']+@dev-seed\\.rehabelite\\.test)', '(\\d{10})', '[^']+', '[^']+', DATE '[\\d-]+',\\s+'[A-Z]+', "
+                        + "'(\\d+)'").matcher(script);
+        List<String> nationalIds = new ArrayList<>();
+        while (row.find()) {
+            assertThat(NationalId.isValid(row.group(2))).as("national ID of %s", row.group(1)).isTrue();
+            assertThat(ec.rehabelite.shared.domain.PhoneNumber.isValid(row.group(3))).as("phone of %s", row.group(1))
+                    .isTrue();
+            nationalIds.add(row.group(2));
+        }
+        List<String> patientIds = new ArrayList<>();
+        Matcher patients = PATIENT_ROW.matcher(script);
+        while (patients.find()) {
+            patientIds.add(patients.group(1));
+        }
+
+        assertThat(nationalIds).hasSize(3).doesNotHaveDuplicates().doesNotContainAnyElementsOf(patientIds);
+        assertThat(script).contains("ON CONFLICT (user_id) DO UPDATE", "WHERE staff_records.national_id IS NULL");
     }
 
     @Test

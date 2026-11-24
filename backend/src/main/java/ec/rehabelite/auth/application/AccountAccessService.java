@@ -136,6 +136,26 @@ public class AccountAccessService {
         log.info("Password reset userId={}", user.getId());
     }
 
+    /**
+     * Confirms the new email of an activated account through the link sent to that address (MEJ-02). The new email
+     * becomes the login email and the sessions opened with the previous one are closed. The password does not
+     * change. Audited as EMAIL_CONFIRMATION, attributed to the account itself; neither address is recorded.
+     *
+     * @throws InvalidRequestException with the generic link message if the link is unknown, used, replaced or
+     *         expired, or the account is deactivated or no longer waits for that change
+     */
+    @Transactional
+    public void confirmEmail(String token) {
+        Instant now = clock.instant();
+        User user = userOf(tokenService.consume(token, AccountTokenPurpose.EMAIL_CHANGE, now));
+        if (!user.isActive() || user.getPendingEmail() == null) {
+            throw new InvalidRequestException(AccountTokenService.INVALID_LINK);
+        }
+        user.confirmEmailChange(now);
+        auditLogService.recordFor(user.getId(), AuditAction.EMAIL_CONFIRMATION, AUDITED_ENTITY, user.getId());
+        log.info("New email confirmed userId={}", user.getId());
+    }
+
     private User userOf(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new InvalidRequestException(AccountTokenService.INVALID_LINK));

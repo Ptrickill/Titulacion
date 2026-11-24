@@ -1,6 +1,7 @@
 package ec.rehabelite.patients.web;
 
-import ec.rehabelite.patients.domain.Sex;
+import ec.rehabelite.catalogs.AddressView;
+import ec.rehabelite.shared.domain.Sex;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -22,7 +23,7 @@ record PatientResponse(
         @Schema(description = "Sexo", example = "MALE") Sex sex,
         @Schema(description = "Teléfono", example = "0987654321") String phone,
         @Schema(description = "Correo electrónico", example = "juan.perez@correo.ec") String email,
-        @Schema(description = "Dirección estructurada (MEJ-03)") AddressResponse address,
+        @Schema(description = "Dirección estructurada (MEJ-03)") AddressView address,
         @Schema(description = "Ocupación", example = "Ingeniero civil") String occupation,
         @Schema(description = "Nivel de instrucción", example = "Superior") String educationLevel,
         @Schema(description = "¿Tiene seguro de salud?", example = "true") boolean hasHealthInsurance,
@@ -31,6 +32,8 @@ record PatientResponse(
         @Schema(description = "Religión; null si no se indicó", example = "Católica") String religion,
         @Schema(description = "Datos por completar: dirección registrada antes de MEJ-03 o teléfono fuera de la regla",
                 example = "false") boolean needsCompletion,
+        @Schema(description = "Cuenta de acceso al portal (MEJ-02); null si aún no tiene")
+        PortalAccountResponse portalAccount,
         @Schema(description = "Fecha y hora de registro") Instant createdAt,
         @Schema(description = "Fecha y hora de la última actualización; null si nunca se actualizó")
         Instant updatedAt) {

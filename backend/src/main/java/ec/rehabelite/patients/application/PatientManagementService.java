@@ -2,6 +2,7 @@ package ec.rehabelite.patients.application;
 
 import ec.rehabelite.audit.AuditAction;
 import ec.rehabelite.audit.AuditLogService;
+import ec.rehabelite.auth.AccountProvisioning;
 import ec.rehabelite.auth.CurrentUserProvider;
 import ec.rehabelite.patients.domain.Patient;
 import ec.rehabelite.patients.domain.PatientRepository;
@@ -19,7 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Patient search and update of personal data (HU-06). The national ID and the medical record number never change,
- * and clinical data is never handled here.
+ * and clinical data is never handled here. Since MEJ-02 the portal account follows the patient: its name is always
+ * the patient's names, and editing the email changes the account's email too.
  */
 @Service
 @RequiredArgsConstructor
@@ -28,6 +30,8 @@ public class PatientManagementService {
     private static final Logger log = LoggerFactory.getLogger(PatientManagementService.class);
 
     private final PatientRepository patientRepository;
+    private final PatientIdentityRules identityRules;
+    private final AccountProvisioning accounts;
     private final CurrentUserProvider currentUserProvider;
     private final AuditLogService auditLogService;
     private final Clock clock;
@@ -40,19 +44,37 @@ public class PatientManagementService {
 
     /**
      * Replaces the admission date and the personal data, recording who and when (updated_by, updated_at) and
-     * auditing UPDATE. Sending the data the patient already has changes nothing and is not audited.
+     * auditing UPDATE. Sending the data the patient already has changes nothing and is not audited. With a portal
+     * account (MEJ-02), the account takes the patient's names, and a new email starts the account's change of email
+     * (audited as EMAIL_CHANGE User; see {@link AccountProvisioning#changeEmail}).
      *
      * @throws ResourceNotFoundException if the patient does not exist
-     * @throws ec.rehabelite.shared.domain.BusinessRuleException if the birth date is after the admission date
+     * @throws ec.rehabelite.shared.domain.ConflictException if the new email belongs to a staff member or to another
+     *         account (see {@link PatientIdentityRules})
+     * @throws ec.rehabelite.shared.domain.BusinessRuleException if the birth date is after the admission date, or the
+     *         email changes while the portal account is deactivated
+     * @throws ec.rehabelite.shared.domain.ExternalServiceException if the link to the new email cannot be sent;
+     *         nothing changes then
      */
     @Transactional
     public Patient update(Long patientId, LocalDate admissionDate, PersonalData data) {
         Patient patient = patientRepository.findById(patientId)
                 .orElseThrow(() -> new ResourceNotFoundException(PatientRegistrationService.PATIENT_NOT_FOUND));
+        boolean emailChanged = !data.email().equals(patient.getEmail());
+        if (emailChanged) {
+            identityRules.checkEmail(data.email(), patient.getPortalUserId());
+        }
+
         Long updatedBy = currentUserProvider.currentUserId().orElse(null);
         if (patient.update(admissionDate, data, updatedBy, clock.instant())) {
             auditLogService.record(AuditAction.UPDATE, PatientRegistrationService.AUDITED_ENTITY, patient.getId());
             log.info("Patient updated patientId={} updatedBy={}", patient.getId(), updatedBy);
+        }
+        if (patient.getPortalUserId() != null) {
+            accounts.rename(patient.getPortalUserId(), patient.fullName());
+            if (emailChanged) {
+                accounts.changeEmail(patient.getPortalUserId(), patient.getEmail());
+            }
         }
         return patient;
     }

@@ -31,9 +31,12 @@ final class RoleAccessRules {
             // User and system administration (HU-02, HU-03)
             new Rule("/api/admin/**", Role.ADMINISTRATOR),
             new Rule("/api/users/**", Role.ADMINISTRATOR),
-            // Patients that can receive a portal account: only for account creation (HU-02).
+            // People registry (MEJ-02): staff records and the unified list of patients and staff
+            new Rule("/api/people/**", Role.ADMINISTRATOR),
+            new Rule("/api/staff/**", Role.ADMINISTRATOR),
+            // Portal account of a patient, created from its record (MEJ-02).
             // More specific than /api/patients/**, so it must stay before it (first match wins)
-            new Rule("/api/patients/portal-candidates", Role.ADMINISTRATOR),
+            new Rule("/api/patients/*/portal-account", Role.ADMINISTRATOR),
             // A patient's clinical record is clinical data (HU-07): physiotherapists only, before /api/patients/**
             new Rule("/api/patients/*/clinical-record", Role.PHYSIOTHERAPIST),
             // Only the administrator registers (HU-05) and updates (HU-06) patients; also before /api/patients/**

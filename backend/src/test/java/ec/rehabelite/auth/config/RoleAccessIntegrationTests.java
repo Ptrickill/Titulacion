@@ -62,7 +62,10 @@ class RoleAccessIntegrationTests extends AbstractIntegrationTest {
     private static final List<Area> AREAS = List.of(
             new Area("/api/admin/settings", "admin", null, ADMINISTRATOR),
             new Area("/api/users/5", "users", 5L, ADMINISTRATOR),
-            new Area("/api/patients/portal-candidates", "patients", null, ADMINISTRATOR),
+            // MEJ-02: people registry, staff records and the portal account created from a patient's record
+            new Area("/api/people", "people", null, ADMINISTRATOR),
+            new Area("/api/staff/4", "staff", 4L, ADMINISTRATOR),
+            new Area("/api/patients/12/portal-account", "patients", 12L, ADMINISTRATOR),
             new Area("/api/patients/12/clinical-record", "patients", 12L, PHYSIOTHERAPIST),
             new Area("/api/icd10-diagnoses", "icd10-diagnoses", null, PHYSIOTHERAPIST),
             new Area("/api/physio/patients", "physio", null, PHYSIOTHERAPIST),

@@ -2,7 +2,7 @@
   title="Gestión de Usuarios y Roles"
   subtitle="Control de accesos, roles autorizados y seguridad de la plataforma"
 >
-  <button mat-flat-button actions type="button" (click)="openCreateDialog()">
+  <button mat-flat-button actions type="button" class="create" (click)="openCreateDialog()">
     <mat-icon aria-hidden="true">person_add</mat-icon>
     Crear usuario
   </button>
@@ -99,18 +99,23 @@
     <ng-template appDataTableCell="status" [appDataTableCellOf]="filteredUsers()" let-user>
       @let badge = statusBadges[user.status];
       <app-status-badge [label]="badge.label" [tone]="badge.tone" />
+      @if (user.emailChangePending) {
+        <div class="email-pending">Correo por confirmar</div>
+      }
     </ng-template>
     <ng-template appDataTableCell="id" [appDataTableCellOf]="filteredUsers()" let-user>
       @let ownAccount = isOwnAccount(user);
       @let action = user.active ? 'Desactivar cuenta' : 'Activar cuenta';
-      @if (user.status === 'PENDING_ACTIVATION') {
+      @if (user.active && (user.status === 'PENDING_ACTIVATION' || user.emailChangePending)) {
+        @let resendLabel =
+          user.status === 'PENDING_ACTIVATION' ? 'Reenviar invitación' : 'Reenviar verificación';
         <button
           mat-icon-button
           type="button"
           class="resend-action"
           [disabled]="pendingIds().has(user.id)"
-          matTooltip="Reenviar invitación"
-          [attr.aria-label]="'Reenviar invitación a ' + user.fullName"
+          [matTooltip]="resendLabel"
+          [attr.aria-label]="resendLabel + ' a ' + user.fullName"
           (click)="resendInvitation(user)"
         >
           <mat-icon aria-hidden="true">forward_to_inbox</mat-icon>

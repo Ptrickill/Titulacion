@@ -10,7 +10,6 @@ import ec.rehabelite.shared.domain.ConflictException;
 import ec.rehabelite.shared.domain.ResourceNotFoundException;
 import java.time.Clock;
 import java.time.LocalDate;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,14 +25,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class PatientRegistrationService {
 
     static final String AUDITED_ENTITY = "Patient";
-    static final String DUPLICATE_NATIONAL_ID = "Ya existe un paciente registrado con esta cédula.";
     static final String PATIENT_NOT_FOUND = "El paciente no existe.";
-    /** Problem property with the id of the patient that already has the national ID. */
-    static final String EXISTING_PATIENT_ID = "existingPatientId";
 
     private static final Logger log = LoggerFactory.getLogger(PatientRegistrationService.class);
 
     private final PatientRepository patientRepository;
+    private final PatientIdentityRules identityRules;
     private final CurrentUserProvider currentUserProvider;
     private final AuditLogService auditLogService;
     private final Clock clock;
@@ -42,14 +39,14 @@ public class PatientRegistrationService {
      * Registers the patient with the national ID as medical record number and audits it as CREATE. Without an
      * admission date, today's date in the clinic is used.
      *
-     * @throws ConflictException if a patient with the national ID exists (its id goes in {@value #EXISTING_PATIENT_ID})
+     * @throws ConflictException if a patient or a staff member has the national ID, or the email belongs to a staff
+     *         member or a staff account (MEJ-02, see {@link PatientIdentityRules})
      * @throws ec.rehabelite.shared.domain.BusinessRuleException if the birth date is after the admission date
      */
     @Transactional
     public Patient register(RegisterPatientCommand command) {
-        patientRepository.findByNationalId(command.nationalId()).ifPresent(existing -> {
-            throw new ConflictException(DUPLICATE_NATIONAL_ID, Map.of(EXISTING_PATIENT_ID, existing.getId()));
-        });
+        identityRules.checkNationalId(command.nationalId());
+        identityRules.checkEmail(command.personalData().email(), null);
 
         LocalDate admissionDate = command.admissionDate() != null
                 ? command.admissionDate()

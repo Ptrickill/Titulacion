@@ -25,6 +25,10 @@ class AccountMailer {
     static final String RESET_SUBJECT = "Restablezca su contraseña de Rehab Elite";
     static final String ACTIVATION_PATH = "/activar-cuenta";
     static final String RESET_PATH = "/restablecer-contrasena";
+    static final String EMAIL_CHANGE_SUBJECT = "Confirme su nuevo correo de Rehab Elite";
+    static final String EMAIL_CHANGE_NOTICE_SUBJECT = "Se solicitó cambiar el correo de su cuenta de Rehab Elite";
+    /** Spanish like the other emailed links: the user sees it in the email and in the address bar (MEJ-02). */
+    static final String EMAIL_CHANGE_PATH = "/confirmar-correo";
 
     private static final String SENDER_NAME = "Rehab Elite";
 
@@ -51,7 +55,7 @@ class AccountMailer {
                 "El enlace vence en " + validity + " y solo se puede usar una vez. "
                         + "Si no esperaba este correo, ignórelo.",
                 user.getFullName());
-        send(user, ACTIVATION_SUBJECT, text, html);
+        send(user.getEmail(), ACTIVATION_SUBJECT, text, html);
     }
 
     void sendPasswordReset(User user, String token) {
@@ -75,15 +79,64 @@ class AccountMailer {
                 "El enlace vence en " + validity + " y solo se puede usar una vez. "
                         + "Si usted no lo solicitó, ignore este correo: su contraseña no cambia.",
                 user.getFullName());
-        send(user, RESET_SUBJECT, text, html);
+        send(user.getEmail(), RESET_SUBJECT, text, html);
     }
 
-    private void send(User user, String subject, String text, String html) {
+    /** MEJ-02: link to confirm the new email of an activated account, sent to that new address. */
+    void sendEmailChange(User user, String token) {
+        String link = linkTo(EMAIL_CHANGE_PATH, token);
+        String validity = describe(properties.tokens().activationTtl());
+        String text = """
+                Hola, %s:
+
+                Se registró este correo como el nuevo correo de acceso de su cuenta de Rehab Elite. Para confirmarlo, abra este enlace:
+
+                %s
+
+                El enlace vence en %s y solo se puede usar una vez. Hasta que lo confirme, siga iniciando sesión con su correo anterior; su contraseña no cambia. Si no esperaba este correo, ignórelo.
+
+                Rehab Elite
+                """.formatted(user.getFullName(), link, validity);
+        String html = layout("Confirme su nuevo correo",
+                "Se registró este correo como el nuevo correo de acceso de su cuenta de Rehab Elite. "
+                        + "Para confirmarlo, use este botón:",
+                "Confirmar mi nuevo correo", link,
+                "El enlace vence en " + validity + " y solo se puede usar una vez. Hasta que lo confirme, siga "
+                        + "iniciando sesión con su correo anterior; su contraseña no cambia. "
+                        + "Si no esperaba este correo, ignórelo.",
+                user.getFullName());
+        send(user.getPendingEmail(), EMAIL_CHANGE_SUBJECT, text, html);
+    }
+
+    /**
+     * MEJ-02: notice without a link to the previous address of an account whose email is changing. It names neither
+     * the new address nor anything else of the account.
+     */
+    void sendEmailChangeNotice(String fullName, String previousEmail) {
+        String text = """
+                Hola, %s:
+
+                Se solicitó cambiar el correo de acceso de su cuenta de Rehab Elite. El cambio se completará cuando se confirme desde el nuevo correo; hasta entonces puede seguir iniciando sesión con este.
+
+                Si usted no esperaba este cambio, comuníquese con la administración de la clínica.
+
+                Rehab Elite
+                """.formatted(fullName);
+        String html = layout("Cambio de correo solicitado",
+                "Se solicitó cambiar el correo de acceso de su cuenta de Rehab Elite. El cambio se completará "
+                        + "cuando se confirme desde el nuevo correo; hasta entonces puede seguir iniciando sesión "
+                        + "con este.",
+                null, null,
+                "Si usted no esperaba este cambio, comuníquese con la administración de la clínica.", fullName);
+        send(previousEmail, EMAIL_CHANGE_NOTICE_SUBJECT, text, html);
+    }
+
+    private void send(String to, String subject, String text, String html) {
         MimeMessage message = mailSender.createMimeMessage();
         try {
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
             helper.setFrom(properties.mail().from(), SENDER_NAME);
-            helper.setTo(user.getEmail());
+            helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(text, html);
         } catch (MessagingException | UnsupportedEncodingException ex) {
@@ -106,9 +159,10 @@ class AccountMailer {
         return minutes == 1 ? "1 minuto" : minutes + " minutos";
     }
 
+    /** Message with a button to the link, or without one when {@code link} is null (MEJ-02 notice). */
     private static String layout(String title, String intro, String action, String link, String note,
             String fullName) {
-        String safeLink = HtmlUtils.htmlEscape(link);
+        String button = link == null ? "" : button(action, link);
         return """
                 <!doctype html>
                 <html lang="es">
@@ -124,13 +178,7 @@ class AccountMailer {
                           <h1 style="margin:0 0 16px;font-size:22px">%s</h1>
                           <p style="margin:0 0 16px;font-size:15px;line-height:1.5">Hola, %s:</p>
                           <p style="margin:0 0 24px;font-size:15px;line-height:1.5">%s</p>
-                          <p style="margin:0 0 24px">
-                            <a href="%s" style="display:inline-block;background:#14B8A6;color:#0F172A;padding:12px 24px;
-                               border-radius:8px;font-weight:bold;text-decoration:none">%s</a>
-                          </p>
-                          <p style="margin:0 0 8px;font-size:13px;color:#475569">Si el botón no funciona, copie este enlace en el navegador:</p>
-                          <p style="margin:0 0 24px;font-size:13px;word-break:break-all"><a href="%s" style="color:#0F766E">%s</a></p>
-                          <p style="margin:0;font-size:13px;color:#475569;line-height:1.5">%s</p>
+                          %s<p style="margin:0;font-size:13px;color:#475569;line-height:1.5">%s</p>
                         </td></tr>
                       </table>
                     </td></tr>
@@ -138,7 +186,20 @@ class AccountMailer {
                 </body>
                 </html>
                 """.formatted(HtmlUtils.htmlEscape(title), HtmlUtils.htmlEscape(fullName), HtmlUtils.htmlEscape(intro),
-                safeLink, HtmlUtils.htmlEscape(action), safeLink, safeLink, HtmlUtils.htmlEscape(note));
+                button, HtmlUtils.htmlEscape(note));
     }
+
+    private static String button(String action, String link) {
+        String safeLink = HtmlUtils.htmlEscape(link);
+        return """
+                <p style="margin:0 0 24px">
+                            <a href="%s" style="display:inline-block;background:#14B8A6;color:#0F172A;padding:12px 24px;
+                               border-radius:8px;font-weight:bold;text-decoration:none">%s</a>
+                          </p>
+                          <p style="margin:0 0 8px;font-size:13px;color:#475569">Si el botón no funciona, copie este enlace en el navegador:</p>
+                          <p style="margin:0 0 24px;font-size:13px;word-break:break-all"><a href="%s" style="color:#0F766E">%s</a></p>
+                          """.formatted(safeLink, HtmlUtils.htmlEscape(action), safeLink, safeLink);
+    }
+
 
 }

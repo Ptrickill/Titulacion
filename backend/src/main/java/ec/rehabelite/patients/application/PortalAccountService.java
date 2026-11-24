@@ -2,57 +2,71 @@ package ec.rehabelite.patients.application;
 
 import ec.rehabelite.audit.AuditAction;
 import ec.rehabelite.audit.AuditLogService;
-import ec.rehabelite.auth.PortalAccountCreated;
+import ec.rehabelite.auth.AccountProvisioning;
+import ec.rehabelite.auth.AccountSummary;
+import ec.rehabelite.auth.Role;
 import ec.rehabelite.patients.domain.Patient;
 import ec.rehabelite.patients.domain.PatientRepository;
+import ec.rehabelite.shared.domain.ConflictException;
 import ec.rehabelite.shared.domain.ResourceNotFoundException;
-import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Patient side of the portal accounts (HU-02): which patients can receive one, and the link itself.
+ * Portal account of a patient (MEJ-02): created from the patient's record ("Crear acceso al portal") with the
+ * patient's email and names, never typed by hand.
  */
 @Service
 @RequiredArgsConstructor
 public class PortalAccountService {
 
-    static final String AUDITED_ENTITY = "Patient";
-    static final String PATIENT_NOT_FOUND = "El paciente seleccionado no existe.";
-    static final int MAX_CANDIDATES = 20;
+    static final String EMAIL_IN_USE = "Ya existe una cuenta con el correo de este paciente. Corrija el correo del "
+            + "paciente antes de crear su acceso al portal.";
+    static final String EXISTING_USER_ID = "existingUserId";
 
     private static final Logger log = LoggerFactory.getLogger(PortalAccountService.class);
 
     private final PatientRepository patientRepository;
+    private final AccountProvisioning accounts;
     private final AuditLogService auditLogService;
 
-    /** Up to 20 patients without a portal account matching the name or national ID prefix. */
-    @Transactional(readOnly = true)
-    public List<Patient> findCandidates(String query) {
-        return patientRepository.findPortalCandidates(sanitize(query), MAX_CANDIDATES);
-    }
-
     /**
-     * Runs synchronously inside the account creation transaction, so any exception here also rolls back
-     * the new account.
+     * Creates the PATIENT account with the patient's email and names, links it to the patient and emails the
+     * activation link (MEJ-01), in one transaction. Audited as CREATE User, UPDATE Patient and INVITATION_SENT User.
+     *
+     * @throws ResourceNotFoundException if the patient does not exist
+     * @throws ConflictException if the patient already has an account, or another account uses the patient's email
+     *         (as its email or as a pending new email)
+     * @throws ec.rehabelite.shared.domain.ExternalServiceException if the email cannot be sent; nothing is created
      */
-    @EventListener
     @Transactional
-    public void on(PortalAccountCreated event) {
-        Patient patient = patientRepository.findById(event.patientId())
-                .orElseThrow(() -> new ResourceNotFoundException(PATIENT_NOT_FOUND));
-        patient.linkPortalAccount(event.userId());
-        auditLogService.record(AuditAction.UPDATE, AUDITED_ENTITY, patient.getId());
-        log.info("Portal account linked patientId={} userId={}", patient.getId(), event.userId());
+    public AccountSummary create(Long patientId) {
+        Patient patient = patientRepository.findById(patientId)
+                .orElseThrow(() -> new ResourceNotFoundException(PatientRegistrationService.PATIENT_NOT_FOUND));
+        if (patient.getPortalUserId() != null) {
+            throw new ConflictException(Patient.ALREADY_LINKED, Map.of(EXISTING_USER_ID, patient.getPortalUserId()));
+        }
+        if (!accounts.accountsUsingEmail(patient.getEmail()).isEmpty()) {
+            throw new ConflictException(EMAIL_IN_USE, Map.of(PatientIdentityRules.FIELD, "email"));
+        }
+
+        Long userId = accounts.create(patient.getEmail(), patient.fullName(), Role.PATIENT);
+        patient.linkPortalAccount(userId);
+        auditLogService.record(AuditAction.UPDATE, PatientRegistrationService.AUDITED_ENTITY, patient.getId());
+        accounts.sendInvitation(userId);
+        log.info("Portal account created and linked patientId={} userId={}", patient.getId(), userId);
+        return accounts.summary(userId).orElseThrow();
     }
 
-    /** LIKE wildcards typed by the user are removed so they match literally nothing special. */
-    private static String sanitize(String query) {
-        return query == null ? "" : query.strip().replaceAll("[%_\\\\]", "");
+    /** The patient's portal account, or empty when it has none. */
+    @Transactional(readOnly = true)
+    public Optional<AccountSummary> accountOf(Patient patient) {
+        return accounts.summary(patient.getPortalUserId());
     }
 
 }

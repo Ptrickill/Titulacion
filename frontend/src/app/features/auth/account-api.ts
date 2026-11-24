@@ -30,4 +30,9 @@ export class AccountApi {
   forgotPassword(email: string): Observable<ForgotPasswordResponse> {
     return this.http.post<ForgotPasswordResponse>('/api/auth/forgot-password', { email });
   }
+
+  /** POST /api/auth/confirm-email (MEJ-02): confirms the new email of the account. */
+  confirmEmail(token: string): Observable<void> {
+    return this.http.post<void>('/api/auth/confirm-email', { token });
+  }
 }

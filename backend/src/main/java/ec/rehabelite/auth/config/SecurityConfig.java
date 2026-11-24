@@ -35,7 +35,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 /**
  * Stateless security: every request needs a valid HS256 JWT (issued by POST /api/auth/login) except login, the
- * account links (activate, forgot-password, reset-password), health and the OpenAPI documentation. The token's "role" claim becomes the ROLE_&lt;role&gt; authority and
+ * account links (activate, forgot-password, reset-password, confirm-email), health and the OpenAPI documentation. The token's "role" claim becomes the ROLE_&lt;role&gt; authority and
  * {@link RoleAccessRules} decides which roles may use each API area. Failures answer a Spanish problem
  * response: 401 without a valid token (or with the token of an inactive account), 403 (audited as
  * ACCESS_DENIED) for a role outside the area.
@@ -43,9 +43,10 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration(proxyBeanMethods = false)
 class SecurityConfig {
 
-    /** Login and the emailed account links (MEJ-01), which are used without a session. */
+    /** Login and the emailed account links (MEJ-01, MEJ-02), which are used without a session. */
     private static final String[] PUBLIC_AUTH_ENDPOINTS = {
-        "/api/auth/login", "/api/auth/activate", "/api/auth/forgot-password", "/api/auth/reset-password"
+        "/api/auth/login", "/api/auth/activate", "/api/auth/forgot-password", "/api/auth/reset-password",
+        "/api/auth/confirm-email"
     };
 
     private static final String[] PUBLIC_DOCUMENTATION = {

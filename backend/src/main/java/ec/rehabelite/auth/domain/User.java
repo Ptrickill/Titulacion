@@ -1,5 +1,7 @@
 package ec.rehabelite.auth.domain;
 
+import ec.rehabelite.auth.AccountStatus;
+import ec.rehabelite.auth.AccountSummary;
 import ec.rehabelite.auth.Role;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -67,6 +69,13 @@ public class User {
     @Column(name = "session_version", nullable = false)
     private int sessionVersion;
 
+    /**
+     * New email of an activated account waiting for its owner's confirmation (MEJ-02); null when no change is
+     * pending. Until it is confirmed the account keeps logging in with {@link #email}.
+     */
+    @Column(name = "pending_email", length = 254)
+    private String pendingEmail;
+
     @Column(name = "created_by")
     private Long createdBy;
 
@@ -123,6 +132,55 @@ public class User {
             return AccountStatus.INACTIVE;
         }
         return isPendingActivation() ? AccountStatus.PENDING_ACTIVATION : AccountStatus.ACTIVE;
+    }
+
+    public AccountSummary summary() {
+        return new AccountSummary(id, role, status(), pendingEmail != null);
+    }
+
+    /**
+     * Keeps the account name equal to its person's names (MEJ-02).
+     *
+     * @return whether it changed
+     */
+    public boolean rename(String fullName, Long updatedBy, Instant now) {
+        if (fullName.equals(this.fullName)) {
+            return false;
+        }
+        this.fullName = fullName;
+        markUpdated(updatedBy, now);
+        return true;
+    }
+
+    /** MEJ-02: an account not activated yet takes the new email directly; its new activation link goes there. */
+    public void changeEmailBeforeActivation(String email, Long updatedBy, Instant now) {
+        this.email = normalizeEmail(email);
+        this.pendingEmail = null;
+        markUpdated(updatedBy, now);
+    }
+
+    /** MEJ-02: an activated account keeps its email until the owner confirms the new one. */
+    public void requestEmailChange(String email, Long updatedBy, Instant now) {
+        this.pendingEmail = normalizeEmail(email);
+        markUpdated(updatedBy, now);
+    }
+
+    /** MEJ-02: the person's email went back to the account's current email: nothing waits for confirmation. */
+    public void cancelEmailChange(Long updatedBy, Instant now) {
+        this.pendingEmail = null;
+        markUpdated(updatedBy, now);
+    }
+
+    /**
+     * MEJ-02: the owner confirmed the new email through the link. It becomes the login email, verified now, and the
+     * sessions opened with the previous email are closed (see {@link #getSessionVersion()}).
+     */
+    public void confirmEmailChange(Instant now) {
+        this.email = pendingEmail;
+        this.pendingEmail = null;
+        this.emailVerifiedAt = now;
+        this.sessionVersion++;
+        markUpdated(null, now);
     }
 
     public boolean isLocked(Instant now) {

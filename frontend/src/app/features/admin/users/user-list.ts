@@ -8,6 +8,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { Router } from '@angular/router';
 import { filter, finalize, switchMap } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth-service';
 import { Role } from '../../../core/auth/role';
@@ -19,7 +20,7 @@ import { EmptyState } from '../../../shared/ui/empty-state';
 import { PageHeader } from '../../../shared/ui/page-header';
 import { StatCard } from '../../../shared/ui/stat-card';
 import { BadgeTone, StatusBadge } from '../../../shared/ui/status-badge';
-import { openCreateUserDialog } from './create-user-dialog';
+import { OPEN_REGISTER_STATE } from '../people/people-api';
 import { formatLastAccess } from './last-access';
 import { AccountStatus, UserAccount, UserApi } from './user-api';
 import { USER_ROLE_FILTERS, USER_ROLE_LABELS, USER_ROLE_TONES } from './user-roles';
@@ -40,9 +41,10 @@ function normalize(text: string): string {
 
 /**
  * "Gestión de Usuarios y Roles" (HU-02, prototype 09): account indicators, search, role filter and the
- * account table; new accounts are created in {@link CreateUserDialog} and each row can be activated or
- * deactivated (HU-03). A new account stays "Pendiente de activación" until its owner follows the emailed link, and
- * its row offers "Reenviar invitación" (MEJ-01).
+ * account table; each row can be activated or deactivated (HU-03). A new account stays "Pendiente de activación"
+ * until its owner follows the emailed link, and its row offers "Reenviar invitación" (MEJ-01), or "Reenviar
+ * verificación" while a new email waits for confirmation (MEJ-02). Accounts are created only from "Registro de
+ * Usuarios" (MEJ-02): "Crear usuario" goes there.
  */
 @Component({
   selector: 'app-user-list',
@@ -69,6 +71,7 @@ export class UserList implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly router = inject(Router);
 
   protected readonly roleFilters = USER_ROLE_FILTERS;
   protected readonly roleLabels = USER_ROLE_LABELS;
@@ -132,15 +135,13 @@ export class UserList implements OnInit {
     });
   }
 
+  /**
+   * MEJ-02: no account is created by typing a name and an email. "Crear usuario" opens the registration of the
+   * person in "Registro de Usuarios": a staff member gets its account with its record, and a patient's portal access
+   * is created from its record.
+   */
   protected openCreateDialog(): void {
-    openCreateUserDialog(this.dialog).subscribe((created) => {
-      if (created) {
-        this.snackBar.open(`Enviamos un enlace de activación a ${created.email}`, 'Cerrar', {
-          duration: 6000,
-        });
-        this.load();
-      }
-    });
+    void this.router.navigate(['/admin/people'], { state: { [OPEN_REGISTER_STATE]: true } });
   }
 
   /** Asks for confirmation, then activates or deactivates the account and updates only its row (HU-03). */
@@ -203,11 +204,11 @@ export class UserList implements OnInit {
         next: (updated) => {
           this.users.update((users) => users.map((u) => (u.id === updated.id ? updated : u)));
           this.snackBar.open(
-            `Enviamos un nuevo enlace de activación a ${updated.email}`,
+            updated.emailChangePending
+              ? 'Enviamos un nuevo enlace de confirmación al nuevo correo.'
+              : `Enviamos un nuevo enlace de activación a ${updated.email}`,
             'Cerrar',
-            {
-              duration: 6000,
-            },
+            { duration: 6000 },
           );
         },
         error: (error: unknown) => {

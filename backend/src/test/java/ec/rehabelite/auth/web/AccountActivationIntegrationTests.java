@@ -7,9 +7,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.jayway.jsonpath.JsonPath;
 import ec.rehabelite.AbstractIntegrationTest;
 import ec.rehabelite.RecordingMailSender;
+import ec.rehabelite.TestStaff;
 import ec.rehabelite.auth.Role;
 import ec.rehabelite.auth.application.JwtTokenService;
 import ec.rehabelite.auth.domain.User;
@@ -179,7 +179,8 @@ class AccountActivationIntegrationTests extends AbstractIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
                 .andExpect(status().isUnprocessableContent())
                 .andExpect(jsonPath("$.detail")
-                        .value("Solo se puede reenviar la invitación a una cuenta habilitada que aún no se ha activado."));
+                        .value("Solo se puede reenviar el enlace a una cuenta habilitada que aún no se ha activado o que "
+                                + "tiene un cambio de correo por confirmar."));
         mockMvc.perform(post("/api/users/{id}/resend-invitation", 999_999_999L)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
                 .andExpect(status().isNotFound());
@@ -344,14 +345,9 @@ class AccountActivationIntegrationTests extends AbstractIntegrationTest {
                 .hasSize(64).doesNotContain(token);
     }
 
+    /** Since MEJ-02 an account is created by registering its person. */
     private Long createAccount(String email) throws Exception {
-        String body = mockMvc.perform(post("/api/users").header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"email":"%s","fullName":"Cuenta Nueva","role":"PHYSIOTHERAPIST"}""".formatted(email)))
-                .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsString();
-        return ((Number) JsonPath.read(body, "$.id")).longValue();
+        return TestStaff.registerAccount(mockMvc, adminToken, "PHYSIOTHERAPIST", email);
     }
 
     private String onlyActivationToken(String email) {

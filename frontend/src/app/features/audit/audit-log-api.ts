@@ -16,7 +16,9 @@ export type AuditAction =
   | 'INVITATION_RESENT'
   | 'ACTIVATION'
   | 'RESET_REQUEST'
-  | 'PASSWORD_RESET';
+  | 'PASSWORD_RESET'
+  | 'EMAIL_CHANGE'
+  | 'EMAIL_CONFIRMATION';
 
 /** Entry of GET /api/audit-logs: metadata only, never clinical data. */
 export interface AuditLogEntry {

@@ -35,9 +35,9 @@ class FlywayMigrationTests extends AbstractIntegrationTest {
     }
 
     @Test
-    void appliesV1ToV6() {
+    void appliesV1ToV7() {
         assertThat(Arrays.stream(flyway.info().applied()).map(MigrationInfo::getVersion).map(Object::toString))
-                .containsExactly("1", "2", "3", "4", "5", "6");
+                .containsExactly("1", "2", "3", "4", "5", "6", "7");
         assertThat(flyway.info().applied()).allMatch(migration -> migration.getState().isApplied());
         assertThat(flyway.info().pending()).isEmpty();
     }
@@ -178,6 +178,110 @@ class FlywayMigrationTests extends AbstractIntegrationTest {
         String crossedId = TestPatients.randomNationalId();
         assertThatThrownBy(() -> jdbc.update(base, crossedId, crossedId, "09", "1701", "170156", "Calle", "Otra"))
                 .rootCause().hasMessageContaining("ck_patients_address_codes");
+    }
+
+    /**
+     * MEJ-02: V7 on a database with V6 data (a fresh database in the same container, migrated to V6, then to V7).
+     * Every staff account gets its record with its email and its names split from full_name, and the rest empty; a
+     * patient account is left alone, but its name becomes its patient's names.
+     */
+    @Test
+    void v7GivesEveryStaffAccountItsRecordWithTheDataTheAccountHas() {
+        String database = "mej02_" + UUID.randomUUID().toString().replace("-", "");
+        jdbc.execute("CREATE DATABASE " + database);
+        try {
+            String url = POSTGRES.getJdbcUrl().replaceFirst("/[^/?]+(\\?|$)", "/" + database + "$1");
+            DriverManagerDataSource dataSource = new DriverManagerDataSource(url, POSTGRES.getUsername(),
+                    POSTGRES.getPassword());
+            JdbcTemplate other = new JdbcTemplate(dataSource);
+            Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").target("6").load().migrate();
+            String account = """
+                    INSERT INTO users (email, password_hash, full_name, role, email_verified_at)
+                    VALUES (?, '$2a$10$hash', ?, ?, now()) RETURNING id""";
+            other.queryForObject(account, Long.class, "uno@rehabelite.test", "Administrador", "ADMINISTRATOR");
+            other.queryForObject(account, Long.class, "dos@rehabelite.test", "Lucía  Mora", "PHYSIOTHERAPIST");
+            other.queryForObject(account, Long.class, "tres@rehabelite.test", "Paula Herrera Vásconez",
+                    "OPERATIONS_DIRECTOR");
+            other.queryForObject(account, Long.class, "cuatro@rehabelite.test", "María José Pérez López",
+                    "PHYSIOTHERAPIST");
+            Long patientAccount = other.queryForObject(account, Long.class, "paciente@rehabelite.test",
+                    "Nombre Escrito A Mano", "PATIENT");
+            other.update("""
+                    INSERT INTO patients (national_id, medical_record_number, first_name, last_name, birth_date, sex,
+                                          phone, email, occupation, education_level, has_health_insurance,
+                                          portal_user_id)
+                    VALUES ('1710034065', '1710034065', 'Rosa Elena', 'Ortiz Vega', DATE '1968-04-12', 'FEMALE',
+                            '0990000101', 'rosa@rehabelite.test', 'Contadora', 'Superior', true, ?)""",
+                    patientAccount);
+
+            Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").load().migrate();
+
+            assertThat(other.queryForList("""
+                    SELECT u.email || '|' || s.first_name || '|' || s.last_name || '|' || s.email || '|' || u.full_name
+                           || '|' || (s.national_id IS NULL AND s.birth_date IS NULL AND s.sex IS NULL
+                                      AND s.phone IS NULL AND s.parish_code IS NULL AND s.main_street IS NULL)
+                    FROM staff_records s JOIN users u ON u.id = s.user_id ORDER BY u.email""", String.class))
+                    .containsExactly(
+                            "cuatro@rehabelite.test|María José|Pérez López|cuatro@rehabelite.test"
+                                    + "|María José Pérez López|true",
+                            "dos@rehabelite.test|Lucía|Mora|dos@rehabelite.test|Lucía Mora|true",
+                            "tres@rehabelite.test|Paula|Herrera Vásconez|tres@rehabelite.test"
+                                    + "|Paula Herrera Vásconez|true",
+                            "uno@rehabelite.test|Administrador||uno@rehabelite.test|Administrador|true");
+            assertThat(other.queryForObject("SELECT count(*) FROM staff_records WHERE user_id = ?", Integer.class,
+                    patientAccount)).isZero();
+            assertThat(other.queryForObject("SELECT full_name FROM users WHERE id = ?", String.class, patientAccount))
+                    .isEqualTo("Rosa Elena Ortiz Vega");
+            assertThat(other.queryForObject("SELECT count(*) FROM users WHERE pending_email IS NOT NULL",
+                    Integer.class)).isZero();
+        } finally {
+            jdbc.execute("DROP DATABASE IF EXISTS " + database + " WITH (FORCE)");
+        }
+    }
+
+    /** MEJ-02: one record per account, unique national ID and email, and the address rules of V6. */
+    @Test
+    void v7KeepsOneStaffRecordPerAccountWithUniqueNationalIdAndEmail() {
+        Long first = insertAccount("PHYSIOTHERAPIST");
+        Long second = insertAccount("PHYSIOTHERAPIST");
+        String nationalId = TestPatients.randomNationalId();
+        String email = "registro-" + UUID.randomUUID() + "@rehabelite.test";
+        String insert = "INSERT INTO staff_records (user_id, national_id, first_name, last_name, email) "
+                + "VALUES (?, ?, 'N', 'A', ?)";
+        jdbc.update(insert, first, nationalId, email);
+
+        assertThatThrownBy(() -> jdbc.update(insert, first, null, "otro-" + email))
+                .rootCause().hasMessageContaining("uq_staff_records_user_id");
+        assertThatThrownBy(() -> jdbc.update(insert, second, nationalId, "otro-" + email))
+                .rootCause().hasMessageContaining("uq_staff_records_national_id");
+        assertThatThrownBy(() -> jdbc.update(insert, second, null, email))
+                .rootCause().hasMessageContaining("uq_staff_records_email");
+        assertThatThrownBy(() -> jdbc.update("""
+                INSERT INTO staff_records (user_id, first_name, last_name, email, province_code, canton_code,
+                                           parish_code, main_street)
+                VALUES (?, 'N', 'A', ?, '17', '1701', '170156', 'Calle')""", second, "x-" + email))
+                .rootCause().hasMessageContaining("ck_staff_records_address_parts");
+    }
+
+    /** MEJ-02: no two accounts share a pending new email, and links can now confirm an email. */
+    @Test
+    void v7AddsTheUniquePendingEmailAndTheEmailChangeLink() {
+        Long first = insertAccount("ADMINISTRATOR");
+        Long second = insertAccount("ADMINISTRATOR");
+        String pending = "nuevo-" + UUID.randomUUID() + "@rehabelite.test";
+        jdbc.update("UPDATE users SET pending_email = ? WHERE id = ?", pending, first);
+
+        assertThatThrownBy(() -> jdbc.update("UPDATE users SET pending_email = ? WHERE id = ?", pending, second))
+                .rootCause().hasMessageContaining("uq_users_pending_email");
+        jdbc.update("""
+                INSERT INTO account_tokens (user_id, purpose, token_hash, expires_at)
+                VALUES (?, 'EMAIL_CHANGE', ?, now() + interval '48 hours')""", first,
+                UUID.randomUUID().toString().replace("-", "").repeat(2));
+    }
+
+    private Long insertAccount(String role) {
+        return jdbc.queryForObject("INSERT INTO users (email, full_name, role) VALUES (?, 'Cuenta', ?) RETURNING id",
+                Long.class, "cuenta-" + UUID.randomUUID() + "@rehabelite.test", role);
     }
 
     /** MEJ-01: a pending account has no password; a token stores only its 64-character hash, once. */

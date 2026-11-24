@@ -21,8 +21,8 @@ export const NAV_ITEMS: Record<Role, readonly NavItem[]> = {
   ADMINISTRATOR: [
     { label: 'Inicio', icon: 'home', route: '/admin', exact: true },
     { label: 'Gestión de Usuarios', icon: 'shield_person', route: '/admin/users' },
-    // MEJ-03: the registry of users; MEJ-02 adds the staff to it. The route stays /admin/patients
-    { label: 'Registro de Usuarios', icon: 'group', route: '/admin/patients' },
+    // MEJ-02: patients and staff in one registry (/admin/patients redirects here)
+    { label: 'Registro de Usuarios', icon: 'group', route: '/admin/people' },
     // No "Reportes Consolidados" (prototype 12): the reports carry clinical data (HU-06, HU-14)
     { label: 'Auditoría', icon: 'policy', route: '/admin/audit' },
   ],
