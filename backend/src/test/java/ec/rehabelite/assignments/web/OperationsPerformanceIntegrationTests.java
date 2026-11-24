@@ -42,10 +42,13 @@ class OperationsPerformanceIntegrationTests extends AbstractIntegrationTest {
     /** The same as the board: the range is checked in memory. */
     private static final long AVAILABILITY_STATEMENTS = 6;
     /**
-     * Token check, active accounts, page, total, names of the patients, names of the responsibles, days of their
-     * schedules and the READ entries of the page in one INSERT.
+     * With the inactive-responsible filter: token check, active accounts, every physiotherapist account, page, total,
+     * names of the patients, names of the responsibles, days of their schedules and the READ entries of the page in
+     * one INSERT. Without the filter it is one less (no physiotherapist accounts). The filtered list is measured
+     * because each of its rows has a responsible: the first page of the whole list may hold treatments of other tests
+     * without one, and then the names and days need no statement.
      */
-    private static final long LIST_STATEMENTS = 8;
+    private static final long FILTERED_LIST_STATEMENTS = 9;
 
     @Autowired
     private MockMvc mockMvc;
@@ -80,33 +83,36 @@ class OperationsPerformanceIntegrationTests extends AbstractIntegrationTest {
     @Test
     void theBoardTheAvailabilityAndTheListDoNotGrowWithThePhysiotherapistsNorTheTreatments() throws Exception {
         User director = createUser(Role.OPERATIONS_DIRECTOR, "Dirección Rendimiento");
-        User inactive = physiotherapistWithTreatments(2);
-        jdbc.update("UPDATE users SET active = false WHERE id = ?", inactive.getId());
+        deactivate(physiotherapistWithTreatments(2));
         physiotherapistWithTreatments(1);
         long board = statements(director, get("/api/operations/schedules"));
         long availability = statements(director, availabilityRequest());
-        long list = statements(director, listRequest(1));
+        long list = statements(director, inactiveResponsibleList(1));
 
+        // Fifteen more physiotherapists with sixty active treatments, all of them with an inactive responsible
         for (int i = 0; i < 15; i++) {
-            physiotherapistWithTreatments(4);
+            deactivate(physiotherapistWithTreatments(4));
         }
 
         assertThat(board).isEqualTo(BOARD_STATEMENTS);
         assertThat(availability).isEqualTo(AVAILABILITY_STATEMENTS);
-        assertThat(list).isEqualTo(LIST_STATEMENTS);
+        assertThat(list).isEqualTo(FILTERED_LIST_STATEMENTS);
         assertThat(statements(director, get("/api/operations/schedules"))).isEqualTo(board);
         assertThat(statements(director, availabilityRequest())).isEqualTo(availability);
-        assertThat(statements(director, listRequest(50))).isEqualTo(list);
-        // The inactive-responsible filter adds one statement: every physiotherapist account
-        assertThat(statements(director, listRequest(1).param("inactiveResponsible", "true"))).isEqualTo(list + 1);
+        assertThat(statements(director, inactiveResponsibleList(50))).isEqualTo(list);
     }
 
     /**
-     * A full page, so the total is counted too (Spring Data skips the count when the first page is not full). With
-     * size 50 the shared database has more than 50 active treatments by then.
+     * A full page, so the total is counted too (Spring Data skips the count when the first page is not full): one
+     * treatment with an inactive responsible exists before the first request, and more than 50 before the second.
      */
-    private static MockHttpServletRequestBuilder listRequest(int size) {
-        return get("/api/operations/treatments").param("size", String.valueOf(size));
+    private static MockHttpServletRequestBuilder inactiveResponsibleList(int size) {
+        return get("/api/operations/treatments").param("inactiveResponsible", "true")
+                .param("size", String.valueOf(size));
+    }
+
+    private void deactivate(User user) {
+        jdbc.update("UPDATE users SET active = false WHERE id = ?", user.getId());
     }
 
     private static MockHttpServletRequestBuilder availabilityRequest() {
