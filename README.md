@@ -86,6 +86,10 @@ Architecture overview (C4 Level 2, containers):
    | `ANTHROPIC_API_KEY` | Claude API key (AI summaries) |
    | `CORS_ALLOWED_ORIGINS` | Comma-separated allowed origins |
    | `DEV_SEED_PASSWORD` | Password of the synthetic seed accounts (dev profile only, see [Development data](#development-data-dev-profile)) |
+   | `MAIL_FROM`, `APP_FRONTEND_URL` | Sender of the account emails and the public frontend URL their links point to |
+   | `MAIL_TRANSPORT` | How the account emails leave: `smtp` (default, also when empty) or `api` (Brevo's HTTP API, production; see `docs/deployment/correo.md`) |
+   | `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` | SMTP server for `MAIL_TRANSPORT=smtp` (Mailpit on `localhost:1025` in development) |
+   | `BREVO_API_KEY` | Brevo API key, required with `MAIL_TRANSPORT=api` |
 
    `.env` is git-ignored and must never be committed.
 
@@ -94,6 +98,7 @@ Architecture overview (C4 Level 2, containers):
    ```sql
    CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public;
    CREATE EXTENSION IF NOT EXISTS unaccent WITH SCHEMA public;
+   CREATE EXTENSION IF NOT EXISTS btree_gist WITH SCHEMA public;
    ```
 
 3. **Backend.** Flyway creates the schema on startup. Without a profile only the common settings apply (no seed data); to get synthetic data, add the `dev` profile (see [Development data](#development-data-dev-profile)):
@@ -130,8 +135,9 @@ The `dev` profile loads synthetic data so the screens can be tried without typin
 
 | What | Detail |
 |---|---|
-| Accounts | 2 physiotherapists, 1 operations director and 3 patient-portal accounts, all with emails ending in `@dev-seed.rehabelite.test` (`fisio.andrade@…`, `fisio.cevallos@…`, `direccion@…`, `paciente.ortiz@…`, `paciente.quishpe@…`, `paciente.zambrano@…`) |
-| Patients | 15 fictitious patients (personal data only) with valid Ecuadorian national IDs; the three portal accounts are linked to three of them |
+| Accounts | 3 physiotherapists, 1 operations director and 3 patient-portal accounts, all with emails ending in `@dev-seed.rehabelite.test` (`fisio.andrade@…`, `fisio.cevallos@…`, `fisio.paredes@…`, `direccion@…`, `paciente.ortiz@…`, `paciente.quishpe@…`, `paciente.zambrano@…`) |
+| Patients | 15 fictitious patients with valid Ecuadorian national IDs; the three portal accounts are linked to three of them, and eight have a clinical record with a synthetic treatment |
+| Schedules | Weekly schedules of the three physiotherapists and different treatment loads (MEJ-04) |
 | Password | Every seed account uses `DEV_SEED_PASSWORD` from `.env`. At startup it is stored as a BCrypt hash; neither the password nor the hash is in the repository. Change it in `.env` and restart to update it |
 
 The data lives in `backend/src/main/resources/db/dev-seed/R__dev_seed.sql`, a Flyway repeatable migration that `application-dev.yml` adds to the Flyway locations. Every statement is idempotent (`ON CONFLICT DO NOTHING`), so restarting never duplicates rows. The initial administrator still comes from `ADMIN_EMAIL` / `ADMIN_PASSWORD`.

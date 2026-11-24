@@ -57,8 +57,55 @@ public record AppProperties(
     public record Ai(String anthropicApiKey) {
     }
 
-    /** Sender of the account emails (MAIL_FROM); the SMTP server is configured under spring.mail. */
-    public record Mail(@NotBlank @Email String from) {
+    /**
+     * Account emails (MEJ-01, TEC-16): the sender (MAIL_FROM) and how they leave. {@code transport} is
+     * {@link MailTransport#SMTP} by default (MAIL_TRANSPORT empty or missing), with the server under spring.mail, or
+     * {@link MailTransport#API} through the Brevo HTTP API, which then needs BREVO_API_KEY.
+     */
+    public record Mail(
+            @NotBlank @Email String from,
+            MailTransport transport,
+            @Valid @DefaultValue Brevo brevo) {
+
+        public Mail {
+            if (transport == null) {
+                transport = MailTransport.SMTP;
+            }
+        }
+
+        @AssertTrue(message = "MAIL_TRANSPORT=api needs BREVO_API_KEY")
+        public boolean isApiKeyPresentForApi() {
+            return transport != MailTransport.API || (brevo != null && brevo.apiKey() != null
+                    && !brevo.apiKey().isBlank());
+        }
+
+    }
+
+    /** How the account emails leave (TEC-16). */
+    public enum MailTransport {
+        /** JavaMailSender and the SMTP server of spring.mail (Mailpit in development). */
+        SMTP,
+        /** Brevo's transactional email HTTP API: Render's free plan blocks outbound SMTP ports. */
+        API
+    }
+
+    /**
+     * Brevo transactional email API (TEC-16), used only with {@code app.mail.transport=api}. The key comes from
+     * BREVO_API_KEY; the base URL and the timeouts have defaults in application.yml.
+     */
+    public record Brevo(
+            String apiKey,
+            @DefaultValue("https://api.brevo.com") @NotBlank String baseUrl,
+            @DefaultValue("5s") @NotNull Duration connectTimeout,
+            @DefaultValue("10s") @NotNull Duration readTimeout) {
+
+        /** Never print the key, e.g. in logs or debugger views. */
+        @Override
+        public String toString() {
+            return "Brevo[apiKey=" + (apiKey == null || apiKey.isBlank() ? "<blank>" : "<set>") + ", baseUrl="
+                    + baseUrl + ", connectTimeout=" + connectTimeout + ", readTimeout=" + readTimeout + "]";
+        }
+
     }
 
     /**

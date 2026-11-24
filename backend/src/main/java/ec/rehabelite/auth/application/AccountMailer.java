@@ -1,21 +1,18 @@
 package ec.rehabelite.auth.application;
 
 import ec.rehabelite.auth.domain.User;
+import ec.rehabelite.auth.mail.MailGateway;
+import ec.rehabelite.auth.mail.MailMessage;
 import ec.rehabelite.shared.config.AppProperties;
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
-import java.io.UnsupportedEncodingException;
 import java.time.Duration;
 import lombok.RequiredArgsConstructor;
-import org.springframework.mail.MailPreparationException;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.HtmlUtils;
 
 /**
- * Emails of the account links (MEJ-01), in Spanish, as plain text and HTML. The link carries the raw token: the
- * message is never logged. A delivery failure surfaces as Spring's {@code MailException}.
+ * Emails of the account links (MEJ-01), in Spanish, as plain text and HTML. It only writes them: the
+ * {@link MailGateway} chosen by {@code app.mail.transport} delivers them (TEC-16). The link carries the raw token: the
+ * message is never logged. A delivery failure surfaces as Spring's {@code MailException}, whatever the transport.
  */
 @Component
 @RequiredArgsConstructor
@@ -30,9 +27,7 @@ class AccountMailer {
     /** Spanish like the other emailed links: the user sees it in the email and in the address bar (MEJ-02). */
     static final String EMAIL_CHANGE_PATH = "/confirmar-correo";
 
-    private static final String SENDER_NAME = "Rehab Elite";
-
-    private final JavaMailSender mailSender;
+    private final MailGateway mailGateway;
     private final AppProperties properties;
 
     void sendActivation(User user, String token) {
@@ -132,17 +127,7 @@ class AccountMailer {
     }
 
     private void send(String to, String subject, String text, String html) {
-        MimeMessage message = mailSender.createMimeMessage();
-        try {
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(properties.mail().from(), SENDER_NAME);
-            helper.setTo(to);
-            helper.setSubject(subject);
-            helper.setText(text, html);
-        } catch (MessagingException | UnsupportedEncodingException ex) {
-            throw new MailPreparationException("Could not prepare the account email", ex);
-        }
-        mailSender.send(message);
+        mailGateway.send(new MailMessage(to, subject, text, html));
     }
 
     private String linkTo(String path, String token) {
