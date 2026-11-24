@@ -1,5 +1,5 @@
 import { Role } from '../../../core/auth/role';
-import { PortalCandidate, UserAccount } from './user-api';
+import { UserAccount } from './user-api';
 
 /** Synthetic account for unit tests. */
 export function fakeUser(
@@ -15,13 +15,9 @@ export function fakeUser(
     role,
     active: true,
     status: 'ACTIVE',
+    emailChangePending: false,
     lastLoginAt: null,
     createdAt: '2026-10-01T15:00:00Z',
     ...overrides,
   };
-}
-
-/** Synthetic patient without portal account (national ID with a valid check digit). */
-export function fakeCandidate(id: number, fullName: string): PortalCandidate {
-  return { id, fullName, nationalId: '1710034065', medicalRecordNumber: '1710034065' };
 }

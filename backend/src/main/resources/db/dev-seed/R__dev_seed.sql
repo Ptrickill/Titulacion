@@ -31,6 +31,37 @@ VALUES ('fisio.andrade@dev-seed.rehabelite.test', 'dev-seed:password-set-at-star
 ON CONFLICT (email) DO NOTHING;
 
 -- ---------------------------------------------------------------------
+-- Staff records (MEJ-02): complete personal data of each staff account of the seed. A database migrated to V7
+-- before this script already has their records with data to complete: they are filled in, once
+-- ---------------------------------------------------------------------
+INSERT INTO staff_records (user_id, national_id, first_name, last_name, birth_date, sex, phone, email,
+                           province_code, canton_code, parish_code, main_street, street_number, cross_street,
+                           address_reference)
+SELECT u.id, staff.national_id, staff.first_name, staff.last_name, staff.birth_date, staff.sex, staff.phone, u.email,
+       staff.province_code, staff.canton_code, staff.parish_code, staff.main_street, staff.street_number,
+       staff.cross_street, staff.address_reference
+FROM (VALUES ('fisio.andrade@dev-seed.rehabelite.test', '1702000165', 'Valeria', 'Andrade Mora', DATE '1990-03-14',
+              'FEMALE', '0990000201', '17', '1701', '170156', 'Calle de Prueba', 'N5-10', 'Av. Ficticia',
+              'Edificio de prueba, departamento 2'),
+             ('fisio.cevallos@dev-seed.rehabelite.test', '1702000249', 'Martín', 'Cevallos Ruiz', DATE '1987-08-02',
+              'MALE', '0990000202', '17', '1701', '170112', 'Av. Imaginaria', '210', 'Calle Ejemplo',
+              'Casa esquinera de prueba'),
+             ('direccion@dev-seed.rehabelite.test', '1702000322', 'Paula', 'Herrera Vásconez', DATE '1979-11-25',
+              'FEMALE', '022345201', '17', '1701', '170108', 'Pasaje Ficticio', 'E3-45', 'Calle de Prueba',
+              'Frente a la plaza de prueba'))
+         AS staff (email, national_id, first_name, last_name, birth_date, sex, phone, province_code, canton_code,
+                   parish_code, main_street, street_number, cross_street, address_reference)
+         JOIN users u ON u.email = staff.email
+ON CONFLICT (user_id) DO UPDATE
+    SET national_id = EXCLUDED.national_id, first_name = EXCLUDED.first_name, last_name = EXCLUDED.last_name,
+        birth_date = EXCLUDED.birth_date, sex = EXCLUDED.sex, phone = EXCLUDED.phone,
+        province_code = EXCLUDED.province_code, canton_code = EXCLUDED.canton_code,
+        parish_code = EXCLUDED.parish_code, main_street = EXCLUDED.main_street,
+        street_number = EXCLUDED.street_number, cross_street = EXCLUDED.cross_street,
+        address_reference = EXCLUDED.address_reference
+    WHERE staff_records.national_id IS NULL;
+
+-- ---------------------------------------------------------------------
 -- Patients (personal data only); medical record number = national ID
 -- ---------------------------------------------------------------------
 -- MEJ-03: structured address (parish, canton and province codes of INEC's catalog, and the streets), phones that

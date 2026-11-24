@@ -1,0 +1,439 @@
+<header class="header">
+  <div class="icon-tile" aria-hidden="true">
+    <mat-icon>{{ editing ? 'edit' : 'person_add' }}</mat-icon>
+  </div>
+  <div class="heading">
+    <h2 mat-dialog-title class="title">{{ editing ? 'Editar usuario' : 'Registrar usuario' }}</h2>
+    <p class="subtitle">{{ subtitle() }}</p>
+  </div>
+  <button
+    mat-icon-button
+    type="button"
+    class="close"
+    mat-dialog-close
+    aria-label="Cerrar"
+    [disabled]="submitting()"
+  >
+    <mat-icon>close</mat-icon>
+  </button>
+</header>
+
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <mat-dialog-content>
+    @if (editing && (patient?.needsCompletion || staff?.needsCompletion)) {
+      <div class="completion" role="note">
+        <mat-icon aria-hidden="true">assignment_late</mat-icon>
+        <span>
+          @if (staff) {
+            Este registro tiene datos por completar: complete la cédula, la fecha de nacimiento, el
+            sexo, el teléfono y la dirección.
+          } @else {
+            Este paciente tiene datos por completar: la dirección estructurada o un teléfono con el
+            formato actual.
+          }
+        </span>
+      </div>
+    }
+
+    <mat-stepper
+      #stepper
+      [linear]="!editing"
+      labelPosition="bottom"
+      (selectionChange)="selectedIndex.set($event.selectedIndex)"
+    >
+      <!-- 0. Tipo de usuario (MEJ-02, only when registering) -->
+      @if (!editing) {
+        <mat-step [stepControl]="kind" label="Tipo de usuario">
+          <app-person-kind-step [group]="kind" />
+        </mat-step>
+      }
+
+      <!-- 1. Identificación -->
+      <mat-step [stepControl]="identification" label="Identificación">
+        <div class="step-grid" [formGroup]="identification">
+          <mat-form-field appearance="fill" subscriptSizing="dynamic">
+            <mat-label>Cédula</mat-label>
+            <input
+              matInput
+              id="person-national-id"
+              formControlName="nationalId"
+              inputmode="numeric"
+              maxlength="10"
+              autocomplete="off"
+            />
+            @if (identification.controls.nationalId.disabled) {
+              <mat-hint>La cédula no se modifica.</mat-hint>
+            } @else if (checkingNationalId()) {
+              <mat-hint>Comprobando si ya está registrada…</mat-hint>
+            }
+            @if (identification.controls.nationalId.hasError('required')) {
+              <mat-error>Ingrese la cédula.</mat-error>
+            } @else if (nationalIdMessage(); as message) {
+              <mat-error>{{ message }}</mat-error>
+            } @else if (identification.controls.nationalId.hasError('duplicate')) {
+              <mat-error>La cédula ya está registrada.</mat-error>
+            }
+          </mat-form-field>
+
+          @if (!isStaff()) {
+            <mat-form-field appearance="fill" subscriptSizing="dynamic" floatLabel="always">
+              <mat-label>N.º de historia clínica</mat-label>
+              <input
+                matInput
+                readonly
+                class="record-number"
+                [value]="medicalRecordNumber()"
+                placeholder="Se genera desde la cédula"
+              />
+              <mat-hint>{{
+                editing ? 'No se modifica' : 'Igual a la cédula; lo asigna el sistema'
+              }}</mat-hint>
+            </mat-form-field>
+          }
+
+          @if (existingRecord(); as existing) {
+            <div class="full duplicate" role="alert">
+              <mat-icon aria-hidden="true">warning</mat-icon>
+              <span>
+                Ya existe
+                {{ existing.type === 'PATIENT' ? 'un paciente' : 'un miembro del personal' }}
+                registrado con esta cédula{{ existing.name ? ': ' + existing.name : '' }}.
+              </span>
+              <a
+                mat-stroked-button
+                class="existing-link"
+                [routerLink]="link(existing)"
+                mat-dialog-close
+              >
+                Ver registro existente
+              </a>
+            </div>
+          }
+        </div>
+      </mat-step>
+
+      <!-- 2. Datos personales y contacto -->
+      <mat-step [stepControl]="personal" label="Datos personales y contacto">
+        <div [formGroup]="personal">
+          <div class="step-grid">
+            <mat-form-field appearance="fill" subscriptSizing="dynamic">
+              <mat-label>Nombres</mat-label>
+              <input
+                matInput
+                id="person-first-name"
+                formControlName="firstName"
+                autocomplete="off"
+              />
+              @if (personal.controls.firstName.hasError('required')) {
+                <mat-error>Ingrese los nombres.</mat-error>
+              } @else {
+                <mat-error>Máximo 100 caracteres.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="fill" subscriptSizing="dynamic">
+              <mat-label>Apellidos</mat-label>
+              <input matInput formControlName="lastName" autocomplete="off" />
+              @if (personal.controls.lastName.hasError('required')) {
+                <mat-error>Ingrese los apellidos.</mat-error>
+              } @else {
+                <mat-error>Máximo 100 caracteres.</mat-error>
+              }
+            </mat-form-field>
+
+            <div class="birth-age">
+              <app-date-field
+                label="Fecha de nacimiento"
+                inputId="person-birth-date"
+                [control]="personal.controls.birthDate"
+                [max]="today"
+                [messages]="{
+                  required: 'Ingrese la fecha de nacimiento.',
+                  notPast: 'Debe ser anterior a hoy.',
+                  afterAdmission: 'No puede ser posterior a la fecha de ingreso.',
+                }"
+              />
+              <div class="age" aria-live="polite">
+                <span class="age-label">Edad</span>
+                <span class="age-value">{{ age() || '—' }}</span>
+              </div>
+            </div>
+
+            <mat-form-field appearance="fill" subscriptSizing="dynamic">
+              <mat-label>Sexo</mat-label>
+              <mat-select formControlName="sex">
+                @for (sex of sexes; track sex) {
+                  <mat-option [value]="sex">{{ sexLabels[sex] }}</mat-option>
+                }
+              </mat-select>
+              <mat-error>Seleccione el sexo.</mat-error>
+            </mat-form-field>
+
+            <app-phone-field inputId="person-phone" [control]="personal.controls.phone" />
+
+            <mat-form-field appearance="fill" subscriptSizing="dynamic">
+              <mat-label>Correo electrónico</mat-label>
+              <input
+                matInput
+                type="email"
+                id="person-email"
+                formControlName="email"
+                autocomplete="off"
+              />
+              @if (isStaff() && !editing) {
+                <mat-hint>Recibirá aquí el enlace para activar su cuenta.</mat-hint>
+              }
+              @if (personal.controls.email.hasError('required')) {
+                <mat-error>Ingrese el correo electrónico.</mat-error>
+              } @else if (personal.controls.email.hasError('emailTaken')) {
+                <mat-error>El correo ya está registrado.</mat-error>
+              } @else {
+                <mat-error>Ingrese un correo electrónico válido.</mat-error>
+              }
+            </mat-form-field>
+
+            @if (emailOwner(); as owner) {
+              <div class="full duplicate email-owner" role="alert">
+                <mat-icon aria-hidden="true">warning</mat-icon>
+                <span>
+                  Este correo ya es de
+                  {{ owner.type === 'PATIENT' ? 'un paciente' : 'un miembro del personal'
+                  }}{{ owner.name ? ': ' + owner.name : '' }}. Use otro correo.
+                </span>
+                <a
+                  mat-stroked-button
+                  class="existing-link"
+                  [routerLink]="link(owner)"
+                  mat-dialog-close
+                >
+                  Ver registro existente
+                </a>
+              </div>
+            } @else if (sharedEmailPatients().length > 0) {
+              <div class="full shared-email" role="status">
+                <mat-icon aria-hidden="true">info</mat-icon>
+                <span>
+                  Otro paciente usa este correo: {{ sharedEmailPatients().join(', ') }}. Puede
+                  guardar igual; solo uno de ellos podrá tener acceso al portal con este correo.
+                </span>
+              </div>
+            }
+
+            @if (emailChangeNotice(); as notice) {
+              <div class="full email-change" role="status">
+                <mat-icon aria-hidden="true">mark_email_unread</mat-icon>
+                <span>{{ notice }}</span>
+              </div>
+            }
+          </div>
+
+          <h3 class="block-title">Dirección</h3>
+          <app-address-fields [group]="personal.controls.address" />
+        </div>
+      </mat-step>
+
+      <!-- 3. Datos de admisión (patients only) -->
+      @if (!isStaff()) {
+        <mat-step [stepControl]="admission" label="Datos de admisión">
+          <div [formGroup]="admission">
+            <div class="step-grid">
+              <app-date-field
+                label="Fecha de ingreso"
+                inputId="patient-admission-date"
+                hint="Hoy, si no se cambia"
+                [control]="admission.controls.admissionDate"
+                [max]="today"
+                [messages]="{
+                  required: 'Ingrese la fecha de ingreso.',
+                  future: 'La fecha de ingreso no puede ser futura.',
+                }"
+              />
+
+              <mat-form-field appearance="fill" subscriptSizing="dynamic">
+                <mat-label>Ocupación</mat-label>
+                <input matInput formControlName="occupation" autocomplete="off" />
+                @if (admission.controls.occupation.hasError('required')) {
+                  <mat-error>Ingrese la ocupación.</mat-error>
+                } @else {
+                  <mat-error>Máximo 100 caracteres.</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="fill" subscriptSizing="dynamic">
+                <mat-label>Nivel de instrucción</mat-label>
+                <mat-select formControlName="educationLevel">
+                  @for (level of educationLevels; track level) {
+                    <mat-option [value]="level">{{ level }}</mat-option>
+                  }
+                </mat-select>
+                <mat-error>Seleccione el nivel de instrucción.</mat-error>
+              </mat-form-field>
+
+              <app-yes-no-toggle
+                label="¿Tiene seguro de salud?"
+                requiredMessage="Indique si tiene seguro de salud."
+                [control]="admission.controls.hasHealthInsurance"
+              />
+            </div>
+
+            <mat-expansion-panel class="optional">
+              <mat-expansion-panel-header>
+                <mat-panel-title>Datos opcionales</mat-panel-title>
+                <mat-panel-description>Autoidentificación étnica y religión</mat-panel-description>
+              </mat-expansion-panel-header>
+              <p class="optional-note">
+                Estos datos son opcionales: complételos solo si el paciente desea indicarlos.
+              </p>
+              <div class="step-grid">
+                <mat-form-field appearance="fill" subscriptSizing="dynamic">
+                  <mat-label>Autoidentificación étnica</mat-label>
+                  <mat-select formControlName="ethnicSelfIdentification">
+                    <mat-option value="">Sin especificar</mat-option>
+                    @for (identification of ethnicIdentifications; track identification) {
+                      <mat-option [value]="identification">{{ identification }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="fill" subscriptSizing="dynamic">
+                  <mat-label>Religión</mat-label>
+                  <input matInput formControlName="religion" autocomplete="off" />
+                  <mat-error>Máximo 50 caracteres.</mat-error>
+                </mat-form-field>
+              </div>
+            </mat-expansion-panel>
+          </div>
+        </mat-step>
+      }
+
+      <!-- 4. Revisión -->
+      <mat-step label="Revisión">
+        @let data = review();
+        <section class="summary" aria-labelledby="summary-identification">
+          <header>
+            <h3 id="summary-identification">Identificación</h3>
+            @if (!editing || !identification.controls.nationalId.disabled) {
+              <button mat-button type="button" class="edit" (click)="goTo('identification')">
+                <mat-icon aria-hidden="true">edit</mat-icon>
+                Editar
+              </button>
+            }
+          </header>
+          <dl>
+            @if (isStaff()) {
+              <dt>Tipo de usuario</dt>
+              <dd>Personal</dd>
+              <dt>Rol</dt>
+              <dd>{{ data.role }}</dd>
+            }
+            <dt>Cédula</dt>
+            <dd>{{ data.nationalId }}</dd>
+            @if (!isStaff()) {
+              <dt>N.º de historia clínica</dt>
+              <dd>{{ data.nationalId }}</dd>
+            }
+          </dl>
+        </section>
+
+        <section class="summary" aria-labelledby="summary-personal">
+          <header>
+            <h3 id="summary-personal">Datos personales y contacto</h3>
+            <button mat-button type="button" class="edit" (click)="goTo('personal')">
+              <mat-icon aria-hidden="true">edit</mat-icon>
+              Editar
+            </button>
+          </header>
+          <dl>
+            <dt>Nombres</dt>
+            <dd>{{ data.firstName }}</dd>
+            <dt>Apellidos</dt>
+            <dd>{{ data.lastName }}</dd>
+            <dt>Fecha de nacimiento</dt>
+            <dd>{{ data.birthDate }} ({{ data.age }})</dd>
+            <dt>Sexo</dt>
+            <dd>{{ data.sex }}</dd>
+            <dt>Teléfono</dt>
+            <dd>{{ data.phone }}</dd>
+            <dt>Correo electrónico</dt>
+            <dd>{{ data.email }}</dd>
+            <dt>Dirección</dt>
+            <dd class="address">{{ data.address }}</dd>
+          </dl>
+        </section>
+
+        @if (!isStaff()) {
+          <section class="summary" aria-labelledby="summary-admission">
+            <header>
+              <h3 id="summary-admission">Datos de admisión</h3>
+              <button mat-button type="button" class="edit" (click)="goTo('admission')">
+                <mat-icon aria-hidden="true">edit</mat-icon>
+                Editar
+              </button>
+            </header>
+            <dl>
+              <dt>Fecha de ingreso</dt>
+              <dd>{{ data.admissionDate }}</dd>
+              <dt>Ocupación</dt>
+              <dd>{{ data.occupation }}</dd>
+              <dt>Nivel de instrucción</dt>
+              <dd>{{ data.educationLevel }}</dd>
+              <dt>Seguro de salud</dt>
+              <dd>{{ data.hasHealthInsurance }}</dd>
+              <dt>Autoidentificación étnica</dt>
+              <dd>{{ data.ethnicSelfIdentification }}</dd>
+              <dt>Religión</dt>
+              <dd>{{ data.religion }}</dd>
+            </dl>
+          </section>
+        } @else if (!editing) {
+          <div class="account-note" role="note">
+            <mat-icon aria-hidden="true">forward_to_inbox</mat-icon>
+            <span>
+              Al registrar se creará la cuenta de {{ data.firstName }} {{ data.lastName }} y se
+              enviará a {{ data.email }} el enlace para activarla.
+            </span>
+          </div>
+        }
+      </mat-step>
+    </mat-stepper>
+
+    @if (errorMessage(); as message) {
+      <div class="error" role="alert">
+        <mat-icon aria-hidden="true">error</mat-icon>
+        <span>{{ message }}</span>
+      </div>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="actions">
+    <button mat-stroked-button type="button" mat-dialog-close [disabled]="submitting()">
+      Cancelar
+    </button>
+    <span class="spacer"></span>
+    <button
+      mat-stroked-button
+      type="button"
+      class="previous"
+      [disabled]="selectedIndex() === 0 || submitting()"
+      (click)="previous()"
+    >
+      <mat-icon aria-hidden="true">arrow_back</mat-icon>
+      Anterior
+    </button>
+    @if (!isLastStep()) {
+      <button mat-flat-button type="button" class="next" (click)="next()">
+        Siguiente
+        <mat-icon iconPositionEnd aria-hidden="true">arrow_forward</mat-icon>
+      </button>
+    } @else {
+      <button mat-flat-button type="submit" class="submit" [disabled]="submitting()">
+        @if (submitting()) {
+          <mat-spinner diameter="18" aria-label="Guardando" />
+        } @else {
+          <mat-icon aria-hidden="true">{{ editing ? 'save' : 'how_to_reg' }}</mat-icon>
+        }
+        {{ editing ? 'Guardar cambios' : 'Registrar' }}
+      </button>
+    }
+  </mat-dialog-actions>
+</form>

@@ -32,21 +32,31 @@ class PatientSearchImpl implements PatientSearch {
 
     @Override
     public Page<Patient> search(String query, Pageable pageable) {
+        List<Patient> content = searchSlice(query, pageable.getOffset(), pageable.getPageSize());
+        return new PageImpl<>(content, pageable, countSearch(query));
+    }
+
+    @Override
+    public List<Patient> searchSlice(String query, long offset, int limit) {
         List<String> parameters = new ArrayList<>();
         String where = whereClause(sanitize(query), parameters);
-
         Query select = entityManager.createNativeQuery(
                 "SELECT p.* FROM patients p" + where + ORDER_BY, Patient.class);
         bind(select, parameters);
-        select.setFirstResult((int) pageable.getOffset());
-        select.setMaxResults(pageable.getPageSize());
+        select.setFirstResult((int) offset);
+        select.setMaxResults(limit);
         @SuppressWarnings("unchecked")
         List<Patient> content = select.getResultList();
+        return content;
+    }
 
+    @Override
+    public long countSearch(String query) {
+        List<String> parameters = new ArrayList<>();
+        String where = whereClause(sanitize(query), parameters);
         Query count = entityManager.createNativeQuery("SELECT count(*) FROM patients p" + where);
         bind(count, parameters);
-        long total = ((Number) count.getSingleResult()).longValue();
-        return new PageImpl<>(content, pageable, total);
+        return ((Number) count.getSingleResult()).longValue();
     }
 
     private static String whereClause(String query, List<String> parameters) {

@@ -1,5 +1,7 @@
 package ec.rehabelite.patients.domain;
 
+import ec.rehabelite.shared.domain.Sex;
+import ec.rehabelite.shared.domain.PostalAddress;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -68,7 +70,7 @@ class PatientTests {
         Patient patient = Patient.register("1710034065", ADMISSION, data(LocalDate.of(1996, 3, 15), null, null), 3L,
                 NOW);
         PersonalData changed = new PersonalData("Juan", "Pérez", LocalDate.of(1996, 3, 16), Sex.MALE, "0991112233",
-                "nuevo@correo.ec", new PatientAddress("17", "1701", "170157", "Calle Nueva", null, "Calle Dos", "Casa"),
+                "nuevo@correo.ec", new PostalAddress("17", "1701", "170157", "Calle Nueva", null, "Calle Dos", "Casa"),
                 "Arquitecto", "Posgrado", true, "Mestizo", "Ninguna");
         Instant later = NOW.plusSeconds(3600);
 
@@ -111,7 +113,7 @@ class PatientTests {
 
     static PersonalData data(LocalDate birthDate, String ethnicSelfIdentification, String religion) {
         return new PersonalData(" Juan Carlos ", "Pérez Gómez ", birthDate, Sex.MALE, "0987654321",
-                " Juan.Perez@Correo.ec", new PatientAddress("17", "1701", "170156", "Av. Ilaló", "N12-34", "Río Pita", "Frente al parque"), "Ingeniero civil", "Superior",
+                " Juan.Perez@Correo.ec", new PostalAddress("17", "1701", "170156", "Av. Ilaló", "N12-34", "Río Pita", "Frente al parque"), "Ingeniero civil", "Superior",
                 true, ethnicSelfIdentification, religion);
     }
 

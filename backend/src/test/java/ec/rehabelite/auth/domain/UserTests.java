@@ -1,5 +1,6 @@
 package ec.rehabelite.auth.domain;
 
+import ec.rehabelite.auth.AccountStatus;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import ec.rehabelite.auth.Role;

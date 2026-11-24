@@ -33,6 +33,13 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/auth/set-password/set-password-page').then((m) => m.SetPasswordPage),
   },
+  // MEJ-02: link to confirm the new email of an account; Spanish for the same reason as the MEJ-01 links
+  {
+    path: 'confirmar-correo',
+    title: 'Confirmar correo | Rehab Elite',
+    loadComponent: () =>
+      import('./features/auth/confirm-email/confirm-email-page').then((m) => m.ConfirmEmailPage),
+  },
   {
     path: 'olvide-contrasena',
     title: 'Recuperar contraseña | Rehab Elite',

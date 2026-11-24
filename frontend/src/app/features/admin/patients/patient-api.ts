@@ -3,6 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Page } from '../../../core/http/page';
 import { AddressValue } from '../../../shared/forms/location-catalog';
+import { PersonAccount } from '../people/people-api';
 
 export type Sex = 'MALE' | 'FEMALE';
 
@@ -55,6 +56,8 @@ export interface Patient extends Omit<RegisterPatientRequest, 'address'> {
   needsCompletion: boolean;
   /** Equal to the national ID. */
   medicalRecordNumber: string;
+  /** Portal account (MEJ-02), created from the record; null while the patient has none. */
+  portalAccount: PersonAccount | null;
   /** Completed years, calculated by the server from the birth date. */
   age: number;
   createdAt: string;
@@ -103,5 +106,13 @@ export class PatientApi {
 
   update(id: number, request: UpdatePatientRequest): Observable<Patient> {
     return this.http.put<Patient>(`/api/patients/${id}`, request);
+  }
+
+  /**
+   * POST /api/patients/{id}/portal-account (MEJ-02): creates the portal account with the patient's email and names
+   * (nothing is typed) and emails the activation link.
+   */
+  createPortalAccount(id: number): Observable<PersonAccount> {
+    return this.http.post<PersonAccount>(`/api/patients/${id}/portal-account`, null);
   }
 }

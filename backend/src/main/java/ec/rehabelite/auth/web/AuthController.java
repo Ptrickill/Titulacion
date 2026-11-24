@@ -110,6 +110,22 @@ class AuthController {
         accountAccessService.resetPassword(request.token(), request.password(), request.passwordConfirmation());
     }
 
+    @PostMapping(path = "/confirm-email", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @SecurityRequirements
+    @Operation(summary = "Confirmar el nuevo correo",
+            description = "Público. Con el enlace enviado al nuevo correo cuando el administrador lo cambió (MEJ-02), "
+                    + "ese correo pasa a ser el de inicio de sesión. La contraseña no cambia y las sesiones abiertas "
+                    + "con el correo anterior se cierran. El enlace vence en 48 horas y sirve una sola vez. Queda "
+                    + "auditado como EMAIL_CONFIRMATION, sin ninguno de los dos correos.")
+    @ApiResponse(responseCode = "204", description = "Correo confirmado; ya puede iniciar sesión con él")
+    @ApiResponse(responseCode = "400", description = "Enlace inexistente, usado, reemplazado o vencido, o de una "
+            + "cuenta desactivada (mismo mensaje en todos los casos)", content = @Content(
+            mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = ProblemDetail.class)))
+    void confirmEmail(@Valid @RequestBody ConfirmEmailRequest request) {
+        accountAccessService.confirmEmail(request.token());
+    }
+
     @ExceptionHandler(InvalidCredentialsException.class)
     ProblemDetail handleInvalidCredentials(InvalidCredentialsException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());

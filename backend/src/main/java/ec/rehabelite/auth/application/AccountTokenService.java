@@ -55,6 +55,11 @@ class AccountTokenService {
         return stored.getUserId();
     }
 
+    /** The unused links of a purpose stop working, e.g. a cancelled change of email (MEJ-02). */
+    void revoke(Long userId, AccountTokenPurpose purpose, Instant now) {
+        tokenRepository.markUnusedAsUsed(userId, purpose, now);
+    }
+
     /** Links of a purpose issued for the account since a moment, used or not. */
     long countIssuedSince(Long userId, AccountTokenPurpose purpose, Instant since) {
         return tokenRepository.countByUserIdAndPurposeAndCreatedAtAfter(userId, purpose, since);
@@ -62,7 +67,8 @@ class AccountTokenService {
 
     private Duration ttlOf(AccountTokenPurpose purpose) {
         return switch (purpose) {
-            case ACTIVATION -> properties.tokens().activationTtl();
+            // MEJ-02: confirming a new email lasts as long as an activation link
+            case ACTIVATION, EMAIL_CHANGE -> properties.tokens().activationTtl();
             case PASSWORD_RESET -> properties.tokens().resetTtl();
         };
     }

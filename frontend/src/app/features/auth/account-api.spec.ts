@@ -32,4 +32,12 @@ describe('AccountApi', () => {
       email: 'ana@rehabelite.test',
     });
   });
+
+  it('confirms a new email with the token of the link (MEJ-02)', () => {
+    api.confirmEmail('t').subscribe();
+
+    const request = backend.expectOne('/api/auth/confirm-email');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({ token: 't' });
+  });
 });

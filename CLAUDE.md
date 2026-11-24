@@ -23,7 +23,7 @@ Facturación, pagos, agenda médica, telemedicina, app móvil, integración con 
 
 **En inglés:** carpetas, paquetes, clases, interfaces, métodos, variables, constantes, enums, tablas, columnas, índices, constraints, endpoints REST, rutas y componentes de Angular, nombres de archivos, variables de entorno, logs, comentarios de código/Javadoc y mensajes de commit.
 
-**Excepción acordada (MEJ-01):** las rutas públicas de Angular de los enlaces que llegan por correo van en español, porque el usuario las ve en el correo y en la barra: `/activar-cuenta`, `/restablecer-contrasena` y `/olvide-contrasena`. Sus componentes y su código siguen en inglés (`SetPasswordPage`, `ForgotPasswordPage`). No crear otras rutas en español.
+**Excepción acordada (MEJ-01, MEJ-02):** las rutas públicas de Angular de los enlaces que llegan por correo van en español, porque el usuario las ve en el correo y en la barra: `/activar-cuenta`, `/restablecer-contrasena`, `/olvide-contrasena` y `/confirmar-correo` (MEJ-02). Sus componentes y su código siguen en inglés (`SetPasswordPage`, `ForgotPasswordPage`, `ConfirmEmailPage`). No crear otras rutas en español.
 
 **En español:** textos visibles para el usuario (etiquetas, botones, mensajes de la interfaz, `title`/`detail` de `ProblemDetail`, mensajes de Bean Validation), datos de catálogo mostrados al usuario (descripciones CIE-10) y los documentos de `docs/`.
 
@@ -39,6 +39,8 @@ Los comentarios `# TODO` de `.env` / `.env.example` son instrucciones para el de
 | sesión terapéutica | therapy session |
 | fisioterapeuta | physiotherapist |
 | fisioterapeuta responsable | responsible (physiotherapist) / responsible assignment |
+| personal (fisioterapeutas, administración, dirección) | staff (`staff_records`, `StaffRecord`) |
+| registro de usuarios | people registry (`/api/people`, `/admin/people`) |
 | dirección operativa | operations director |
 | administrador | administrator |
 | escala EVA | pain score (`pain_score`, `initial_pain_score`) |
@@ -80,8 +82,9 @@ Paquete base `ec.rehabelite`. Módulos (Spring Modulith):
 | `portal` | Portal del paciente (solo lectura) |
 | `reports` | Reportes para la dirección operativa |
 | `audit` | Registro de auditoría |
-| `catalogs` | Datos de referencia (MEJ-03): división político-administrativa del Ecuador (INEC) |
-| `shared` | Módulo abierto: `config` (`AppProperties`, locale, reloj, validación), `domain` (excepciones base, `ClinicCalendar`), `web` (`GlobalExceptionHandler`) |
+| `catalogs` | Datos de referencia (MEJ-03): división político-administrativa del Ecuador (INEC), y la dirección de pacientes y personal (`AddressRequest`, `AddressView`, `AddressFormatter`) |
+| `staff` | Registro del personal y lista unificada del Registro de Usuarios (MEJ-02) |
+| `shared` | Módulo abierto: `config` (`AppProperties`, locale, reloj, validación), `domain` (excepciones base, `ClinicCalendar`, `NameCase` y, desde MEJ-02, `NationalId`, `PhoneNumber`, `PostalAddress` y `Sex`), `web` (`GlobalExceptionHandler`, `PageResponse`, `@ValidNationalId` y `@ValidPhone`) |
 
 Cada módulo tiene:
 
@@ -99,17 +102,22 @@ Reglas:
     - `recordAll` inserta todas las entradas con **un solo `INSERT`** (`AuditLogRepository.insertAll`, SQL nativo con `unnest`), sea cual sea el número de ids. Un `saveAll` haría un `INSERT` por entrada: el id de `audit_logs` es `IDENTITY` y Hibernate no agrupa esos `INSERT` en lote.
   - `audit` no depende de `auth`, para evitar un ciclo: `auth` registra el `LOGIN` con `recordFor(userId, ...)`.
   - `ec.rehabelite.audit.AuditUserDirectory` (HU-18): `fullNames(ids)` y `users()` (`AuditUser`: id y nombre) para la auditoría. La declara `audit` y la implementa `auth` (`AuditUserDirectoryService`), que ya depende de `audit`; así `audit` nunca depende de `auth`.
-  - `ec.rehabelite.auth.PortalAccountCreated(userId, patientId)` (HU-02):
-    - Evento que `auth` publica al crear una cuenta `PATIENT`.
-    - `patients` lo escucha de forma síncrona (`@EventListener`, misma transacción), llena `portal_user_id` y audita `UPDATE Patient`. Si el vínculo falla, la cuenta tampoco se crea.
-    - `patients` puede depender de `auth`, pero `auth` nunca de `patients`.
+  - `ec.rehabelite.auth.AccountProvisioning` (MEJ-02): la única forma de crear o cambiar una cuenta desde otro módulo, siempre para una persona registrada y con su correo y sus nombres. Corre en la transacción de quien llama.
+    - `create(email, fullName, role)` crea la cuenta pendiente y audita `CREATE User`; `sendInvitation(userId)` envía la activación de MEJ-01 y audita `INVITATION_SENT User`. Quien llama vincula la cuenta y llama `sendInvitation` **al final**: si el correo falla, 503 y no queda nada.
+    - `rename(userId, fullName)` mantiene `users.full_name` igual a "nombres apellidos" del registro.
+    - `changeEmail(userId, correo)`: ver "Cambio de correo".
+    - `summary(userId)`, `summaries(ids)` (una consulta), `accountsUsingEmail(correo)` (correo o `pending_email`) e `idsWithRole(rol)` devuelven `AccountSummary` (id, rol, `AccountStatus` y `emailChangePending`), nunca el correo.
+    - `AccountStatus` (`PENDING_ACTIVATION`, `ACTIVE`, `INACTIVE`) está en el paquete raíz de `auth`.
+  - `ec.rehabelite.auth.StaffAccountCreated(userId, email, fullName, role)` (MEJ-02): evento que publica `AdminAccountInitializer` al crear el administrador inicial de `.env`. `staff` lo escucha de forma **síncrona** (`@EventListener`, no `@ApplicationModuleListener`) en la misma transacción y crea su registro con datos por completar. Reemplaza a `PortalAccountCreated` (HU-02), que se eliminó junto con `POST /api/users`.
+  - `ec.rehabelite.patients.RegisteredIdentities` (MEJ-02): `staffWithNationalId(cédula)` y `staffWithEmail(correo)`. La declara `patients` y la implementa `staff` (`StaffIdentityService`), como `AuditUserDirectory`: así `patients` comprueba la unicidad sin depender de `staff`.
   - `ec.rehabelite.patients.PatientDirectory` (HU-07):
     - `find(id)` y `search(q, pageable)` devuelven `PatientCard` (id, cédula, número de historia, nombres, apellidos, fecha de nacimiento y `ageOn(fecha)`).
     - `findProfile(id)` (HU-09) devuelve `PatientProfile`: además, sexo, contacto, ocupación, instrucción, seguro y fecha de ingreso. Sin etnia ni religión. Desde MEJ-03, `address` es la dirección compuesta (con los nombres del catálogo del INEC; en un paciente antiguo, su texto anterior), `addressComplete` dice si tiene parroquia y calles, y `hasHealthInsurance` es Sí/No.
     - `findByPortalUser(userId)` (HU-12) devuelve el `PatientCard` del paciente vinculado a una cuenta de portal (`patients.portal_user_id`), o vacío si la cuenta no tiene paciente.
     - `fullNames(ids)` (HU-14) devuelve solo "nombres apellidos" de cada paciente, en una sentencia que no lee otros datos personales (proyección `PatientName`). Es lo único que los reportes saben del paciente (minimización de datos, LOPDP).
-    - Es la única forma en que otros módulos (`clinicalrecords`, `sessions`, `portal`, ...) consultan pacientes.
-    - `patients` nunca depende de `clinicalrecords`.
+    - `findIdByNationalId(cédula)`, `idsWithEmail(correo)` y `registry(q, offset, limit)` (MEJ-02) sirven al Registro de Usuarios: el último devuelve `PatientRegistrySlice` (`PatientRegistryEntry`: identificación, contacto, `needsCompletion` y `portalUserId`, y el total) desde cualquier desplazamiento, con la búsqueda y el orden de `search`.
+    - Es la única forma en que otros módulos (`clinicalrecords`, `sessions`, `portal`, `staff`, ...) consultan pacientes.
+    - `patients` nunca depende de `clinicalrecords` ni de `staff`.
   - `ec.rehabelite.auth.StaffDirectory` (HU-08):
     - `findActivePhysiotherapist(id)`, `activePhysiotherapists()` y `fullNames(ids)` devuelven `StaffMember` (id y nombre) o los nombres, también de cuentas desactivadas.
     - `physiotherapists()` (HU-14) devuelve todos los fisioterapeutas, activos o no, ordenados por nombre: una cuenta desactivada puede seguir como responsable de tratamientos y autora de sesiones.
@@ -136,9 +144,10 @@ Reglas:
     - `countsByResponsibleAndStatus(treatmentIds, responsibleId, from, to)` (HU-14, HU-15) cuenta las sesiones de esos tratamientos por fisioterapeuta que las registró (`therapy_sessions.responsible_id`) y por estado, como `SessionCount` (responsable, estado y total). Con `responsibleId`, solo las que registró ese fisioterapeuta, sea quien sea el responsable vigente del tratamiento. Con `from` o `to`, solo las de `session_date` entre esos días, ambos incluidos (ya es la fecha de Quito). Es una sentencia nativa: los ids van como un arreglo (`= ANY(CAST(:ids AS bigint[]))`), para no llegar al límite de parámetros de PostgreSQL con muchos tratamientos, y los nulos con `CAST(:x AS tipo) IS NULL`.
     - Qué cuenta como sesión realizada lo decide `sessions` (`completed`). Las lecturas por este puerto no se auditan aquí: audita quien llama.
     - Es la única forma en que otros módulos (`portal`, `reports`, ...) leen sesiones.
+  - `ec.rehabelite.catalogs.AddressRequest`, `AddressView` y `AddressFormatter` (MEJ-02, antes en `patients`): la dirección estructurada del request (con `@ConsistentPlace`), su vista con los nombres del INEC y el texto compuesto. Los usan `patients` y `staff`; el tipo embebido es `shared.domain.PostalAddress`.
   - `ec.rehabelite.catalogs.LocationCatalog` (MEJ-03): provincias, cantones y parroquias del Clasificador Geográfico Estadístico 2025 del INEC (corte al 31/12/2024), leídos de `catalogs/ec-locations-cge2025.json` al arrancar (`ResourceLocationCatalog`). `isConsistent(provincia, cantón, parroquia)` valida una dirección y `findParish(código)` devuelve el `Place` con los nombres oficiales (en mayúsculas, como los publica el INEC) y `displayName()` con mayúscula inicial. Fuente, reglas y conteos en `docs/catalogs/ubicaciones.md`; el JSON se genera con `tools/catalogs/inec_cge_to_json.py`. Ningún dato sale de la aplicación.
   - `ec.rehabelite.audit.EntityVersionHistory` (HU-10): `versionsOf(clase, id)` devuelve las versiones de Envers de una entidad `@Audited`, de la más antigua a la más reciente. Cada `EntityVersion` trae la entidad, la revisión, el tipo (`CREATE`, `UPDATE`, `DELETE`), la fecha y el autor (o `null`). Así ningún módulo usa `AuditRevision` ni Envers directamente.
-- Seguridad: JWT HS256 emitido por `POST /api/auth/login` (claims `sub` = id, `email`, `fullName`, `role` y `sv`, la versión de sesión de MEJ-01; el rol da la autoridad `ROLE_<rol>`). Públicos solo login, los enlaces de las cuentas (`POST /api/auth/activate`, `/forgot-password` y `/reset-password`, MEJ-01), `/actuator/health` y la documentación OpenAPI. El reloj se inyecta como bean `Clock` (`shared.config`).
+- Seguridad: JWT HS256 emitido por `POST /api/auth/login` (claims `sub` = id, `email`, `fullName`, `role` y `sv`, la versión de sesión de MEJ-01; el rol da la autoridad `ROLE_<rol>`). Públicos solo login, los enlaces de las cuentas (`POST /api/auth/activate`, `/forgot-password` y `/reset-password`, MEJ-01, y `/confirm-email`, MEJ-02), `/actuator/health` y la documentación OpenAPI. El reloj se inyecta como bean `Clock` (`shared.config`).
 - Estado de cuentas (HU-03):
   - `PATCH /api/users/{id}/status` con `{ "active": boolean }` (`UserManagementService.changeStatus`).
   - Nunca se borra una cuenta: se desactiva. Reactivarla reinicia intentos fallidos y bloqueo.
@@ -148,8 +157,9 @@ Reglas:
   - `ActiveAccountTokenValidator` (validador del `JwtDecoder`, después de firma, expiración y emisor) da 401 a los tokens ya emitidos de una cuenta inactiva o inexistente, o emitidos antes del último restablecimiento de contraseña (MEJ-01). Las pruebas deben emitir tokens solo para usuarios guardados.
 - Activación de cuentas y restablecimiento de contraseña (MEJ-01, Jira RHE-84), módulo `auth`. Reemplaza la contraseña que definía el administrador en HU-02:
   - **Flujo de una cuenta:** el administrador la crea **sin contraseña** → queda "Pendiente de activación" (`email_verified_at` nulo, `password_hash` nulo) y su titular recibe el correo "Active su cuenta de Rehab Elite" con el enlace `{APP_FRONTEND_URL}/activar-cuenta?token=…` → al activarla define su contraseña y queda activa. `UserResponse.status` es `PENDING_ACTIVATION`, `ACTIVE` o `INACTIVE` (desactivada, se haya activado o no; `User.status()`); `active` se conserva.
-  - `POST /api/users` (`UserManagementService.create`): sin `password` (si un cliente antiguo lo envía, se ignora). Crea la cuenta con `User.invite`, audita `CREATE User` e `INVITATION_SENT User`, y envía el correo **al final y dentro de la transacción**: si el SMTP falla, no se crea nada y responde 503 "No se pudo enviar el correo de activación. Intente nuevamente en unos minutos." (`ExternalServiceException`).
-  - `POST /api/users/{id}/resend-invitation` (solo `ADMINISTRATOR`): enlace nuevo para una cuenta habilitada y pendiente; si no, 422 "Solo se puede reenviar la invitación a una cuenta habilitada que aún no se ha activado."; 404 si no existe. Audita `INVITATION_RESENT User`. Un fallo del correo responde 503 y los enlaces anteriores siguen vigentes.
+  - **Desde MEJ-02 no existe `POST /api/users`** (405, `Allow: GET`): una cuenta se crea solo con el registro de su persona (`POST /api/staff`, o `POST /api/patients/{id}/portal-account` para un paciente), con `AccountProvisioning`. El correo de activación sale **al final y dentro de la transacción**: si el SMTP falla, no se crea nada y responde 503 "No se pudo enviar el correo de activación. Intente nuevamente en unos minutos." (`ExternalServiceException`).
+  - `POST /api/users/{id}/resend-invitation` (solo `ADMINISTRATOR`): enlace nuevo para una cuenta habilitada que espera a su titular: el de activación si está pendiente, o el de confirmación del correo nuevo si tiene un cambio de correo por confirmar (MEJ-02). Si no, 422 "Solo se puede reenviar el enlace a una cuenta habilitada que aún no se ha activado o que tiene un cambio de correo por confirmar."; 404 si no existe. Audita `INVITATION_RESENT User`. Un fallo del correo responde 503 y los enlaces anteriores siguen vigentes.
+  - `UserResponse` trae `emailChangePending` (MEJ-02).
   - **Enlaces de un solo uso** (`account_tokens`, `AccountTokenService`): 32 bytes de `SecureRandom` en Base64 URL sin relleno (43 caracteres, `AccountTokens`); se guarda solo su SHA-256 en hexadecimal (`token_hash char(64)`, único). Vencen según `app.tokens.activation-ttl` (48 h por defecto) y `app.tokens.reset-ttl` (1 h). Un enlace nuevo del mismo propósito marca como usados (`used_at`) los anteriores sin usar. Al usarlo, la fila se lee con bloqueo `PESSIMISTIC_WRITE`, así que dos usos simultáneos no pueden tener éxito. **El token nunca va a los logs ni a la auditoría**: solo aparece en el enlace del correo, que tampoco se registra.
   - `POST /api/auth/activate` y `POST /api/auth/reset-password` (públicos, `AccountAccessService`) reciben `{token, password, passwordConfirmation}` (`SetPasswordRequest`). Primero validan la contraseña (la regla de HU-02: de 8 a 72 caracteres, con al menos una letra y un número, y como máximo 72 bytes) y la confirmación (400 "La confirmación no coincide con la contraseña."), sin gastar el enlace; después el enlace. Un enlace inexistente, usado, reemplazado o vencido, de otro propósito o de una cuenta desactivada responde siempre 400 "El enlace no es válido o ya venció. Solicite uno nuevo.". Responden 204.
     - Activar guarda el BCrypt, `email_verified_at` y `used_at`, y audita `ACTIVATION User` atribuida a la propia cuenta (`recordFor`).
@@ -158,13 +168,30 @@ Reglas:
   - **Login:** una cuenta pendiente recibe el mismo mensaje genérico de credenciales inválidas, sin contar un intento fallido; su comparación BCrypt usa el hash ficticio para que el tiempo no la delate.
   - Las cuentas creadas antes de V5 y las del seed `dev` quedan verificadas (`email_verified_at = created_at`, o `now()` en el seed). `User.create` (administrador inicial, pruebas) crea la cuenta ya verificada y con contraseña.
   - Correo: `AccountMailer` arma un mensaje en español con texto y HTML (`JavaMailSender`, remitente `app.mail.from`). En desarrollo, Mailpit (`docker compose --profile dev up -d mailpit`) recibe los correos en el puerto 1025 y los muestra en `http://localhost:8025`.
-  - Pruebas: `AccountActivationIntegrationTests` (activación, enlace vencido, usado y reenviado, contraseña inválida, restablecimiento que cierra las sesiones, correo inexistente con la misma respuesta, límite de solicitudes y auditoría y logs sin el token), `UserControllerIntegrationTests` (creación sin contraseña, correo enviado, 503) y `FlywayMigrationTests` (V5 sobre una base con cuentas existentes, en una base nueva del mismo contenedor).
+  - Pruebas: `AccountActivationIntegrationTests` (activación, enlace vencido, usado y reenviado, contraseña inválida, restablecimiento que cierra las sesiones, correo inexistente con la misma respuesta, límite de solicitudes y auditoría y logs sin el token; las cuentas se crean con `TestStaff`), `UserControllerIntegrationTests` (`POST /api/users` responde 405) y `FlywayMigrationTests` (V5 sobre una base con cuentas existentes, en una base nueva del mismo contenedor).
+- Registro unificado de usuarios (MEJ-02, Jira RHE-85): pacientes y personal con los mismos datos personales, y cuentas creadas solo desde el registro de su persona, sin escribir el nombre ni el correo.
+  - **Módulo `staff`** (tabla `staff_records`, entidad `StaffRecord`, vínculo único a `users` por `user_id`): cédula, nombres, apellidos, nacimiento, sexo, teléfono, correo y dirección estructurada, con las mismas reglas que el paciente (`@ValidNationalId`, `@ValidPhone`, `AddressRequest`, `NameCase`). El rol vive en `users.role`. Depende de `auth`, `patients`, `catalogs` y `audit` por sus interfaces públicas; nadie depende de `staff`.
+  - `POST /api/staff` (`StaffRegistrationService.register`): rol (`PHYSIOTHERAPIST`, `ADMINISTRATOR` u `OPERATIONS_DIRECTOR`; otro valor, 400) y datos personales. Crea la cuenta con `AccountProvisioning.create`, el registro y, al final, la invitación de MEJ-01: si el correo falla, 503 y no se crea nada. Audita `CREATE User`, `CREATE StaffRecord` e `INVITATION_SENT User`.
+  - `GET /api/staff/{id}` (datos personales, rol y `account`; no se audita) y `PUT /api/staff/{id}` (todos los datos obligatorios; la cédula registrada no cambia, 422 "La cédula registrada no se puede modificar.", pero un registro sin cédula la recibe aquí; el rol no se edita). Un cambio real audita `UPDATE StaffRecord`.
+  - **`users.full_name` se deriva siempre** de "nombres apellidos" del registro: al crear la cuenta y en cada edición de la persona (`AccountProvisioning.rename`, sin auditoría propia: ya se audita la edición).
+  - **Unicidad** (`StaffIdentityRules`, `PatientIdentityRules`): la cédula es única entre pacientes y personal. El correo del personal es único frente a pacientes, personal y cuentas (correo o `pending_email`). Varios pacientes **sí pueden compartir correo** (p. ej. un menor y su madre o padre; el formulario solo avisa), pero el correo de un paciente nunca puede ser el de un miembro del personal ni el de una cuenta del personal, y un paciente con cuenta no puede tomar el correo de otra cuenta. Un conflicto responde 409 con `existingPatientId` o `existingStaffId` y `field` (`nationalId` o `email`), nunca el correo. **Limitación conocida:** como la cédula es única entre pacientes y personal, un fisioterapeuta (o cualquier miembro del personal) no puede registrarse además como paciente.
+  - `GET /api/people?q=&type=&role=&page=&size=` (`PeopleRegistryService`): primero el personal y luego los pacientes, cada grupo por apellidos y nombres, con la búsqueda de pacientes (dígitos: inicio de la cédula). `type` (`PATIENT`, `STAFF`) y `role` (solo roles del personal; con `type=PATIENT`, 400 "El filtro de rol solo aplica al personal."). Cada fila trae tipo, id, cédula, nombres, rol (`PATIENT` para los pacientes), correo, teléfono, `accountStatus` (`NONE`, `PENDING_ACTIVATION`, `ACTIVE`, `INACTIVE`), `userId`, `emailChangePending` y `needsCompletion`. **Número fijo de sentencias**: token, conteo y página del personal, conteo y página de pacientes (desde cualquier desplazamiento, `PatientDirectory.registry`) y las cuentas de la página en una consulta; son 6 con cualquier tamaño de página (`PeopleRegistryIntegrationTests`).
+  - `GET /api/people/matches?nationalId=&email=`: pacientes y personal que ya tienen la cédula o el correo (también por su cuenta, incluido `pending_email`), para que el formulario impida un duplicado o avise. Datos personales: no se audita.
+  - **Acceso al portal** (`POST /api/patients/{id}/portal-account`, `PortalAccountService.create`): crea la cuenta `PATIENT` con el correo y los nombres del paciente, la vincula (`portal_user_id`) y envía la invitación, sin cuerpo en la petición. 409 si ya tiene cuenta (`existingUserId`) u otra cuenta usa su correo; 503 si el correo falla (no se crea nada). Audita `CREATE User`, `UPDATE Patient` e `INVITATION_SENT User`. `PatientResponse.portalAccount` trae la cuenta (id, estado, `emailChangePending`) o `null`. Se eliminaron `GET /api/patients/portal-candidates` y el evento `PortalAccountCreated`.
+  - **Cambio de correo** (`AccountProvisioning.changeEmail`, al editar el correo de un paciente con cuenta o de un miembro del personal):
+    - cuenta pendiente de activación: toma el correo nuevo y recibe ahí un enlace de activación nuevo (los anteriores dejan de servir);
+    - cuenta activa: el correo nuevo queda en `users.pending_email` y recibe el enlace "Confirme su nuevo correo de Rehab Elite" (`/confirmar-correo?token=…`, propósito `EMAIL_CHANGE`, 48 h como la activación). Hasta confirmarlo, la cuenta sigue ingresando con el correo anterior y la misma contraseña. El correo anterior recibe el aviso **sin enlace** "Se solicitó cambiar el correo de su cuenta de Rehab Elite", que sale después del commit en otro hilo: si el aviso falla, el cambio sigue adelante (solo se registra en el log). Solo el enlace al correo nuevo exige el envío: si falla, 503 y no cambia nada;
+    - `POST /api/auth/confirm-email` `{token}` (público, `AccountAccessService.confirmEmail`): el correo nuevo pasa a ser el de la cuenta, verificado, e incrementa `session_version` (cierra las sesiones abiertas). Un enlace inválido responde el 400 genérico de MEJ-01. Audita `EMAIL_CONFIRMATION User` atribuida a la propia cuenta;
+    - volver al correo actual cancela el cambio pendiente; una cuenta desactivada no cambia de correo (422 "La cuenta de esta persona está desactivada. Reactívela antes de cambiar el correo.");
+    - el cambio audita `EMAIL_CHANGE User` **sin ninguno de los dos correos** (`audit_logs` no tiene descripción), y los logs nunca los escriben.
+  - **Datos existentes (V7):** cada cuenta del personal recibe su registro con el correo de la cuenta y los nombres separados de `full_name` (1 palabra: solo nombre; 2: uno y uno; 3: el primero y los dos últimos; 4 o más: los dos primeros y el resto; `staff.domain.NameSplit` aplica la misma regla al administrador inicial). Cédula, nacimiento, sexo, teléfono y dirección quedan vacíos, con "Datos por completar" (`StaffRecord.needsCompletion()`), y se exigen al editar. Las cuentas de portal toman los nombres de su paciente.
+  - Pruebas: `StaffRegistrationIntegrationTests` (registro con invitación, 503, `full_name` derivado, registro por completar, administrador inicial con su registro), `PersonIdentityUniquenessIntegrationTests` (cédula y correo cruzados, dos pacientes con el mismo correo y el segundo acceso al portal en 409), `PortalAccountIntegrationTests`, `EmailChangeIntegrationTests` (confirmación, aviso al correo anterior, aviso que falla, enlace que falla, reenvío y cancelación, cuenta desactivada, cuenta del paciente), `PeopleRegistryIntegrationTests` y `FlywayMigrationTests` (V7 sobre datos de V6). `TestStaff` registra personal por la API en las pruebas.
 - Registro de pacientes (HU-05):
   - `POST /api/patients` (`PatientRegistrationService.register`). El número de historia clínica es la cédula y lo asigna el servidor.
   - La edad no se guarda: `Patient.ageOn(fecha)`, y la respuesta trae `age` calculada a la fecha de hoy en Quito.
   - Etnia y religión son opcionales; si llegan en blanco se guardan como `null`.
   - Sin fecha de ingreso, se usa la de hoy.
-  - Una cédula repetida responde 409 con la propiedad `existingPatientId`.
+  - Una cédula repetida responde 409 con la propiedad `existingPatientId`, o `existingStaffId` si es de un miembro del personal (MEJ-02, ver "Registro unificado").
   - Cada registro audita `CREATE Patient`.
   - `GET /api/patients/{id}` devuelve solo datos personales y no se audita: la auditoría `READ` es para datos clínicos.
   - Validador de cédula: `patients.domain.NationalId` (10 dígitos, provincia 01–24 o 30, tercer dígito menor que 6, módulo 10), con la anotación `@ValidNationalId` en los requests.
@@ -316,15 +343,18 @@ Reglas:
 
     | Endpoint | Acción registrada |
     |---|---|
-    | `POST /api/users` (MEJ-01) | `CREATE User` + `INVITATION_SENT User` |
-    | `POST /api/users/{id}/resend-invitation` (MEJ-01) | `INVITATION_RESENT User` |
+    | `POST /api/staff` (MEJ-02) | `CREATE User` + `CREATE StaffRecord` + `INVITATION_SENT User` |
+    | `PUT /api/staff/{id}` (MEJ-02) | `UPDATE StaffRecord` (solo si cambia algo); `EMAIL_CHANGE User` si cambia el correo |
+    | `GET /api/staff/{id}`, `GET /api/people`, `GET /api/people/matches` (MEJ-02) | ninguna (datos personales) |
+    | `POST /api/patients/{id}/portal-account` (MEJ-02) | `CREATE User` + `UPDATE Patient` + `INVITATION_SENT User` |
+    | `POST /api/auth/confirm-email` (MEJ-02) | `EMAIL_CONFIRMATION User`, atribuida a la propia cuenta |
+    | `POST /api/users/{id}/resend-invitation` (MEJ-01, MEJ-02) | `INVITATION_RESENT User` |
     | `POST /api/auth/activate` (MEJ-01) | `ACTIVATION User`, atribuida a la propia cuenta |
     | `POST /api/auth/forgot-password` (MEJ-01) | `RESET_REQUEST User`, sin usuario; sin id si el correo no existe |
     | `POST /api/auth/reset-password` (MEJ-01) | `PASSWORD_RESET User`, atribuida a la propia cuenta |
     | `POST /api/patients` | `CREATE Patient` |
-    | `PUT /api/patients/{id}` | `UPDATE Patient` (solo si cambia algo) |
-    | Evento `PortalAccountCreated` (`POST /api/users` con rol `PATIENT`) | `UPDATE Patient` |
-    | `GET /api/patients`, `GET /api/patients/{id}`, `GET /api/patients/portal-candidates` | ninguna (datos personales) |
+    | `PUT /api/patients/{id}` | `UPDATE Patient` (solo si cambia algo); con cuenta, `EMAIL_CHANGE User` si cambia el correo (MEJ-02) |
+    | `GET /api/patients`, `GET /api/patients/{id}` | ninguna (datos personales) |
     | `POST /api/patients/{id}/clinical-record` | `CREATE ClinicalRecord` + `CREATE Treatment` |
     | `GET /api/patients/{id}/clinical-record` | `READ ClinicalRecord` |
     | `PUT /api/patients/{id}/clinical-record` | `UPDATE ClinicalRecord` (solo si cambia algo) |
@@ -368,8 +398,8 @@ Reglas:
 
   | Área | Roles |
   |---|---|
-  | `/api/admin/**`, `/api/users/**` | `ADMINISTRATOR` |
-  | `/api/patients/portal-candidates`, `POST /api/patients` y `PUT /api/patients/**` (van antes de `/api/patients/**`) | `ADMINISTRATOR` |
+  | `/api/admin/**`, `/api/users/**`, `/api/people/**` y `/api/staff/**` (MEJ-02) | `ADMINISTRATOR` |
+  | `/api/patients/*/portal-account` (MEJ-02), `POST /api/patients` y `PUT /api/patients/**` (van antes de `/api/patients/**`) | `ADMINISTRATOR` |
   | `/api/patients/*/clinical-record` (va antes de `/api/patients/**`) | `PHYSIOTHERAPIST` |
   | `/api/patients/**` | `ADMINISTRATOR`, `PHYSIOTHERAPIST` |
   | `/api/clinical-records/**`, `/api/treatments/**`, `/api/therapy-sessions/**`, `/api/ai-summaries/**`, `/api/icd10-diagnoses/**`, `/api/physio/**` | `PHYSIOTHERAPIST` |
@@ -416,13 +446,14 @@ Reglas:
   - Toda cédula nueva del seed debe pasar `NationalId` (lo comprueba `DevSeedDataTests`).
   - `spring.flyway.ignore-migration-patterns` incluye `repeatable:missing` para que una base sembrada arranque sin `dev`.
   - Las pruebas de integración nunca activan `dev` sobre el contenedor compartido (`DevSeedIntegrationTests` usa uno propio).
+- El seed `dev` (MEJ-02) da a las tres cuentas del personal un registro completo y válido (`ON CONFLICT (user_id) DO UPDATE ... WHERE staff_records.national_id IS NULL`: en una base ya migrada a V7 completa los registros vacíos, una sola vez). `DevSeedDataTests` comprueba sus cédulas y teléfonos.
 - Pruebas de integración: extender `ec.rehabelite.AbstractIntegrationTest` (contexto completo, perfil `test`, un único `postgres:16` de Testcontainers compartido). Los correos nunca salen: `RecordingMailSender` (MEJ-01) los guarda en memoria; `messagesTo(correo)` lee los de una dirección, `awaitMessagesTo` espera los que salen en otro hilo, `tokenOf` extrae el token del enlace y `failFor(correo)` simula un SMTP caído. No asumir base vacía: cada prueba crea sus propios datos con valores únicos. Para pacientes de prueba que no son el objeto de la prueba, usar `ec.rehabelite.TestPatients`: los inserta por SQL, sin auditoría, con cédulas sintéticas de dígito verificador válido y el número de historia igual a la cédula. `TestTreatments` (historial, tratamiento y responsable) y `TestSessions.insert` hacen lo mismo con los tratamientos y las sesiones que la prueba solo necesita leer.
 
 ### Endpoints REST
 
 En inglés, plural, kebab-case, bajo `/api`:
 
-`/api/auth`, `/api/users`, `/api/patients`, `/api/clinical-records`, `/api/treatments`, `/api/therapy-sessions`, `/api/ai-summaries`, `/api/reports`, `/api/audit-logs`, `/api/portal`, `/api/icd10-diagnoses`, `/api/catalogs` (MEJ-03: `GET /api/catalogs/locations`, cualquier usuario autenticado, `Cache-Control: max-age=86400, private`).
+`/api/auth`, `/api/users`, `/api/people` y `/api/staff` (MEJ-02), `/api/patients`, `/api/clinical-records`, `/api/treatments`, `/api/therapy-sessions`, `/api/ai-summaries`, `/api/reports`, `/api/audit-logs`, `/api/portal`, `/api/icd10-diagnoses`, `/api/catalogs` (MEJ-03: `GET /api/catalogs/locations`, cualquier usuario autenticado, `Cache-Control: max-age=86400, private`).
 
 Excepciones acordadas en HU-07 (fuera del patrón de recurso plural):
 - `POST`, `GET` (HU-09) y `PUT` (HU-09) `/api/patients/{patientId}/clinical-record`: singular, porque es el único historial del paciente.
@@ -433,14 +464,15 @@ Excepciones acordadas en HU-07 (fuera del patrón de recurso plural):
 - HU-14: `GET /api/reports/summary` (singular: los indicadores del reporte), `/api/reports/treatments` y `/api/reports/physiotherapists`: vistas de solo lectura del reporte, separadas de `/api/treatments` y de `/api/physio/physiotherapists`, que son del fisioterapeuta.
 - MEJ-01: `POST /api/users/{id}/resend-invitation` (acción sobre la cuenta) y `POST /api/auth/activate`, `/api/auth/forgot-password` y `/api/auth/reset-password` (acciones públicas de autenticación).
 - HU-15: `GET /api/reports/summary.pdf`: el mismo reporte como archivo; la extensión distingue el formato (Spring no hace coincidir sufijos, así que es una ruta propia).
+- MEJ-02: `GET /api/people/matches` (búsqueda de cédula o correo registrados), `POST /api/patients/{id}/portal-account` (singular: la única cuenta del paciente) y `POST /api/auth/confirm-email` (acción pública de autenticación).
 
 Ejemplos: `GET /api/patients?query=...`, `PATCH /api/treatments/{id}/status`, `POST /api/ai-summaries/{id}/approve`.
 
 ## Modelo de datos
 
-Fuente de verdad: `backend/src/main/resources/db/migration/` (`V1__initial_schema.sql`, `V2__icd10_initial_catalog.sql`, `V3__envers_audit_tables.sql`: `revinfo`, `treatments_aud`, `therapy_sessions_aud` e índice `ix_audit_logs_occurred_at`; `V4__audit_logs_export_action.sql` (HU-15): agrega `EXPORT` a `ck_audit_logs_action`; `V5__account_activation.sql` (MEJ-01): `users.password_hash` admite nulos, `users.email_verified_at` y `users.session_version`, la tabla `account_tokens` y las acciones nuevas de auditoría; las cuentas existentes quedan verificadas desde su creación; `V6__patient_address_and_insurance.sql` (MEJ-03): `patients.has_health_insurance` (`'Ninguno'` → `false`, lo demás → `true`) en lugar de `health_insurance`, y la dirección estructurada `province_code`, `canton_code`, `parish_code`, `main_street`, `street_number`, `cross_street` y `address_reference` en lugar de `address`, cuyo texto queda en `address_reference`; `ck_patients_address_parts` exige el lugar y las calles juntos o ninguno, y `ck_patients_address_codes`, los códigos anidados). `FlywayMigrationTests` comprueba que `ck_audit_logs_action` admite exactamente los valores de `AuditAction`.
+Fuente de verdad: `backend/src/main/resources/db/migration/` (`V1__initial_schema.sql`, `V2__icd10_initial_catalog.sql`, `V3__envers_audit_tables.sql`: `revinfo`, `treatments_aud`, `therapy_sessions_aud` e índice `ix_audit_logs_occurred_at`; `V4__audit_logs_export_action.sql` (HU-15): agrega `EXPORT` a `ck_audit_logs_action`; `V5__account_activation.sql` (MEJ-01): `users.password_hash` admite nulos, `users.email_verified_at` y `users.session_version`, la tabla `account_tokens` y las acciones nuevas de auditoría; las cuentas existentes quedan verificadas desde su creación; `V6__patient_address_and_insurance.sql` (MEJ-03): `patients.has_health_insurance` (`'Ninguno'` → `false`, lo demás → `true`) en lugar de `health_insurance`, y la dirección estructurada `province_code`, `canton_code`, `parish_code`, `main_street`, `street_number`, `cross_street` y `address_reference` en lugar de `address`, cuyo texto queda en `address_reference`; `ck_patients_address_parts` exige el lugar y las calles juntos o ninguno, y `ck_patients_address_codes`, los códigos anidados; `V7__staff_records_and_email_change.sql` (MEJ-02): la tabla `staff_records` con sus restricciones únicas (`user_id`, `national_id`, `email`) y las de dirección de V6, el registro de cada cuenta del personal existente, `full_name` derivado de los nombres, `users.pending_email` con índice único parcial, el propósito `EMAIL_CHANGE` de `account_tokens` y las acciones `EMAIL_CHANGE` y `EMAIL_CONFIRMATION`). `FlywayMigrationTests` comprueba que `ck_audit_logs_action` admite exactamente los valores de `AuditAction`.
 
-- Tablas en inglés, plural, snake_case: `users`, `patients`, `clinical_records`, `icd10_diagnoses`, `treatments`, `responsible_assignments`, `treatment_status_changes`, `therapy_sessions`, `ai_summaries`, `audit_logs`, `account_tokens` (MEJ-01).
+- Tablas en inglés, plural, snake_case: `users`, `patients`, `staff_records` (MEJ-02), `clinical_records`, `icd10_diagnoses`, `treatments`, `responsible_assignments`, `treatment_status_changes`, `therapy_sessions`, `ai_summaries`, `audit_logs`, `account_tokens` (MEJ-01).
 - Prefijos: `pk_`, `fk_`, `uq_`, `ck_`, `ix_`; triggers `trg_`.
 - Columnas de auditoría: `created_by`, `created_at`, `updated_by`, `updated_at`.
 - Función de búsqueda: `normalize_text(text)` (minúsculas sin tildes; índice trigram sobre `patients`).
@@ -450,14 +482,14 @@ Valores de enums / CHECK:
 | Campo | Valores |
 |---|---|
 | `users.role` | `ADMINISTRATOR`, `PHYSIOTHERAPIST`, `PATIENT`, `OPERATIONS_DIRECTOR` |
-| `patients.sex` | `MALE`, `FEMALE` |
+| `patients.sex`, `staff_records.sex` | `MALE`, `FEMALE` |
 | `treatments.status` | `ACTIVE`, `COMPLETED`, `ABANDONED` |
 | `treatments.severity` | `MILD`, `MODERATE`, `SEVERE` |
 | `therapy_sessions.status` | `COMPLETED`, `RESCHEDULED`, `NO_SHOW` |
 | `therapy_sessions.progress_status` | `STABLE`, `IMPROVING`, `NEEDS_ATTENTION` |
 | `ai_summaries.status` | `PENDING_REVIEW`, `APPROVED`, `DISCARDED` |
-| `audit_logs.action` | `CREATE`, `READ`, `UPDATE`, `STATUS_CHANGE`, `ACCESS_DENIED`, `LOGIN`, `EXPORT` (V4, HU-15), `INVITATION_SENT`, `INVITATION_RESENT`, `ACTIVATION`, `RESET_REQUEST`, `PASSWORD_RESET` (V5, MEJ-01; máximo 20 caracteres, el largo de la columna) |
-| `account_tokens.purpose` | `ACTIVATION`, `PASSWORD_RESET` |
+| `audit_logs.action` | `CREATE`, `READ`, `UPDATE`, `STATUS_CHANGE`, `ACCESS_DENIED`, `LOGIN`, `EXPORT` (V4, HU-15), `INVITATION_SENT`, `INVITATION_RESENT`, `ACTIVATION`, `RESET_REQUEST`, `PASSWORD_RESET` (V5, MEJ-01), `EMAIL_CHANGE`, `EMAIL_CONFIRMATION` (V7, MEJ-02; máximo 20 caracteres, el largo de la columna) |
+| `account_tokens.purpose` | `ACTIVATION`, `PASSWORD_RESET`, `EMAIL_CHANGE` (V7, MEJ-02) |
 
 ## Reglas de datos y seguridad (no negociables)
 
@@ -484,7 +516,7 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
 
 - Requiere Node.js `^22.22.3`. `npm start` sirve en `http://localhost:4200` y redirige `/api` a `http://localhost:8080` (`proxy.conf.json`).
 - Carpetas: `src/app/core` (`AuthService` con login y sesión en signals, `authGuard`/`roleGuard`, `authInterceptor`, roles, locale `es-EC`), `src/app/shared/layout` (`AppShell`, `nav-items.ts`, `PlaceholderPage`), `src/app/shared/ui` (componentes reutilizables), `src/app/shared/clinical` (etiquetas clínicas que comparten varias áreas), `src/app/features/auth`, `features/admin`, `features/physiotherapist`, `features/director`, `features/patient`, `features/dev` (solo desarrollo).
-- Rutas: `/login`, las páginas públicas de los enlaces de las cuentas (MEJ-01: `/activar-cuenta`, `/restablecer-contrasena` y `/olvide-contrasena`, en español por la excepción de la regla de idioma) y, dentro de `AppShell`, un `*.routes.ts` por rol: `/physio` (`patients`, `clinical-records`, `timeline`, `ai-assistant`), `/admin` (`users`, `patients`, `audit`; sin `reports`, HU-14), `/director` (`reports`, `audit`), `/patient`. Cada rol protegido por `authGuard` + `roleGuard(rol)` y cargado de forma diferida. Las secciones sin historia implementada usan `PlaceholderPage` (título y subtítulo en `data`); la historia reemplaza ese `component` por su página real.
+- Rutas: `/login`, las páginas públicas de los enlaces de las cuentas (MEJ-01: `/activar-cuenta`, `/restablecer-contrasena` y `/olvide-contrasena`; MEJ-02: `/confirmar-correo`; en español por la excepción de la regla de idioma) y, dentro de `AppShell`, un `*.routes.ts` por rol: `/physio` (`patients`, `clinical-records`, `timeline`, `ai-assistant`), `/admin` (`users`, `people`, `people/patients/:id`, `people/staff/:id`, `audit`; `/admin/patients` y `/admin/patients/:id` redirigen a `people`; sin `reports`, HU-14), `/director` (`reports`, `audit`), `/patient`. Cada rol protegido por `authGuard` + `roleGuard(rol)` y cargado de forma diferida. Las secciones sin historia implementada usan `PlaceholderPage` (título y subtítulo en `data`); la historia reemplaza ese `component` por su página real.
 - Componentes de `shared/ui` (standalone, con pruebas): `page-header`, `stat-card` (variante `compact` para filas de cuatro tarjetas y `stacked`, con la etiqueta a todo el ancho y el icono junto al valor, para filas de cinco), `status-badge`, `data-table` (paginación en cliente, o en servidor con `[totalItems]` y `[(pageIndex)]`; `appDataTableCell` para celdas personalizadas, `[appDataTableCellOf]="filas"` tipa `let-row`, y `wrapHeader: true` en una columna deja que su encabezado se parta en líneas), `form-section`, `empty-state` (admite varias acciones, separadas), `confirm-dialog` (`openConfirmDialog()` devuelve `Observable<boolean>`) y `hero-banner`. Usarlos antes de crear componentes nuevos. Catálogo visual en `/ui-kit` (solo `isDevMode()`).
 - Diseño: seguir `docs/prototype/`. Capturas de comparación por tarea en `docs/screenshots/<tarea>/`.
 - Nombres según la guía de estilo de Angular CLI 22, en inglés: archivo `patient-list.ts`, clase `PatientList`, selector `app-patient-list`; guards/interceptores `*-guard.ts` / `*-interceptor.ts`. Textos de la interfaz en español.
@@ -590,10 +622,11 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
   - `features/audit/AuditLogList` se reutiliza en `/admin/audit` y `/director/audit`, con la entrada "Auditoría" en el menú de ambos roles.
   - Tabla paginada en el servidor (20 por página) con fecha y hora de Quito, usuario, acción (badge), entidad con id e IP. Solo metadatos.
   - Filtros por usuario (`GET /api/audit-logs/users`), acción, entidad (`/entity-types`) y rango de fechas. Cada cambio recarga la primera página. Con "Desde" posterior a "Hasta" no busca y solo muestra el aviso.
-  - Etiquetas en `audit-labels.ts` (`Report` → "Reporte"; la acción `EXPORT` → "Exportación", HU-15; MEJ-01: "Invitación enviada", "Invitación reenviada", "Activación de cuenta", "Solicitud de restablecimiento" y "Restablecimiento de contraseña"). Un `ACCESS_DENIED` muestra el área de la ruta tal cual (p. ej. `patients` o `portal/treatments`).
-- Cuentas (MEJ-01), en `features/admin/users` y `features/auth`:
-  - "Crear usuario" (`CreateUserDialog`) ya no pide contraseña: explica que el usuario recibirá un enlace de activación válido por 48 horas. Al crear, la lista muestra "Enviamos un enlace de activación a {correo}". Un 503 (correo no enviado) se muestra en el diálogo.
-  - La lista de usuarios muestra el estado de `status` ("Activo", "Pendiente de activación", "Inactivo") y, solo en las cuentas pendientes, el botón "Reenviar invitación" (`resend-action`, icono `forward_to_inbox`), con el aviso "Enviamos un nuevo enlace de activación a {correo}". "Usuarios activos" cuenta solo las `ACTIVE`.
+  - Etiquetas en `audit-labels.ts` (`Report` → "Reporte"; la acción `EXPORT` → "Exportación", HU-15; MEJ-01: "Invitación enviada", "Invitación reenviada", "Activación de cuenta", "Solicitud de restablecimiento" y "Restablecimiento de contraseña"; MEJ-02: "Cambio de correo", "Confirmación de correo" y la entidad `StaffRecord` → "Personal"). Un `ACCESS_DENIED` muestra el área de la ruta tal cual (p. ej. `patients` o `portal/treatments`).
+- Cuentas (MEJ-01, MEJ-02), en `features/admin/users` y `features/auth`:
+  - "Gestión de Usuarios" queda para administrar cuentas. **No crea cuentas** (MEJ-02): "Crear usuario" navega a `/admin/people` con el estado del router `{ openRegister: true }` (`OPEN_REGISTER_STATE` de `people-api.ts`, sin parámetro en la URL) y abre ahí "Registrar usuario". `CreateUserDialog` se eliminó.
+  - La lista de usuarios muestra el estado de `status` ("Activo", "Pendiente de activación", "Inactivo"), "Correo por confirmar" si `emailChangePending`, y el botón `resend-action` (icono `forward_to_inbox`): "Reenviar invitación" en las cuentas pendientes o "Reenviar verificación" con un correo por confirmar. "Usuarios activos" cuenta solo las `ACTIVE`.
+  - `ConfirmEmailPage` (`/confirmar-correo`, MEJ-02) confirma el correo nuevo con un clic en "Confirmar mi nuevo correo", nunca al cargar (un antivirus de correo que abre el enlace no lo gasta), con la misma protección del token (`takeLinkToken`).
   - `SetPasswordPage` sirve `/activar-cuenta` y `/restablecer-contrasena` (`data: { mode: 'activate' | 'reset' }`): contraseña, confirmación y las reglas visibles, cada una con su marca al cumplirse (`passwordRules`). Al terminar, ofrece "Ir a iniciar sesión". Si el enlace no sirve (falta el token o la API lo rechaza), lo dice y, en el restablecimiento, ofrece "Solicitar un enlace nuevo".
   - **Protección del token** (`features/auth/link-privacy.ts`, `takeLinkToken()`): mientras la página está abierta pone `<meta name="referrer" content="no-referrer">` en el `head` (y la quita al salir), para que ninguna petición mande el token en el `Referer`; lee el token una vez y, tras el primer render (cuando el router ya no reescribe la URL), lo quita de la barra con `Location.replaceState` (`history.replaceState`). El token queda solo en memoria, nunca en `sessionStorage` ni `localStorage`. Si el usuario recarga, el enlace ya no está: debe abrirlo de nuevo desde el correo.
   - `ForgotPasswordPage` (`/olvide-contrasena`) pide el correo y muestra la respuesta de la API, la misma exista o no la cuenta. El login tiene el enlace "¿Olvidó su contraseña?".
@@ -602,17 +635,18 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
   - `national-id.ts` aplica las mismas reglas de cédula que el backend: `nationalIdValidator` da `{ nationalId: regla }` y `NATIONAL_ID_MESSAGES` tiene el mensaje de cada regla.
   - `password.ts` (MEJ-01): `PASSWORD_VALIDATORS` (la regla de la API), `passwordsMatchValidator` (marca `mismatch` en la confirmación) y `passwordRules()`, las reglas visibles con su estado.
   - `date-range.ts` (HU-15): `dateRangeValidator`, validador de un grupo con `from` y `to` (`yyyy-MM-dd`) que da `{ range: true }` si "Desde" es posterior a "Hasta", y `DATE_RANGE_MESSAGE`, el mismo texto de la API. Lo usan la auditoría y los reportes.
-- Pacientes del administrador (HU-05, HU-06, MEJ-03):
-  - El menú del administrador dice "Registro de Usuarios" (MEJ-03; MEJ-02 agregará el personal) y la ruta sigue siendo `/admin/patients`. La página se titula "Registro de Usuarios", con el subtítulo de pacientes.
-  - `/admin/patients` (`PatientRegistry`) busca con espera de 300 ms y muestra una tabla paginada en el servidor con identificación y contacto, y la etiqueta "Datos por completar" en los pacientes con `needsCompletion`. Las columnas de sesiones y estado del prototipo son datos clínicos y no se muestran.
-  - `PatientFormDialog` (`openPatientFormDialog(dialog, paciente?)`), "Registrar usuario" con el subtítulo "Paciente" (o "Editar usuario"), es un `mat-stepper` lineal de cuatro pasos con Anterior y Siguiente fijos al pie; Siguiente marca los campos del paso y avanza solo si es válido, y Enter en un campo equivale a Siguiente:
-    1. **Identificación:** la cédula primero, validada mientras se escribe, con el N.º de historia clínica en vivo. Una validación asíncrona (pausa de 300 ms) busca con `GET /api/patients?q=` y, solo si alguna cédula del resultado es exactamente igual, muestra el aviso con "Ver registro existente" y bloquea el paso. El 409 del servidor sigue como respaldo y vuelve a este paso.
+- Registro de Usuarios del administrador (HU-05, HU-06, MEJ-03, MEJ-02), en `features/admin/people` y `features/admin/patients`:
+  - El menú del administrador dice "Registro de Usuarios" y abre `/admin/people` (`PeopleRegistry`): pacientes y personal en una tabla paginada en el servidor (`GET /api/people`), con búsqueda (espera de 300 ms), filtros "Tipo" (Todos, Pacientes, Personal) y "Rol" (solo con Personal; otro tipo lo borra), y las columnas Persona (enlace a su ficha, "Datos por completar"), Tipo / rol, Contacto, Cuenta ("Sin cuenta", "Pendiente de activación", "Activa", "Inactiva", y "Correo por confirmar") y "Editar". Nunca datos clínicos.
+  - Fichas: `/admin/people/patients/:id` (`PatientDetail`) y `/admin/people/staff/:id` (`StaffDetail`, con "Datos por completar" en un registro anterior a MEJ-02). Ambas usan `PersonAccountCard`: el paciente sin cuenta ve "Crear acceso al portal" (confirmación con el correo al que irá el enlace; nada se escribe); con cuenta, su estado, "Reenviar invitación" si está pendiente o "Reenviar verificación" con un correo por confirmar, y el enlace a "Gestión de Usuarios".
+  - `PersonFormDialog` (`openPersonFormDialog(dialog, { patient?, staff?, type? })`, emite `{ type: 'PATIENT', patient }` o `{ type: 'STAFF', staff }`), "Registrar usuario" (o "Editar usuario"), es un `mat-stepper` lineal con Anterior y Siguiente fijos al pie; Siguiente marca los campos del paso y avanza solo si es válido, y Enter en un campo equivale a Siguiente. Al registrar empieza en el **paso 0, "Tipo de usuario"** (`PersonKindStep`): Paciente o Personal y, para Personal, el rol. El paciente sigue los pasos de abajo; el personal, Identificación (sin N.º de historia), Datos personales y contacto, y Revisión, que avisa que se creará la cuenta y se enviará el enlace. En edición no hay paso 0 y el rol no cambia.
+    1. **Identificación:** la cédula primero, validada mientras se escribe (el N.º de historia clínica en vivo solo para pacientes). Una validación asíncrona (pausa de 300 ms) consulta `GET /api/people/matches?nationalId=` y, si un paciente o un miembro del personal la tiene, muestra el aviso con "Ver registro existente" (enlace a su ficha) y bloquea el paso. El 409 del servidor sigue como respaldo y vuelve a este paso (o al del correo, si `field` es `email`).
+    - **Correo** (MEJ-02, `GET /api/people/matches?email=`): para el personal, cualquier coincidencia bloquea; para un paciente, bloquea el correo de un miembro del personal y solo avisa si otros pacientes lo comparten ("Puede guardar igual; solo uno de ellos podrá tener acceso al portal"). Al editar el correo de una persona con cuenta, el paso explica lo que hará la cuenta (enlace de activación, enlace de confirmación y aviso al anterior, o reactivar antes).
     2. **Datos personales y contacto:** nombres, apellidos, fecha de nacimiento con la edad al lado, sexo, teléfono, correo y la dirección estructurada.
     3. **Datos de admisión:** fecha de ingreso (hoy), ocupación, nivel de instrucción, "¿Tiene seguro de salud?" (Sí/No) y el panel plegable "Datos opcionales" (etnia y religión, con la nota de que son opcionales).
     4. **Revisión:** cada sección con su resumen y "Editar", y el botón "Registrar".
     - Los errores aparecen solo después de tocar el campo o de pulsar Siguiente, nunca al abrir el diálogo.
     - En edición, el stepper no es lineal, la cédula es de solo lectura y un paciente con datos por completar muestra el aviso; el formulario no guarda hasta completar la dirección y el teléfono.
-  - `/admin/patients/:id` (`PatientDetail`) muestra la ficha con la dirección compuesta (o "Dirección incompleta"), "Seguro de salud: Sí/No", la última actualización y el botón "Editar datos". Se abre tras registrar y desde el aviso de cédula existente.
+  - `PatientDetail` muestra la ficha con la dirección compuesta (o "Dirección incompleta"), "Seguro de salud: Sí/No", la última actualización, el acceso al portal y el botón "Editar datos". Se abre tras registrar y desde el aviso de cédula existente.
   - La edad del formulario se calcula con `ageOn()` de `patient-age.ts`.
 - Campos compartidos de formularios (MEJ-03), en `src/app/shared/forms`, usados en el registro y en la edición:
   - `app-date-field` (`DateField`): `mat-datepicker` con escritura y calendario, dd/mm/aaaa; el control guarda `yyyy-MM-dd`, el formato de la API. `EcDateAdapter` (`ec-date-adapter.ts`, registrado en `app.config.ts` con `provideEcDates()`: `DateAdapter`, `MAT_DATE_FORMATS` y `MAT_DATE_LOCALE` `es-EC`) lee estricto: una fecha inexistente (31/02, 29/02 de un año no bisiesto) o un año de dos dígitos es inválida (`invalidDate`), nunca se corrige.
@@ -620,7 +654,7 @@ Se mapean a `app.jwt.secret`, `app.jwt.expiration-minutes`, `app.admin.email`, `
   - `app-address-fields` (`createAddressForm`, `addressValueOf`): provincia, cantón y parroquia en listas dependientes (otra provincia vacía cantón y parroquia; otro cantón, la parroquia), calle principal, número (opcional), calle secundaria y referencia. `LocationCatalogApi` (`location-catalog.ts`) pide el catálogo una vez por sesión (`shareReplay`; un error no queda en caché) y `formatAddress()` compone la dirección igual que el backend. Muestra los `displayName`.
   - `app-yes-no-toggle`: pregunta Sí/No con `mat-button-toggle`.
   - `field-errors.ts`: mensajes por error y un `ErrorStateMatcher` que solo muestra errores tras tocar el campo.
-  - En pruebas, `FAKE_LOCATIONS` (`features/admin/patients/patient-testing.ts`) es un pedazo del catálogo con códigos reales. Las pruebas que esperan la validación asíncrona usan tiempo real (`setTimeout`), no temporizadores falsos: estos detienen la detección de cambios de la aplicación sin zona.
+  - En pruebas, `FAKE_LOCATIONS` (`features/admin/patients/patient-testing.ts`) es un pedazo del catálogo con códigos reales; `features/admin/people/people-testing.ts` tiene las personas, el personal (`fakeStaff`, `legacyStaff`), las cuentas y las coincidencias de MEJ-02. Las pruebas que esperan la validación asíncrona usan tiempo real (`setTimeout`), no temporizadores falsos: estos detienen la detección de cambios de la aplicación sin zona.
 - Indentación de 2 espacios (ver `.editorconfig`).
 
 ## Convenciones de repositorio

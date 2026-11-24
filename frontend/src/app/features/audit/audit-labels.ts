@@ -14,6 +14,8 @@ export const AUDIT_ACTIONS: readonly AuditAction[] = [
   'ACTIVATION',
   'RESET_REQUEST',
   'PASSWORD_RESET',
+  'EMAIL_CHANGE',
+  'EMAIL_CONFIRMATION',
 ];
 
 export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
@@ -31,6 +33,9 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   ACTIVATION: 'Activación de cuenta',
   RESET_REQUEST: 'Solicitud de restablecimiento',
   PASSWORD_RESET: 'Restablecimiento de contraseña',
+  // MEJ-02: neither address is recorded
+  EMAIL_CHANGE: 'Cambio de correo',
+  EMAIL_CONFIRMATION: 'Confirmación de correo',
 };
 
 export const AUDIT_ACTION_TONES: Record<AuditAction, BadgeTone> = {
@@ -46,6 +51,8 @@ export const AUDIT_ACTION_TONES: Record<AuditAction, BadgeTone> = {
   ACTIVATION: 'success',
   RESET_REQUEST: 'warning',
   PASSWORD_RESET: 'purple',
+  EMAIL_CHANGE: 'info',
+  EMAIL_CONFIRMATION: 'success',
 };
 
 /**
@@ -59,6 +66,7 @@ const ENTITY_LABELS: Record<string, string> = {
   TherapySession: 'Sesión terapéutica',
   User: 'Usuario',
   Report: 'Reporte',
+  StaffRecord: 'Personal',
 };
 
 export function entityLabel(entityType: string): string {

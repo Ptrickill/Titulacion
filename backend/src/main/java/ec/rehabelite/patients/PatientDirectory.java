@@ -1,6 +1,7 @@
 package ec.rehabelite.patients;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -34,5 +35,20 @@ public interface PatientDirectory {
      * personal data (HU-14: data minimization). One statement; none for an empty collection.
      */
     Map<Long, String> fullNames(Collection<Long> patientIds);
+
+    /** The patient with that national ID (MEJ-02: unique between patients and staff). */
+    Optional<Long> findIdByNationalId(String nationalId);
+
+    /**
+     * The patients with that email (MEJ-02). Patients may share an email (e.g. a minor and a parent), but the email
+     * of a staff member must not be any patient's.
+     */
+    List<Long> idsWithEmail(String email);
+
+    /**
+     * The patients of the people registry (MEJ-02) from an offset, with the same search and order as
+     * {@link #search}, and the total that match. Two statements.
+     */
+    PatientRegistrySlice registry(String query, long offset, int limit);
 
 }

@@ -1,0 +1,62 @@
+<main class="auth-page">
+  <section class="auth-card" aria-labelledby="confirm-email-title">
+    <div class="logo" aria-hidden="true">
+      <mat-icon>mark_email_read</mat-icon>
+    </div>
+    <p class="brand-name">Rehab<span>Elite</span></p>
+    <p class="tagline">Plataforma de Gestión Clínica &amp; Seguimiento Terapéutico</p>
+
+    <h1 id="confirm-email-title" class="auth-title">Confirme su nuevo correo</h1>
+
+    @if (done()) {
+      <div class="success" role="status">
+        <mat-icon aria-hidden="true">check_circle</mat-icon>
+        <span>
+          Su nuevo correo quedó confirmado y las sesiones abiertas se cerraron. Inicie sesión con
+          este correo y su contraseña de siempre.
+        </span>
+      </div>
+      <a mat-flat-button class="submit full" routerLink="/login">Ir a iniciar sesión</a>
+    } @else if (invalidLink()) {
+      <div class="error" role="alert">
+        <mat-icon aria-hidden="true">link_off</mat-icon>
+        <span>El enlace no es válido o ya venció. Solicite uno nuevo.</span>
+      </div>
+      <p class="auth-intro">
+        Pida al administrador de la clínica que le reenvíe el enlace. Mientras tanto, siga iniciando
+        sesión con su correo anterior.
+      </p>
+      <div class="links">
+        <a class="auth-link" routerLink="/login">Volver a iniciar sesión</a>
+      </div>
+    } @else {
+      <p class="auth-intro">
+        Este correo se registró como el nuevo correo de acceso de su cuenta. Al confirmarlo, inicie
+        sesión con él; su contraseña no cambia.
+      </p>
+
+      @if (errorMessage(); as message) {
+        <div class="error" role="alert">
+          <mat-icon aria-hidden="true">error</mat-icon>
+          <span>{{ message }}</span>
+        </div>
+      }
+
+      <button
+        mat-flat-button
+        type="button"
+        class="submit full"
+        [disabled]="submitting()"
+        (click)="confirm()"
+      >
+        @if (submitting()) {
+          <mat-spinner diameter="20" aria-label="Confirmando" />
+        } @else {
+          Confirmar mi nuevo correo
+        }
+      </button>
+    }
+
+    <p class="footer">Rehab Elite · Conexión segura</p>
+  </section>
+</main>

@@ -3,10 +3,11 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { of } from 'rxjs';
 import type { MockInstance } from 'vitest';
 import { logInForTest } from '../../../core/auth/auth-testing';
+import { OPEN_REGISTER_STATE } from '../people/people-api';
 import { UserList } from './user-list';
 import { fakeUser } from './user-testing';
 
@@ -98,24 +99,33 @@ describe('UserList', () => {
     expect(rowNames()).toEqual(['Administrador Rehab']);
   });
 
-  it('reloads the list and confirms after creating a user', async () => {
-    const created = fakeUser(6, 'Lucía Mora', 'PHYSIOTHERAPIST');
-    vi.spyOn(TestBed.inject(MatDialog), 'open').mockReturnValue({
-      afterClosed: () => of(created),
-    } as ReturnType<MatDialog['open']>);
-    const notice = vi.spyOn(TestBed.inject(MatSnackBar), 'open');
+  it('"Crear usuario" goes to "Registro de Usuarios" with the registration to open (MEJ-02)', async () => {
+    const open = vi.spyOn(TestBed.inject(MatDialog), 'open');
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
     await render();
 
-    (element.querySelector('app-page-header button') as HTMLButtonElement).click();
-    backend.expectOne('/api/users').flush([...users, created]);
+    (element.querySelector('app-page-header button.create') as HTMLButtonElement).click();
+
+    // No account is created here by typing a name and an email
+    expect(open).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith(['/admin/people'], {
+      state: { [OPEN_REGISTER_STATE]: true },
+    });
+  });
+
+  it('marks a pending new email and offers "Reenviar verificación" (MEJ-02)', async () => {
+    fixture = TestBed.createComponent(UserList);
+    element = fixture.nativeElement as HTMLElement;
+    await fixture.whenStable();
+    backend
+      .expectOne('/api/users')
+      .flush([fakeUser(7, 'Lucía Mora', 'PHYSIOTHERAPIST', { emailChangePending: true })]);
     await fixture.whenStable();
 
-    expect(notice).toHaveBeenCalledWith(
-      'Enviamos un enlace de activación a usuario6@rehabelite.test',
-      'Cerrar',
-      { duration: 6000 },
+    expect(element.querySelector('tbody tr')?.textContent).toContain('Correo por confirmar');
+    expect(element.querySelector('.resend-action')?.getAttribute('aria-label')).toBe(
+      'Reenviar verificación a Lucía Mora',
     );
-    expect(rowNames()).toContain('Lucía Mora');
   });
 
   describe('activate / deactivate (HU-03)', () => {
@@ -304,15 +314,12 @@ describe('UserList', () => {
       await renderWithPending();
 
       resendOf('Lucía Mora')!.click();
-      backend
-        .expectOne('/api/users/6/resend-invitation')
-        .flush(
-          {
-            detail:
-              'No se pudo enviar el correo de activación. Intente nuevamente en unos minutos.',
-          },
-          { status: 503, statusText: 'Service Unavailable' },
-        );
+      backend.expectOne('/api/users/6/resend-invitation').flush(
+        {
+          detail: 'No se pudo enviar el correo de activación. Intente nuevamente en unos minutos.',
+        },
+        { status: 503, statusText: 'Service Unavailable' },
+      );
       await fixture.whenStable();
 
       expect(notice).toHaveBeenCalledWith(

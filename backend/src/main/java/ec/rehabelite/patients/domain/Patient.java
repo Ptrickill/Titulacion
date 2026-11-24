@@ -1,6 +1,9 @@
 package ec.rehabelite.patients.domain;
 
 import ec.rehabelite.shared.domain.BusinessRuleException;
+import ec.rehabelite.shared.domain.PhoneNumber;
+import ec.rehabelite.shared.domain.PostalAddress;
+import ec.rehabelite.shared.domain.Sex;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
@@ -29,7 +32,7 @@ import org.hibernate.type.SqlTypes;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Patient {
 
-    public static final String ALREADY_LINKED = "El paciente seleccionado ya tiene una cuenta de portal.";
+    public static final String ALREADY_LINKED = "El paciente ya tiene una cuenta de acceso al portal.";
     public static final String BORN_AFTER_ADMISSION =
             "La fecha de nacimiento no puede ser posterior a la fecha de ingreso.";
 
@@ -66,7 +69,7 @@ public class Patient {
 
     /** Structured address (MEJ-03); only the reference for a patient registered before it. */
     @Embedded
-    private PatientAddress address;
+    private PostalAddress address;
 
     @Column(nullable = false, length = 100)
     private String occupation;
@@ -166,7 +169,12 @@ public class Patient {
      * of {@link PhoneNumber}. Both are completed when the patient is edited.
      */
     public boolean needsCompletion() {
-        return address == null || !address.isComplete() || !PhoneNumber.isValid(phone);
+        return !PostalAddress.isComplete(address) || !PhoneNumber.isValid(phone);
+    }
+
+    /** "First names last names", the name of the patient's portal account (MEJ-02: always derived from here). */
+    public String fullName() {
+        return firstName + " " + lastName;
     }
 
     /** Completed years on the given date. */

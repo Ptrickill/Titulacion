@@ -1,6 +1,8 @@
 package ec.rehabelite.patients.domain;
 
 import ec.rehabelite.shared.domain.NameCase;
+import ec.rehabelite.shared.domain.PostalAddress;
+import ec.rehabelite.shared.domain.Sex;
 import java.time.LocalDate;
 import java.util.Locale;
 
@@ -16,7 +18,7 @@ public record PersonalData(
         Sex sex,
         String phone,
         String email,
-        PatientAddress address,
+        PostalAddress address,
         String occupation,
         String educationLevel,
         boolean hasHealthInsurance,

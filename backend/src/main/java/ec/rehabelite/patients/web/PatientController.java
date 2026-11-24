@@ -1,6 +1,6 @@
 package ec.rehabelite.patients.web;
 
-import ec.rehabelite.patients.application.AddressText;
+import ec.rehabelite.catalogs.AddressFormatter;
 import ec.rehabelite.patients.application.PatientManagementService;
 import ec.rehabelite.patients.application.PatientRegistrationService;
 import ec.rehabelite.patients.application.PortalAccountService;
@@ -20,7 +20,6 @@ import jakarta.validation.constraints.Size;
 import java.net.URI;
 import java.time.Clock;
 import java.time.LocalDate;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
@@ -45,7 +44,7 @@ class PatientController {
     private final PatientManagementService managementService;
     private final PortalAccountService portalAccountService;
     private final PatientWebMapper mapper;
-    private final AddressText addressText;
+    private final AddressFormatter addressFormatter;
     private final Clock clock;
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -59,16 +58,17 @@ class PatientController {
                     schema = @Schema(implementation = ProblemDetail.class)))
     @ApiResponse(responseCode = "403", description = "El rol no es administrador", content = @Content(
             mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = ProblemDetail.class)))
-    @ApiResponse(responseCode = "409", description = "Ya existe un paciente con esa cédula; la propiedad "
-            + "existingPatientId indica cuál", content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+    @ApiResponse(responseCode = "409", description = "La cédula ya es de un paciente o de un miembro del personal, o el "
+            + "correo es de un miembro del personal o de una cuenta del personal (MEJ-02); las propiedades "
+            + "existingPatientId o existingStaffId y field indican cuál. Otro paciente sí puede tener el mismo correo.",
+            content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                     schema = @Schema(implementation = ProblemDetail.class)))
     @ApiResponse(responseCode = "422", description = "La fecha de nacimiento es posterior a la fecha de ingreso",
             content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                     schema = @Schema(implementation = ProblemDetail.class)))
     ResponseEntity<PatientResponse> register(@Valid @RequestBody RegisterPatientRequest request) {
         Patient patient = registrationService.register(request.toCommand());
-        return ResponseEntity.created(URI.create("/api/patients/" + patient.getId()))
-                .body(mapper.toResponse(patient, ClinicCalendar.today(clock), addressText));
+        return ResponseEntity.created(URI.create("/api/patients/" + patient.getId())).body(toResponse(patient));
     }
 
     @GetMapping
@@ -96,7 +96,10 @@ class PatientController {
     @Operation(summary = "Actualizar datos del paciente",
             description = "Reemplaza la fecha de ingreso y los datos personales. La cédula y el número de historia "
                     + "clínica no se modifican. Registra quién y cuándo (updated_by, updated_at) y queda auditado como "
-                    + "UPDATE; enviar los mismos datos no cambia nada. Solo administrador.")
+                    + "UPDATE; enviar los mismos datos no cambia nada. Con cuenta de portal (MEJ-02), la cuenta toma "
+                    + "los nombres del paciente, y un correo nuevo envía un enlace de confirmación al nuevo correo y un "
+                    + "aviso sin enlace al anterior; hasta confirmarlo, la cuenta sigue con el correo anterior (queda "
+                    + "auditado como EMAIL_CHANGE User). Solo administrador.")
     @ApiResponse(responseCode = "200", description = "Datos actualizados")
     @ApiResponse(responseCode = "400", description = "Datos no válidos", content = @Content(
             mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = ProblemDetail.class)))
@@ -104,12 +107,18 @@ class PatientController {
             mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = ProblemDetail.class)))
     @ApiResponse(responseCode = "404", description = "El paciente no existe", content = @Content(
             mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = ProblemDetail.class)))
-    @ApiResponse(responseCode = "422", description = "La fecha de nacimiento es posterior a la fecha de ingreso",
+    @ApiResponse(responseCode = "409", description = "El nuevo correo es de un miembro del personal o de otra cuenta",
+            content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                    schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "422", description = "La fecha de nacimiento es posterior a la fecha de ingreso, o se "
+            + "cambia el correo de una cuenta desactivada", content = @Content(
+            mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "503", description = "No se pudo enviar el enlace al nuevo correo; no cambió nada",
             content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                     schema = @Schema(implementation = ProblemDetail.class)))
     PatientResponse update(@PathVariable Long id, @Valid @RequestBody UpdatePatientRequest request) {
         Patient patient = managementService.update(id, request.admissionDate(), request.toPersonalData());
-        return mapper.toResponse(patient, ClinicCalendar.today(clock), addressText);
+        return toResponse(patient);
     }
 
     @GetMapping("/{id}")
@@ -120,18 +129,34 @@ class PatientController {
     @ApiResponse(responseCode = "404", description = "El paciente no existe", content = @Content(
             mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = ProblemDetail.class)))
     PatientResponse findById(@PathVariable Long id) {
-        return mapper.toResponse(registrationService.findById(id), ClinicCalendar.today(clock), addressText);
+        return toResponse(registrationService.findById(id));
     }
 
-    @GetMapping("/portal-candidates")
-    @Operation(summary = "Pacientes sin cuenta de portal",
-            description = "Hasta 20 pacientes sin cuenta de portal cuyo nombre (sin distinguir tildes ni "
-                    + "mayúsculas) o cédula coinciden con la búsqueda. Solo administrador.")
-    @ApiResponse(responseCode = "200", description = "Pacientes que pueden recibir una cuenta de portal")
-    List<PortalCandidateResponse> findPortalCandidates(
-            @Parameter(description = "Nombre, apellido o inicio de la cédula", example = "ortiz")
-            @RequestParam(defaultValue = "") @Size(max = 100) String query) {
-        return mapper.toPortalCandidates(portalAccountService.findCandidates(query));
+    @PostMapping("/{id}/portal-account")
+    @Operation(summary = "Crear acceso al portal",
+            description = "Crea la cuenta PATIENT del paciente con el correo y los nombres de su registro, sin "
+                    + "escribirlos (MEJ-02), la vincula y envía el enlace \"Active su cuenta de Rehab Elite\" (vence en "
+                    + "48 horas), todo en una sola operación. Queda auditado como CREATE User, UPDATE Patient e "
+                    + "INVITATION_SENT User. Solo administrador.")
+    @ApiResponse(responseCode = "201", description = "Cuenta creada y enlace de activación enviado")
+    @ApiResponse(responseCode = "403", description = "El rol no es administrador", content = @Content(
+            mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "404", description = "El paciente no existe", content = @Content(
+            mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "409", description = "El paciente ya tiene cuenta, u otra cuenta usa su correo (como "
+            + "correo o como correo nuevo por confirmar)", content = @Content(
+            mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "503", description = "No se pudo enviar el correo de activación; no se creó nada",
+            content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                    schema = @Schema(implementation = ProblemDetail.class)))
+    ResponseEntity<PortalAccountResponse> createPortalAccount(@PathVariable Long id) {
+        PortalAccountResponse account = PortalAccountResponse.of(portalAccountService.create(id));
+        return ResponseEntity.created(URI.create("/api/users/" + account.userId())).body(account);
+    }
+
+    private PatientResponse toResponse(Patient patient) {
+        return mapper.toResponse(patient, ClinicCalendar.today(clock), addressFormatter,
+                portalAccountService.accountOf(patient).orElse(null));
     }
 
 }

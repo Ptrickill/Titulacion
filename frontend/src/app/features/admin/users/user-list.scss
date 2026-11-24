@@ -86,3 +86,10 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.email-pending {
+  margin-top: 4px;
+  color: var(--re-info);
+  font-size: 11.5px;
+  font-weight: 600;
+}

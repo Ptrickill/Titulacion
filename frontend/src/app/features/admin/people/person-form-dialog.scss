@@ -1,0 +1,287 @@
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 16px 16px 24px;
+  background: var(--re-navy);
+}
+
+.icon-tile {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  color: var(--re-navy);
+  background: var(--re-teal);
+  border-radius: var(--re-radius-sm);
+}
+
+.heading {
+  flex: 1;
+}
+
+.title {
+  margin: 0;
+  padding: 0;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 700;
+
+  &::before {
+    display: none;
+  }
+}
+
+.subtitle {
+  margin: 2px 0 0;
+  color: var(--re-teal);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.close {
+  color: var(--re-gray-300);
+}
+
+mat-dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  // The content scrolls; the actions stay fixed at the bottom of the dialog
+  max-height: min(68vh, 640px);
+  padding-top: 8px !important;
+}
+
+mat-stepper {
+  background: transparent;
+
+  ::ng-deep .mat-horizontal-stepper-header-container {
+    margin-bottom: 8px;
+  }
+
+  ::ng-deep .mat-horizontal-content-container {
+    padding: 0 0 8px;
+  }
+}
+
+// Two columns, like the sections of the prototype; one on narrow screens
+.step-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 16px;
+  padding-top: 8px;
+}
+
+.full {
+  grid-column: 1 / -1;
+}
+
+mat-form-field {
+  align-self: start;
+  width: 100%;
+}
+
+.block-title {
+  margin: 16px 0 8px;
+  padding-bottom: 6px;
+  color: var(--re-text-teal);
+  border-bottom: 1px solid var(--re-teal-100);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.record-number {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+// Birth date and calculated age side by side, as in the prototype
+.birth-age {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 8px;
+  align-self: start;
+}
+
+.age {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 56px;
+  padding: 0 12px;
+  background: var(--re-teal-50);
+  border-radius: var(--re-radius-sm);
+}
+
+.age-label {
+  color: var(--re-text-teal);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.age-value {
+  color: var(--re-navy);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.optional {
+  margin-top: 8px;
+  box-shadow: none !important;
+  border: 1px solid var(--re-gray-200);
+}
+
+.optional-note {
+  margin: 0 0 4px;
+  color: var(--re-text-muted);
+  font-size: 13px;
+}
+
+.duplicate,
+.error,
+.completion,
+.shared-email,
+.email-change,
+.account-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--re-radius-sm);
+  font-size: 13px;
+
+  mat-icon {
+    flex-shrink: 0;
+  }
+}
+
+.duplicate {
+  margin-top: 8px;
+  color: var(--re-warning);
+  background: var(--re-warning-bg);
+  border: 1px solid var(--re-warning-border);
+
+  span {
+    flex: 1 1 200px;
+    font-weight: 600;
+  }
+}
+
+.completion,
+.shared-email,
+.email-change,
+.account-note {
+  color: var(--re-info);
+  background: var(--re-info-bg);
+  border: 1px solid var(--re-info-border);
+
+  span {
+    flex: 1 1 240px;
+  }
+}
+
+.shared-email,
+.email-change {
+  margin-top: 8px;
+}
+
+.account-note {
+  margin-top: 12px;
+}
+
+.existing-link {
+  color: var(--re-text);
+  background: var(--re-card);
+}
+
+.error {
+  color: var(--re-danger);
+  background: var(--re-danger-bg);
+  border: 1px solid var(--re-danger-border);
+}
+
+// Review step: one card per section with its "Editar"
+.summary {
+  margin-top: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--re-gray-200);
+  border-radius: var(--re-radius-md);
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  h3 {
+    margin: 0;
+    color: var(--re-text-teal);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  dl {
+    display: grid;
+    grid-template-columns: minmax(140px, max-content) minmax(0, 1fr);
+    gap: 6px 16px;
+    margin: 8px 0 0;
+    font-size: 13.5px;
+  }
+
+  dt {
+    color: var(--re-text-muted);
+  }
+
+  dd {
+    margin: 0;
+    color: var(--re-navy);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px 24px !important;
+  border-top: 1px solid var(--re-gray-200);
+}
+
+.spacer {
+  flex: 1;
+}
+
+@media (max-width: 719.98px) {
+  .step-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .summary dl {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+
+    dd {
+      margin-bottom: 6px;
+    }
+  }
+
+  // Only the label of the current step fits on a phone
+  mat-stepper ::ng-deep .mat-step-header:not([aria-selected='true']) .mat-step-label {
+    display: none;
+  }
+
+  .actions {
+    padding: 12px 16px !important;
+  }
+}

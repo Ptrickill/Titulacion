@@ -1,16 +1,18 @@
 package ec.rehabelite.patients.domain;
 
+import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-/** Patient search (HU-06), implemented with native SQL in {@link PatientSearchImpl}. */
+/** Name or national ID search of patients (HU-06), implemented with native SQL in {@link PatientSearchImpl}. */
 public interface PatientSearch {
 
-    /**
-     * Patients ordered by last name, first name and id. A query of digits matches the beginning of the national ID;
-     * otherwise every word must appear in the name, ignoring accents and case. An empty query matches every
-     * patient. The pageable's sort is ignored.
-     */
     Page<Patient> search(String query, Pageable pageable);
+
+    /** Same search and order from any offset, not only a page boundary (MEJ-02 people registry). */
+    List<Patient> searchSlice(String query, long offset, int limit);
+
+    /** How many patients match the search. */
+    long countSearch(String query);
 
 }

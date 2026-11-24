@@ -1,8 +1,11 @@
 package ec.rehabelite.patients.web;
 
+import ec.rehabelite.catalogs.AddressRequest;
 import ec.rehabelite.patients.application.RegisterPatientCommand;
 import ec.rehabelite.patients.domain.PersonalData;
-import ec.rehabelite.patients.domain.Sex;
+import ec.rehabelite.shared.domain.Sex;
+import ec.rehabelite.shared.web.ValidNationalId;
+import ec.rehabelite.shared.web.ValidPhone;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
