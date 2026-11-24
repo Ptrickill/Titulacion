@@ -6,7 +6,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { of } from 'rxjs';
-import { fakeUser } from '../users/user-testing';
+import { logInForTest } from '../../../core/auth/auth-testing';
+import { fakeUser } from './user-testing';
 import { fakeAccount, fakeStaff, legacyStaff } from './people-testing';
 import { StaffDetail } from './staff-detail';
 import { Staff } from './staff-api';
@@ -61,6 +62,16 @@ describe('StaffDetail (MEJ-02)', () => {
     expect(element.querySelector('app-person-account-card')?.textContent).toContain('Activa');
     expect(button('Crear acceso al portal')).toBeUndefined();
     expect(element.querySelector('.completion-notice')).toBeNull();
+  });
+
+  it('never deactivates the account of the logged-in administrator', async () => {
+    logInForTest('ADMINISTRATOR', 'Valeria Andrade Mora', 12);
+    await loaded(fakeStaff(4, { role: 'ADMINISTRATOR' }));
+
+    expect(button('Desactivar cuenta')?.disabled).toBe(true);
+    expect(button('Desactivar cuenta')?.getAttribute('title')).toBe(
+      'No puede desactivar su propia cuenta',
+    );
   });
 
   it('shows the data to complete of a record created for an existing account', async () => {

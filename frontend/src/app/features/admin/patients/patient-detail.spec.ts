@@ -7,7 +7,7 @@ import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { of } from 'rxjs';
 import { fakeAccount } from '../people/people-testing';
-import { fakeUser } from '../users/user-testing';
+import { fakeUser } from '../people/user-testing';
 import { PatientDetail } from './patient-detail';
 import { fakePatient } from './patient-testing';
 
@@ -159,7 +159,31 @@ describe('PatientDetail', () => {
       await loaded(fakePatient(25, { portalAccount: fakeAccount({ status: 'ACTIVE' }) }));
       expect(element.querySelector('app-person-account-card')?.textContent).toContain('Activa');
       expect(button('Reenviar')).toBeUndefined();
-      expect(element.querySelector('a[href="/admin/users"]')).toBeTruthy();
+      // The account is managed here: "Gestión de Usuarios" no longer exists (MEJ-02)
+      expect(element.querySelector('a[href="/admin/users"]')).toBeNull();
+      expect(button('Desactivar cuenta')).toBeTruthy();
+      expect(element.textContent).toContain('Último acceso: Nunca');
+    });
+
+    it('deactivates the portal account after confirming', async () => {
+      await loaded(
+        fakePatient(25, { portalAccount: fakeAccount({ userId: 31, status: 'ACTIVE' }) }),
+      );
+      vi.spyOn(TestBed.inject(MatDialog), 'open').mockReturnValue({
+        afterClosed: () => of(true),
+      } as never);
+
+      button('Desactivar cuenta')!.click();
+      await settle();
+      const request = backend.expectOne('/api/users/31/status');
+      expect(request.request.body).toEqual({ active: false });
+      request.flush(
+        fakeUser(31, 'Juan Carlos Pérez Gómez', 'PATIENT', { active: false, status: 'INACTIVE' }),
+      );
+      await settle();
+
+      expect(element.querySelector('app-person-account-card')?.textContent).toContain('Inactiva');
+      expect(button('Activar cuenta')).toBeTruthy();
     });
 
     it('offers to resend the verification of a pending new email', async () => {

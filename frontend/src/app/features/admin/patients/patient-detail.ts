@@ -25,9 +25,9 @@ import { openConfirmDialog } from '../../../shared/ui/confirm-dialog';
 import { EmptyState } from '../../../shared/ui/empty-state';
 import { FormSection } from '../../../shared/ui/form-section';
 import { PageHeader } from '../../../shared/ui/page-header';
+import { AccountActions } from '../people/account-actions';
 import { PersonAccountCard } from '../people/person-account-card';
 import { openPersonFormDialog } from '../people/person-form-dialog';
-import { UserApi } from '../users/user-api';
 import { formatAge } from './patient-age';
 import { Patient, PatientApi } from './patient-api';
 import { SEX_LABELS } from './patient-options';
@@ -62,7 +62,7 @@ type DetailState =
 })
 export class PatientDetail {
   private readonly api = inject(PatientApi);
-  private readonly userApi = inject(UserApi);
+  private readonly accounts = inject(AccountActions);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   /** Data saved here replaces the shown record without loading it again. */
@@ -141,36 +141,24 @@ export class PatientDetail {
       return;
     }
     this.accountBusy.set(true);
-    this.userApi
-      .resendInvitation(account.userId)
+    this.accounts
+      .resendOf(account, patient.email)
       .pipe(finalize(() => this.accountBusy.set(false)))
-      .subscribe({
-        next: (updated) => {
-          this.saved.next({
-            ...patient,
-            portalAccount: {
-              userId: updated.id,
-              status: updated.status,
-              emailChangePending: updated.emailChangePending,
-            },
-          });
-          this.snackBar.open(
-            updated.emailChangePending
-              ? `Enviamos un nuevo enlace de confirmación a ${patient.email}`
-              : `Enviamos un nuevo enlace de activación a ${patient.email}`,
-            'Cerrar',
-            { duration: 6000 },
-          );
-        },
-        error: (error: unknown) =>
-          this.snackBar.open(
-            problemDetailMessage(error, 'No se pudo reenviar el enlace. Intente nuevamente.'),
-            'Cerrar',
-            { duration: 6000 },
-          ),
-      });
+      .subscribe((updated) => this.saved.next({ ...patient, portalAccount: updated }));
   }
 
+  /** Activates or deactivates the portal account, after a confirmation. */
+  protected toggleStatus(patient: Patient): void {
+    const account = patient.portalAccount;
+    if (!account || this.accountBusy()) {
+      return;
+    }
+    this.accountBusy.set(true);
+    this.accounts
+      .toggleStatusOf(account, `${patient.firstName} ${patient.lastName}`)
+      .pipe(finalize(() => this.accountBusy.set(false)))
+      .subscribe((updated) => this.saved.next({ ...patient, portalAccount: updated }));
+  }
   private load(id: number): Observable<DetailState> {
     if (!Number.isInteger(id) || id <= 0) {
       return of({ status: 'notFound' });

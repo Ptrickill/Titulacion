@@ -26,16 +26,12 @@ export interface UserAccount {
 }
 
 /**
- * Account administration endpoints (administrator only). Since MEJ-02 accounts are created only from the people
- * registry, with the email and the names of a registered person: there is no "create" here.
+ * Actions on an account (administrator only), used from "Registro de Usuarios" and the records of its people
+ * (MEJ-02). Accounts are created only from the registry and listed there: there is no "create" nor "list" here.
  */
 @Injectable({ providedIn: 'root' })
 export class UserApi {
   private readonly http = inject(HttpClient);
-
-  findAll(): Observable<UserAccount[]> {
-    return this.http.get<UserAccount[]>('/api/users');
-  }
 
   /** PATCH /api/users/{id}/status (HU-03); answers the updated account. */
   changeStatus(id: number, active: boolean): Observable<UserAccount> {

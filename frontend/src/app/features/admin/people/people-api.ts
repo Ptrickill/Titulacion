@@ -3,7 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Role } from '../../../core/auth/role';
 import { Page } from '../../../core/http/page';
-import { AccountStatus } from '../users/user-api';
+import { AccountStatus } from './user-api';
 
 /** Who a person is in the registry (MEJ-02). */
 export type PersonType = 'PATIENT' | 'STAFF';
@@ -32,6 +32,8 @@ export interface PersonSummary {
   emailChangePending: boolean;
   /** "Datos por completar". */
   needsCompletion: boolean;
+  /** ISO-8601 instant of the last login, or null without account or if it never logged in. */
+  lastLoginAt: string | null;
 }
 
 /** A registered person that already has the national ID or the email looked up. */
@@ -47,16 +49,25 @@ export interface PersonAccount {
   userId: number;
   status: AccountStatus;
   emailChangePending: boolean;
+  /** ISO-8601 instant of the last login, or null if it never logged in. */
+  lastLoginAt: string | null;
 }
 
 export interface PeopleFilter {
   query: string;
   type: PersonType | null;
   role: StaffRole | null;
+  /** Status of the account, or NONE for the people without one. */
+  accountStatus: PersonAccountStatus | null;
 }
 
-/** Router state that opens the registration dialog on arrival ("Crear usuario" in "Gestión de Usuarios"). */
-export const OPEN_REGISTER_STATE = 'openRegister';
+/** Indicators of "Registro de Usuarios": active accounts and the accounts of each role. */
+export interface PeopleStats {
+  activeAccounts: number;
+  physiotherapists: number;
+  portalPatients: number;
+  administrators: number;
+}
 
 /** Properties of the 409 problem response with the existing record (MEJ-02). */
 export const EXISTING_STAFF_ID = 'existingStaffId';
@@ -81,7 +92,15 @@ export class PeopleApi {
     if (filter.role) {
       params = params.set('role', filter.role);
     }
+    if (filter.accountStatus) {
+      params = params.set('accountStatus', filter.accountStatus);
+    }
     return this.http.get<Page<PersonSummary>>('/api/people', { params });
+  }
+
+  /** GET /api/people/stats: the four indicators of the registry. */
+  stats(): Observable<PeopleStats> {
+    return this.http.get<PeopleStats>('/api/people/stats');
   }
 
   /** Patients and staff that already have the national ID or the email. */

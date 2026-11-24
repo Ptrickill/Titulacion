@@ -51,7 +51,10 @@
       [account]="staff.account"
       [email]="staff.email"
       [busy]="accountBusy()"
+      [lastLoginAt]="staff.account?.lastLoginAt ?? null"
+      [ownAccount]="isOwnAccount(staff)"
       (resend)="resend(staff)"
+      (toggleStatus)="toggleStatus(staff)"
     />
 
     <section class="record" aria-label="Datos del miembro del personal">

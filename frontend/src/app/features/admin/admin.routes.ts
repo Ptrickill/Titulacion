@@ -6,11 +6,8 @@ export const ADMIN_ROUTES: Routes = [
     title: 'Inicio | Rehab Elite',
     loadComponent: () => import('./admin-dashboard').then((m) => m.AdminDashboard),
   },
-  {
-    path: 'users',
-    title: 'Gestión de Usuarios | Rehab Elite',
-    loadComponent: () => import('./users/user-list').then((m) => m.UserList),
-  },
+  // MEJ-02: "Gestión de Usuarios" joined "Registro de Usuarios", which manages the accounts too
+  { path: 'users', pathMatch: 'full', redirectTo: 'people' },
   // MEJ-02: "Registro de Usuarios", patients and staff in one registry
   {
     path: 'people',

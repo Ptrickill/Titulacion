@@ -63,4 +63,10 @@ public interface AccountProvisioning {
     /** Ids of every account with the role, e.g. to filter the people registry by role. */
     List<Long> idsWithRole(Role role);
 
+    /** Ids of every account with the status, to filter the people registry by the status of the account. */
+    List<Long> idsWithStatus(AccountStatus status);
+
+    /** The indicators of the people registry, in one statement. */
+    AccountStatistics statistics();
+
 }

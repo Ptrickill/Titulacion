@@ -2,6 +2,7 @@ package ec.rehabelite.staff.web;
 
 import ec.rehabelite.shared.web.PageResponse;
 import ec.rehabelite.staff.application.PeopleRegistryService;
+import ec.rehabelite.staff.application.PeopleRegistryService.AccountFilter;
 import ec.rehabelite.staff.application.PeopleRegistryService.PeoplePage;
 import ec.rehabelite.staff.application.PeopleRegistryService.PersonType;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,7 +34,7 @@ class PeopleController {
     @GetMapping
     @Operation(summary = "Listar personas",
             description = "Pacientes y personal con el estado de su cuenta: NONE (sin cuenta), PENDING_ACTIVATION, "
-                    + "ACTIVE o INACTIVE. Primero el personal y luego los pacientes, cada grupo por apellidos y "
+                    + "ACTIVE o INACTIVE, y el último acceso. Primero el personal y luego los pacientes, cada grupo por apellidos y "
                     + "nombres. La búsqueda es la de pacientes: dígitos buscan el inicio de la cédula; si no, cada "
                     + "palabra debe aparecer en los nombres. Datos personales: no se audita.")
     @ApiResponse(responseCode = "200", description = "Página de personas")
@@ -47,14 +48,28 @@ class PeopleController {
             @RequestParam(required = false) PersonType type,
             @Parameter(description = "Solo el personal con ese rol")
             @RequestParam(required = false) StaffRoleParam role,
+            @Parameter(description = "Solo las personas cuya cuenta tiene ese estado, o NONE para las que no tienen "
+                    + "cuenta (solo pacientes: todo el personal tiene una)")
+            @RequestParam(required = false) AccountFilter accountStatus,
             @Parameter(description = "Número de página, desde 0", example = "0")
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @Parameter(description = "Tamaño de página (1 a 50)", example = "10")
             @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size) {
-        PeoplePage result = registryService.list(q, type, role == null ? null : role.role(), page, size);
+        PeoplePage result = registryService.list(q, type, role == null ? null : role.role(), accountStatus, page,
+                size);
         long totalPages = (result.total() + size - 1) / size;
         return new PageResponse<>(result.content().stream().map(PersonResponse::of).toList(), page, size,
                 result.total(), (int) totalPages);
+    }
+
+    @GetMapping("/stats")
+    @Operation(summary = "Indicadores del registro",
+            description = "Cuentas activas (habilitadas y activadas) de todos los roles, y cuentas de fisioterapeutas, "
+                    + "de pacientes con acceso al portal y de administradores en cualquier estado. Una sola consulta. "
+                    + "No se audita.")
+    @ApiResponse(responseCode = "200", description = "Indicadores")
+    PeopleStatsResponse stats() {
+        return PeopleStatsResponse.of(registryService.statistics());
     }
 
     @GetMapping("/matches")

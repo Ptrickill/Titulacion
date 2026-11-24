@@ -47,8 +47,8 @@ public interface PatientDirectory {
 
     /**
      * The patients of the people registry (MEJ-02) from an offset, with the same search and order as
-     * {@link #search}, and the total that match. Two statements.
+     * {@link #search}, filtered by their portal account, and the total that match. Two statements.
      */
-    PatientRegistrySlice registry(String query, long offset, int limit);
+    PatientRegistrySlice registry(String query, PortalAccountFilter accounts, long offset, int limit);
 
 }

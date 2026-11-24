@@ -42,6 +42,15 @@ describe('ADMIN_ROUTES (MEJ-02)', () => {
     expect(TestBed.inject(Router).url).toBe('/admin/people');
   });
 
+  it('redirects the former "Gestión de Usuarios" to the people registry', async () => {
+    const harness = await RouterTestingHarness.create();
+
+    await harness.navigateByUrl('/admin/users');
+
+    expect(TestBed.inject(Router).url).toBe('/admin/people');
+    expect(ADMIN_ROUTES.some((route) => route.loadComponent && route.path === 'users')).toBe(false);
+  });
+
   it('redirects the record of a patient to its new route', async () => {
     const harness = await RouterTestingHarness.create();
 

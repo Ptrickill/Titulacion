@@ -4,20 +4,16 @@ import {
   provideHttpClientTesting,
   TestRequest,
 } from '@angular/common/http/testing';
-import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideRouter, Router } from '@angular/router';
-import { RouterTestingHarness } from '@angular/router/testing';
 import { of } from 'rxjs';
 import { fakePatient } from '../patients/patient-testing';
-import { OPEN_REGISTER_STATE } from './people-api';
+import { logInForTest } from '../../../core/auth/auth-testing';
+import { fakeUser } from './user-testing';
 import { PeopleRegistry } from './people-registry';
 import { fakePeoplePage, fakePerson, fakeStaff } from './people-testing';
-
-@Component({ template: '' })
-class Blank {}
 
 describe('PeopleRegistry (MEJ-02)', () => {
   let fixture: ComponentFixture<PeopleRegistry>;
@@ -76,14 +72,22 @@ describe('PeopleRegistry (MEJ-02)', () => {
     fakePerson(21, { firstName: 'Luis', lastName: 'Quishpe Tipán' }),
   ];
 
+  const STATS = { activeAccounts: 7, physiotherapists: 3, portalPatients: 4, administrators: 1 };
+  const rowButton = (row: number, selector: string) =>
+    element.querySelectorAll('tbody tr')[row].querySelector<HTMLButtonElement>(selector);
+
   describe('list', () => {
     beforeEach(async () => {
       TestBed.configureTestingModule({
         providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
       });
       backend = TestBed.inject(HttpTestingController);
+      // The logged-in administrator is the account 12 (Valeria Andrade, in these rows)
+      logInForTest('ADMINISTRATOR', 'Valeria Andrade Mora', 12);
       fixture = TestBed.createComponent(PeopleRegistry);
       element = fixture.nativeElement as HTMLElement;
+      await fixture.whenStable();
+      backend.expectOne('/api/people/stats').flush(STATS);
       await fixture.whenStable();
     });
 
@@ -114,8 +118,9 @@ describe('PeopleRegistry (MEJ-02)', () => {
       expect(roles).toEqual(['Fisioterapeuta', 'Dirección operativa', 'Paciente', 'Paciente']);
       expect(cellTexts(2)[0]).toContain('0987654321');
       const accounts = cellTexts(3);
-      expect(accounts[0]).toBe('Activa');
-      expect(accounts[1]).toBe('Inactiva');
+      expect(accounts[0]).toContain('Activa');
+      expect(accounts[0]).toContain('Último acceso: Nunca');
+      expect(accounts[1]).toContain('Inactiva');
       expect(accounts[2]).toContain('Pendiente de activación');
       expect(accounts[2]).toContain('Correo por confirmar');
       expect(accounts[3]).toBe('Sin cuenta');
@@ -207,32 +212,149 @@ describe('PeopleRegistry (MEJ-02)', () => {
     });
   });
 
-  it('opens the registration on arrival from "Crear usuario", without a URL parameter', async () => {
-    TestBed.configureTestingModule({
-      providers: [
-        provideRouter([
-          { path: 'admin/users', component: Blank },
-          { path: 'admin/people', component: PeopleRegistry },
+  describe('accounts (MEJ-02: "Gestión de Usuarios" joined the registry)', () => {
+    beforeEach(async () => {
+      TestBed.configureTestingModule({
+        providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
+      });
+      backend = TestBed.inject(HttpTestingController);
+      logInForTest('ADMINISTRATOR', 'Valeria Andrade Mora', 12);
+      fixture = TestBed.createComponent(PeopleRegistry);
+      element = fixture.nativeElement as HTMLElement;
+      await fixture.whenStable();
+      backend.expectOne('/api/people/stats').flush(STATS);
+      listRequest().flush(
+        fakePeoplePage([
+          ...people,
+          fakePerson(6, {
+            type: 'STAFF',
+            firstName: 'Martín',
+            lastName: 'Cevallos Ruiz',
+            role: 'PHYSIOTHERAPIST',
+            accountStatus: 'ACTIVE',
+            userId: 14,
+            lastLoginAt: new Date().toISOString(),
+          }),
         ]),
-        provideHttpClient(),
-        provideHttpClientTesting(),
-      ],
+      );
+      await fixture.whenStable();
     });
-    backend = TestBed.inject(HttpTestingController);
-    const open = vi
-      .spyOn(TestBed.inject(MatDialog), 'open')
-      .mockReturnValue({ afterClosed: () => of(undefined) } as never);
-    const harness = await RouterTestingHarness.create('/admin/users');
 
-    await TestBed.inject(Router).navigate(['/admin/people'], {
-      state: { [OPEN_REGISTER_STATE]: true },
+    afterEach(() => backend.verify());
+
+    it('shows the four indicators of "Gestión de Usuarios" above the list', () => {
+      const cards = Array.from(element.querySelectorAll('app-stat-card')).map(
+        (card) => card.textContent ?? '',
+      );
+      expect(cards).toHaveLength(4);
+      [
+        ['Usuarios activos', '7'],
+        ['Fisioterapeutas', '3'],
+        ['Pacientes c/ portal', '4'],
+        ['Administradores', '1'],
+      ].forEach(([label, value], index) => {
+        expect(cards[index]).toContain(label);
+        expect(cards[index]).toContain(value);
+      });
     });
-    harness.detectChanges();
-    await harness.fixture.whenStable();
+    it('filters by the status of the account', async () => {
+      await choose('people-account-filter', 'Sin cuenta');
+      const request = listRequest();
+      expect(request.request.params.get('accountStatus')).toBe('NONE');
+      expect(request.request.params.get('page')).toBe('0');
+      request.flush(fakePeoplePage([people[3]]));
+      await fixture.whenStable();
+      expect(rowNames()).toEqual(['Luis Quishpe Tipán']);
 
-    expect(TestBed.inject(Router).url).toBe('/admin/people');
-    expect(open).toHaveBeenCalledTimes(1);
-    listRequest().flush(fakePeoplePage([]));
-    backend.verify();
+      await choose('people-account-filter', 'Inactiva');
+      expect(listRequest().request.params.get('accountStatus')).toBe('INACTIVE');
+    });
+
+    it('shows the last access of each account', () => {
+      const accounts = cellTexts(3);
+      expect(accounts[4]).toMatch(/Último acceso: Hoy, \d{2}:\d{2}/);
+      expect(accounts[3]).not.toContain('Último acceso');
+    });
+
+    it('offers each account action only where it applies, and never deactivates the own account', () => {
+      // Own account (12): deactivation disabled
+      // disabledInteractive keeps the tooltip: the button is marked with aria-disabled
+      expect(rowButton(0, '.status-action')?.getAttribute('aria-disabled')).toBe('true');
+      expect(rowButton(0, '.status-action')?.getAttribute('aria-label')).toBe(
+        'No puede desactivar su propia cuenta',
+      );
+      expect(rowButton(0, '.resend-action')).toBeNull();
+      // Inactive account: activate
+      expect(rowButton(1, '.status-action')?.getAttribute('aria-label')).toBe(
+        'Activar cuenta de Paula Herrera Vásconez',
+      );
+      // Pending account: resend the invitation
+      expect(rowButton(2, '.resend-action')?.getAttribute('aria-label')).toBe(
+        'Reenviar invitación a Rosa Elena Ortiz Vega',
+      );
+      // Without account: only "Editar"
+      expect(rowButton(3, '.status-action')).toBeNull();
+      expect(rowButton(3, '.resend-action')).toBeNull();
+      expect(rowButton(3, 'button.edit')).not.toBeNull();
+    });
+
+    it('deactivates after confirming, updates the row and reloads the indicators', async () => {
+      const confirm = vi
+        .spyOn(TestBed.inject(MatDialog), 'open')
+        .mockReturnValue({ afterClosed: () => of(true) } as never);
+      const snackBar = vi.spyOn(TestBed.inject(MatSnackBar), 'open');
+
+      rowButton(4, '.status-action')!.click();
+      await fixture.whenStable();
+
+      expect(confirm.mock.calls[0][1]?.data).toMatchObject({
+        title: 'Desactivar cuenta',
+        tone: 'danger',
+      });
+      const request = backend.expectOne('/api/users/14/status');
+      expect(request.request.body).toEqual({ active: false });
+      request.flush(
+        fakeUser(14, 'Martín Cevallos Ruiz', 'PHYSIOTHERAPIST', {
+          active: false,
+          status: 'INACTIVE',
+        }),
+      );
+      backend.expectOne('/api/people/stats').flush({ ...STATS, activeAccounts: 6 });
+      await fixture.whenStable();
+
+      expect(cellTexts(3)[4]).toContain('Inactiva');
+      expect(element.querySelector('app-stat-card')?.textContent).toContain('6');
+      expect(snackBar).toHaveBeenCalledWith('Cuenta desactivada correctamente.', 'Cerrar', {
+        duration: 5000,
+      });
+    });
+
+    it('resends the invitation of a pending account', async () => {
+      const snackBar = vi.spyOn(TestBed.inject(MatSnackBar), 'open');
+
+      rowButton(2, '.resend-action')!.click();
+      backend
+        .expectOne('/api/users/31/resend-invitation')
+        .flush(fakeUser(31, 'Rosa Elena Ortiz Vega', 'PATIENT', { status: 'PENDING_ACTIVATION' }));
+      backend.expectOne('/api/people/stats').flush(STATS);
+      await fixture.whenStable();
+
+      expect(snackBar).toHaveBeenCalledWith(
+        'Enviamos un nuevo enlace de activación a juan.perez@correo.ec',
+        'Cerrar',
+        { duration: 6000 },
+      );
+    });
+
+    it('changes nothing when the confirmation is cancelled', async () => {
+      vi.spyOn(TestBed.inject(MatDialog), 'open').mockReturnValue({
+        afterClosed: () => of(false),
+      } as never);
+
+      rowButton(4, '.status-action')!.click();
+      await fixture.whenStable();
+
+      backend.expectNone('/api/users/14/status');
+    });
   });
 });

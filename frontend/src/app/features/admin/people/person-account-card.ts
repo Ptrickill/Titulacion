@@ -2,20 +2,20 @@ import { Component, computed, input, output } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { RouterLink } from '@angular/router';
 import { StatusBadge } from '../../../shared/ui/status-badge';
+import { formatLastAccess } from './last-access';
 import { PersonAccount, PersonType } from './people-api';
 import { ACCOUNT_STATUS_BADGES } from './people-labels';
 
 /**
  * The account of a person in its record (MEJ-02). A patient without one offers "Crear acceso al portal": the account
  * takes the record's email and names, nothing is typed. With an account it shows its status and, while it waits for
- * its owner, "Reenviar invitación" (activation) or "Reenviar verificación" (a new email to confirm). Activating or
- * deactivating stays in "Gestión de Usuarios".
+ * its owner, "Reenviar invitación" (activation) or "Reenviar verificación" (a new email to confirm), and "Activar
+ * cuenta" or "Desactivar cuenta" (never the administrator's own account), with the last access.
  */
 @Component({
   selector: 'app-person-account-card',
-  imports: [RouterLink, MatButtonModule, MatIconModule, MatProgressSpinnerModule, StatusBadge],
+  imports: [MatButtonModule, MatIconModule, MatProgressSpinnerModule, StatusBadge],
   template: `
     <section class="account" [attr.aria-labelledby]="headingId">
       <header>
@@ -32,7 +32,11 @@ import { ACCOUNT_STATUS_BADGES } from './people-labels';
 
       @if (account(); as current) {
         <p class="text">
-          Correo de la cuenta: <strong>{{ email() }}</strong>
+          @if (current.emailChangePending) {
+            Correo nuevo, por confirmar: <strong>{{ email() }}</strong>
+          } @else {
+            Correo de la cuenta: <strong>{{ email() }}</strong>
+          }
         </p>
         @if (current.emailChangePending) {
           <p class="note" role="status">
@@ -73,7 +77,31 @@ import { ACCOUNT_STATUS_BADGES } from './people-labels';
               Reenviar verificación
             </button>
           }
-          <a mat-button class="manage" routerLink="/admin/users">Gestión de Usuarios</a>
+          @if (current.status === 'INACTIVE') {
+            <button
+              mat-stroked-button
+              type="button"
+              class="activate"
+              [disabled]="busy()"
+              (click)="toggleStatus.emit()"
+            >
+              <mat-icon aria-hidden="true">lock_open</mat-icon>
+              Activar cuenta
+            </button>
+          } @else {
+            <button
+              mat-stroked-button
+              type="button"
+              class="deactivate"
+              [disabled]="busy() || ownAccount()"
+              [attr.title]="ownAccount() ? 'No puede desactivar su propia cuenta' : null"
+              (click)="toggleStatus.emit()"
+            >
+              <mat-icon aria-hidden="true">lock</mat-icon>
+              Desactivar cuenta
+            </button>
+          }
+          <span class="last-access">Último acceso: {{ lastAccess() }}</span>
         </div>
       } @else if (type() === 'PATIENT') {
         <p class="text">
@@ -158,6 +186,20 @@ import { ACCOUNT_STATUS_BADGES } from './people-labels';
       gap: 8px;
     }
 
+    .actions {
+      align-items: center;
+    }
+
+    .last-access {
+      color: var(--re-text-muted);
+      font-size: 13px;
+    }
+
+    .deactivate {
+      color: var(--re-danger);
+      border-color: var(--re-danger-border);
+    }
+
     .resend {
       color: var(--re-text-teal);
       border-color: var(--re-teal-100);
@@ -173,8 +215,15 @@ export class PersonAccountCard {
   /** The record's email: the account's, or the one a new account will take. */
   readonly email = input.required<string>();
   readonly busy = input(false);
+  /** The account of the logged-in administrator: it cannot be deactivated. */
+  readonly ownAccount = input(false);
+  /** ISO-8601 instant of the last login, or null. */
+  readonly lastLoginAt = input<string | null>(null);
   readonly create = output<void>();
   readonly resend = output<void>();
+  readonly toggleStatus = output<void>();
+
+  protected readonly lastAccess = computed(() => formatLastAccess(this.lastLoginAt()));
 
   protected readonly headingId = `person-account-${PersonAccountCard.nextId++}`;
   protected readonly badge = computed(

@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import ec.rehabelite.AbstractIntegrationTest;
 import ec.rehabelite.RecordingMailSender;
 import ec.rehabelite.TestStaff;
+import ec.rehabelite.auth.AccountStatus;
 import ec.rehabelite.auth.Role;
 import ec.rehabelite.auth.application.JwtTokenService;
 import ec.rehabelite.auth.domain.User;
@@ -91,7 +92,7 @@ class AccountActivationIntegrationTests extends AbstractIntegrationTest {
                 Boolean.class, userId)).isTrue();
         assertThat(auditEntries("ACTIVATION", userId)).singleElement()
                 .satisfies(entry -> assertThat(entry).containsEntry("user_id", userId));
-        listUsers().andExpect(jsonPath("$[?(@.id == %d)].status".formatted(userId)).value("ACTIVE"));
+        assertThat(activated.status()).isEqualTo(AccountStatus.ACTIVE);
         login(email, PASSWORD).andExpect(status().isOk());
 
         // Single use
@@ -209,7 +210,7 @@ class AccountActivationIntegrationTests extends AbstractIntegrationTest {
         User user = userRepository.save(User.create(email, passwordEncoder.encode(PASSWORD), "Olvido Clave",
                 Role.ADMINISTRATOR, null, Instant.now()));
         String openSession = tokenService.issue(user, Instant.now()).token();
-        mockMvc.perform(get("/api/users").header(HttpHeaders.AUTHORIZATION, "Bearer " + openSession))
+        mockMvc.perform(get("/api/people").header(HttpHeaders.AUTHORIZATION, "Bearer " + openSession))
                 .andExpect(status().isOk());
 
         forgotPassword(email.toUpperCase())
@@ -236,7 +237,7 @@ class AccountActivationIntegrationTests extends AbstractIntegrationTest {
 
         login(email, PASSWORD).andExpect(status().isUnauthorized());
         login(email, NEW_PASSWORD).andExpect(status().isOk());
-        mockMvc.perform(get("/api/users").header(HttpHeaders.AUTHORIZATION, "Bearer " + openSession))
+        mockMvc.perform(get("/api/people").header(HttpHeaders.AUTHORIZATION, "Bearer " + openSession))
                 .andExpect(status().isUnauthorized());
         assertThat(auditEntries("PASSWORD_RESET", user.getId())).singleElement()
                 .satisfies(entry -> assertThat(entry).containsEntry("user_id", user.getId()));
@@ -373,10 +374,6 @@ class AccountActivationIntegrationTests extends AbstractIntegrationTest {
     private ResultActions login(String email, String password) throws Exception {
         return mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"email\":\"%s\",\"password\":\"%s\"}".formatted(email, password)));
-    }
-
-    private ResultActions listUsers() throws Exception {
-        return mockMvc.perform(get("/api/users").header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken));
     }
 
     private List<Map<String, Object>> auditEntries(String action, Long userId) {

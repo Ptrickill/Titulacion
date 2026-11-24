@@ -135,7 +135,7 @@ public class User {
     }
 
     public AccountSummary summary() {
-        return new AccountSummary(id, role, status(), pendingEmail != null);
+        return new AccountSummary(id, role, status(), pendingEmail != null, lastLoginAt);
     }
 
     /**
