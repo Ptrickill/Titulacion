@@ -7,6 +7,17 @@ export const DIRECTOR_ROUTES: Routes = [
     title: 'Reportes de Dirección Operativa | Rehab Elite',
     loadComponent: () => import('./reports/operations-report').then((m) => m.OperationsReport),
   },
+  // MEJ-05: "Gestión de Personal", the staff and its accounts, and each member's record (with the schedule)
+  {
+    path: 'staff',
+    title: 'Gestión de Personal | Rehab Elite',
+    loadComponent: () => import('./staff/staff-list').then((m) => m.StaffList),
+  },
+  {
+    path: 'staff/:id',
+    title: 'Personal | Rehab Elite',
+    loadComponent: () => import('./staff/staff-detail').then((m) => m.StaffDetail),
+  },
   {
     path: 'schedules',
     title: 'Horarios y asignaciones | Rehab Elite',

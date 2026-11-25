@@ -1,0 +1,113 @@
+<app-page-header
+  title="Gestión de Personal"
+  subtitle="Fisioterapeutas, recepción y dirección operativa: datos personales y cuentas de acceso"
+>
+  <button mat-flat-button actions type="button" class="register" (click)="openRegisterDialog()">
+    <mat-icon aria-hidden="true">person_add</mat-icon>
+    Registrar personal
+  </button>
+</app-page-header>
+
+<section class="stats" aria-label="Indicadores del personal">
+  <app-stat-card
+    compact
+    label="Cuentas activas"
+    [value]="stats()?.activeAccounts ?? '—'"
+    icon="how_to_reg"
+    tone="teal"
+  />
+  <app-stat-card
+    compact
+    label="Fisioterapeutas"
+    [value]="stats()?.physiotherapists ?? '—'"
+    icon="groups"
+    tone="teal"
+  />
+  <app-stat-card
+    compact
+    label="Recepción"
+    [value]="stats()?.receptionists ?? '—'"
+    icon="support_agent"
+    tone="purple"
+  />
+  <app-stat-card
+    compact
+    label="Dirección operativa"
+    [value]="stats()?.directors ?? '—'"
+    icon="shield"
+    tone="warning"
+  />
+</section>
+
+<section class="filters" aria-label="Búsqueda y filtros del personal">
+  <mat-form-field appearance="fill" subscriptSizing="dynamic" class="search">
+    <mat-icon matPrefix aria-hidden="true">search</mat-icon>
+    <input
+      matInput
+      type="search"
+      placeholder="Buscar por nombres o cédula..."
+      aria-label="Buscar por nombres o cédula"
+      autocomplete="off"
+      (input)="onSearch($event)"
+    />
+  </mat-form-field>
+
+  <mat-form-field appearance="fill" subscriptSizing="dynamic" class="filter">
+    <mat-label>Rol</mat-label>
+    <mat-select
+      id="staff-role-filter"
+      [value]="search().role ?? ''"
+      (selectionChange)="onRoleChange($event.value)"
+    >
+      <mat-option value="">Todos los roles</mat-option>
+      @for (role of staffRoles; track role) {
+        <mat-option [value]="role">{{ roleLabels[role] }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="fill" subscriptSizing="dynamic" class="filter">
+    <mat-label>Estado de la cuenta</mat-label>
+    <mat-select
+      id="staff-account-filter"
+      [value]="search().accountStatus ?? ''"
+      (selectionChange)="onAccountStatusChange($event.value)"
+    >
+      <mat-option value="">Todos</mat-option>
+      <mat-option value="PENDING_ACTIVATION">Pendiente de activación</mat-option>
+      <mat-option value="ACTIVE">Activa</mat-option>
+      <mat-option value="INACTIVE">Inactiva</mat-option>
+    </mat-select>
+  </mat-form-field>
+</section>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Cargando el personal" />
+}
+
+@if (loadError()) {
+  <app-empty-state
+    icon="cloud_off"
+    title="No se pudo cargar el personal"
+    message="Revise su conexión e intente nuevamente."
+  >
+    <button mat-stroked-button type="button" (click)="reload()">Reintentar</button>
+  </app-empty-state>
+} @else if (results(); as page) {
+  <app-people-table
+    [page]="page"
+    [pageSize]="pageSize"
+    [pageIndex]="search().page"
+    (pageIndexChange)="goToPage($event)"
+    caption="Personal registrado"
+    itemLabel="miembros del personal"
+    [emptyMessage]="
+      search().query || search().role || search().accountStatus
+        ? 'Nadie del personal coincide con la búsqueda.'
+        : 'Aún no hay personal registrado.'
+    "
+    [openingKey]="openingKey()"
+    (edit)="edit($event)"
+    (accountChanged)="loadStats()"
+  />
+}

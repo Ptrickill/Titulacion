@@ -35,7 +35,7 @@ import { PageHeader } from '../../../shared/ui/page-header';
         <app-empty-state
           icon="event_busy"
           title="Su cuenta no tiene un registro del personal"
-          message="Pida a la administración que revise su registro en el Registro de Usuarios."
+          message="Pida a la dirección operativa que revise su registro en la Gestión de Personal."
         />
       } @else {
         <app-empty-state

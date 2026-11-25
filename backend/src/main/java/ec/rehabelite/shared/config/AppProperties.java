@@ -24,7 +24,7 @@ import org.springframework.validation.annotation.Validated;
 @ConfigurationProperties(prefix = "app")
 public record AppProperties(
         @Valid @NotNull Jwt jwt,
-        @Valid @NotNull Admin admin,
+        @Valid @NotNull InitialDirector initialDirector,
         @Valid @NotNull Cors cors,
         @Valid @NotNull Ai ai,
         DevSeed devSeed,
@@ -46,8 +46,19 @@ public record AppProperties(
             @Positive long expirationMinutes) {
     }
 
-    /** Initial administrator account; both values may be blank until the admin seeding story is implemented. */
-    public record Admin(@Email String email, String password) {
+    /**
+     * Initial operations director (MEJ-05: INITIAL_DIRECTOR_EMAIL / INITIAL_DIRECTOR_PASSWORD), created at startup when
+     * no active operations director exists. Both may be blank when one already exists.
+     */
+    public record InitialDirector(@Email String email, String password) {
+
+        /** Never print the password, e.g. in logs or debugger views. */
+        @Override
+        public String toString() {
+            return "InitialDirector[email=" + (email == null || email.isBlank() ? "<blank>" : "<set>") + ", password="
+                    + (password == null || password.isBlank() ? "<blank>" : "<set>") + "]";
+        }
+
     }
 
     public record Cors(@NotEmpty List<String> allowedOrigins) {

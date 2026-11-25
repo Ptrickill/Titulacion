@@ -3,15 +3,23 @@ package ec.rehabelite.staff.web;
 import ec.rehabelite.catalogs.AddressFormatter;
 import ec.rehabelite.shared.config.AppProperties;
 import ec.rehabelite.shared.domain.ClinicCalendar;
+import ec.rehabelite.shared.web.PageResponse;
+import ec.rehabelite.staff.application.PeopleRegistryService;
+import ec.rehabelite.staff.application.PeopleRegistryService.AccountFilter;
+import ec.rehabelite.staff.application.PeopleRegistryService.PersonType;
 import ec.rehabelite.staff.application.StaffRegistrationService;
 import ec.rehabelite.staff.application.StaffScheduleService;
 import ec.rehabelite.staff.domain.StaffRecord;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 import java.net.URI;
 import java.time.Clock;
 import lombok.RequiredArgsConstructor;
@@ -24,25 +32,67 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping(path = "/api/staff", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
-@Tag(name = "Personal", description = "Registro del personal y su cuenta (MEJ-02, solo administrador) y horario de "
-        + "los fisioterapeutas (MEJ-04, administrador y dirección operativa)")
+@Tag(name = "Personal", description = "Gestión del personal y de sus cuentas (MEJ-02, MEJ-05, solo dirección "
+        + "operativa) y horario de los fisioterapeutas (MEJ-04: lo edita la dirección; la recepción lo consulta)")
 class StaffController {
+
+    /** Status of a staff account: every staff member has one, so there is no NONE. Any other value answers 400. */
+    enum StaffAccountStatusParam {
+        PENDING_ACTIVATION,
+        ACTIVE,
+        INACTIVE
+    }
 
     private final StaffRegistrationService registrationService;
     private final StaffScheduleService scheduleService;
+    private final PeopleRegistryService registryService;
     private final AppProperties properties;
     private final StaffWebMapper mapper;
     private final AddressFormatter addressFormatter;
     private final Clock clock;
 
+    @GetMapping
+    @Operation(summary = "Listar el personal",
+            description = "Fisioterapeutas, recepción y dirección operativa con el estado de su cuenta y el último "
+                    + "acceso, por apellidos y nombres (MEJ-05). Dígitos buscan el inicio de la cédula; si no, cada "
+                    + "palabra debe aparecer en los nombres. Datos personales: no se audita.")
+    @ApiResponse(responseCode = "200", description = "Página del personal")
+    @ApiResponse(responseCode = "400", description = "Filtro no válido o página fuera de rango", content = @Content(
+            mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = ProblemDetail.class)))
+    @ApiResponse(responseCode = "403", description = "El rol no es dirección operativa", content = @Content(
+            mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = ProblemDetail.class)))
+    PageResponse<PersonResponse> list(
+            @Parameter(description = "Nombres, apellidos o inicio de la cédula", example = "andrade")
+            @RequestParam(defaultValue = "") @Size(max = 100) String q,
+            @Parameter(description = "Solo el personal con ese rol") @RequestParam(required = false) StaffRoleParam role,
+            @Parameter(description = "Solo el personal cuya cuenta tiene ese estado")
+            @RequestParam(required = false) StaffAccountStatusParam accountStatus,
+            @Parameter(description = "Número de página, desde 0", example = "0")
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @Parameter(description = "Tamaño de página (1 a 50)", example = "10")
+            @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size) {
+        return PeopleController.toPage(registryService.list(q, PersonType.STAFF, role == null ? null : role.role(),
+                accountStatus == null ? null : AccountFilter.valueOf(accountStatus.name()), page, size), page, size);
+    }
+
+    @GetMapping("/stats")
+    @Operation(summary = "Indicadores del personal",
+            description = "Cuentas activas del personal, y cuentas de fisioterapeutas, de recepción y de dirección "
+                    + "operativa en cualquier estado. Una sola consulta. No se audita.")
+    @ApiResponse(responseCode = "200", description = "Indicadores")
+    StaffStatsResponse stats() {
+        return StaffStatsResponse.of(registryService.staffStatistics());
+    }
+
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Registrar miembro del personal",
-            description = "Registra los datos personales de un fisioterapeuta, administrador o director operativo y "
+            description = "Registra los datos personales de un fisioterapeuta, recepcionista o director operativo y "
                     + "crea su cuenta con ese correo y sus nombres, pendiente de activación, en una sola operación; "
                     + "al final envía el enlace \"Active su cuenta de Rehab Elite\" (vence en 48 horas). Si el correo "
                     + "no se puede enviar, no se crea nada. La cédula es única entre pacientes y personal, y el correo "
@@ -52,7 +102,7 @@ class StaffController {
     @ApiResponse(responseCode = "400", description = "Datos no válidos (p. ej. rol PATIENT o cédula incorrecta)",
             content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                     schema = @Schema(implementation = ProblemDetail.class)))
-    @ApiResponse(responseCode = "403", description = "El rol no es administrador", content = @Content(
+    @ApiResponse(responseCode = "403", description = "El rol no es dirección operativa", content = @Content(
             mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = ProblemDetail.class)))
     @ApiResponse(responseCode = "409", description = "La cédula o el correo ya están registrados; existingPatientId o "
             + "existingStaffId y field indican cuál", content = @Content(
@@ -103,9 +153,10 @@ class StaffController {
     @GetMapping("/{id}/schedule")
     @Operation(summary = "Consultar horario de un fisioterapeuta",
             description = "Franjas semanales (lunes a sábado) del fisioterapeuta, ordenadas por día y hora, con la "
-                    + "jornada de la clínica. Administrador y dirección operativa (MEJ-04). No se audita.")
+                    + "jornada de la clínica. Recepción (solo lectura) y dirección operativa (MEJ-04, MEJ-05). No se "
+                    + "audita.")
     @ApiResponse(responseCode = "200", description = "Horario del fisioterapeuta")
-    @ApiResponse(responseCode = "403", description = "El rol no es administrador ni dirección operativa",
+    @ApiResponse(responseCode = "403", description = "El rol no es recepción ni dirección operativa",
             content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                     schema = @Schema(implementation = ProblemDetail.class)))
     @ApiResponse(responseCode = "404", description = "El registro no existe", content = @Content(
@@ -121,13 +172,13 @@ class StaffController {
             description = "Reemplaza la semana completa con la lista enviada (una lista vacía deja al fisioterapeuta "
                     + "sin horario). Cada franja va de lunes a sábado, en horas y minutos, dentro de la jornada de la "
                     + "clínica, y no se superpone con otra del mismo día; las franjas contiguas se unen (08:00-12:00 y "
-                    + "12:00-14:00 quedan como 08:00-14:00). Administrador y dirección operativa (MEJ-04). Queda "
-                    + "auditado como UPDATE StaffRecord, solo si cambia algo.")
+                    + "12:00-14:00 quedan como 08:00-14:00). Solo la dirección operativa (MEJ-05). Queda auditado como "
+                    + "UPDATE StaffRecord, solo si cambia algo.")
     @ApiResponse(responseCode = "200", description = "Horario guardado, con las franjas contiguas unidas")
     @ApiResponse(responseCode = "400", description = "Franja fuera de la jornada, superpuesta, en domingo, con "
             + "segundos o con la hora de inicio posterior a la de fin", content = @Content(
             mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = ProblemDetail.class)))
-    @ApiResponse(responseCode = "403", description = "El rol no es administrador ni dirección operativa",
+    @ApiResponse(responseCode = "403", description = "El rol no es dirección operativa",
             content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                     schema = @Schema(implementation = ProblemDetail.class)))
     @ApiResponse(responseCode = "404", description = "El registro no existe", content = @Content(

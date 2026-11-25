@@ -1,0 +1,100 @@
+<app-page-header
+  title="Registro de Pacientes"
+  subtitle="Pacientes: datos personales, contacto y acceso al portal"
+>
+  <button mat-flat-button actions type="button" class="register" (click)="openRegisterDialog()">
+    <mat-icon aria-hidden="true">person_add</mat-icon>
+    Registrar paciente
+  </button>
+</app-page-header>
+
+<section class="stats" aria-label="Indicadores de los pacientes">
+  <app-stat-card
+    compact
+    label="Pacientes registrados"
+    [value]="stats()?.patients ?? '—'"
+    icon="group"
+    tone="info"
+  />
+  <app-stat-card
+    compact
+    label="Portal activo"
+    [value]="stats()?.portalActive ?? '—'"
+    icon="how_to_reg"
+    tone="teal"
+  />
+  <app-stat-card
+    compact
+    label="Portal pendiente"
+    [value]="stats()?.portalPending ?? '—'"
+    icon="schedule_send"
+    tone="warning"
+  />
+  <app-stat-card
+    compact
+    label="Sin acceso al portal"
+    [value]="stats()?.withoutPortal ?? '—'"
+    icon="person_off"
+    tone="purple"
+  />
+</section>
+
+<section class="filters" aria-label="Búsqueda y filtros del registro">
+  <mat-form-field appearance="fill" subscriptSizing="dynamic" class="search">
+    <mat-icon matPrefix aria-hidden="true">search</mat-icon>
+    <input
+      matInput
+      type="search"
+      placeholder="Buscar por nombres o cédula..."
+      aria-label="Buscar por nombres o cédula"
+      autocomplete="off"
+      (input)="onSearch($event)"
+    />
+  </mat-form-field>
+
+  <mat-form-field appearance="fill" subscriptSizing="dynamic" class="filter">
+    <mat-label>Acceso al portal</mat-label>
+    <mat-select
+      id="patients-account-filter"
+      [value]="search().accountStatus ?? ''"
+      (selectionChange)="onAccountStatusChange($event.value)"
+    >
+      <mat-option value="">Todos</mat-option>
+      <mat-option value="NONE">Sin cuenta</mat-option>
+      <mat-option value="PENDING_ACTIVATION">Pendiente de activación</mat-option>
+      <mat-option value="ACTIVE">Activa</mat-option>
+      <mat-option value="INACTIVE">Inactiva</mat-option>
+    </mat-select>
+  </mat-form-field>
+</section>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Cargando el registro" />
+}
+
+@if (loadError()) {
+  <app-empty-state
+    icon="cloud_off"
+    title="No se pudo cargar el registro"
+    message="Revise su conexión e intente nuevamente."
+  >
+    <button mat-stroked-button type="button" (click)="reload()">Reintentar</button>
+  </app-empty-state>
+} @else if (results(); as page) {
+  <app-people-table
+    [page]="page"
+    [pageSize]="pageSize"
+    [pageIndex]="search().page"
+    (pageIndexChange)="goToPage($event)"
+    caption="Pacientes registrados"
+    itemLabel="pacientes"
+    [emptyMessage]="
+      search().query || search().accountStatus
+        ? 'Ningún paciente coincide con la búsqueda.'
+        : 'Aún no hay pacientes registrados.'
+    "
+    [openingKey]="openingKey()"
+    (edit)="edit($event)"
+    (accountChanged)="loadStats()"
+  />
+}

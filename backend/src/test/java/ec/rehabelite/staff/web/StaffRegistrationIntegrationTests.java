@@ -59,14 +59,15 @@ class StaffRegistrationIntegrationTests extends AbstractIntegrationTest {
     @Autowired
     private JdbcTemplate jdbc;
 
-    private User admin;
-    private String adminToken;
+    private User director;
+    private String directorToken;
 
     @BeforeEach
     void setUp() {
-        admin = userRepository.save(User.create(uniqueEmail("admin"), "not-a-real-hash", "Admin de prueba",
-                Role.ADMINISTRATOR, null, Instant.now()));
-        adminToken = tokenService.issue(admin, Instant.now()).token();
+        // MEJ-05: the operations director manages the staff
+        director = userRepository.save(User.create(uniqueEmail("director"), "not-a-real-hash", "Dirección de prueba",
+                Role.OPERATIONS_DIRECTOR, null, Instant.now()));
+        directorToken = tokenService.issue(director, Instant.now()).token();
     }
 
     @Test
@@ -74,7 +75,7 @@ class StaffRegistrationIntegrationTests extends AbstractIntegrationTest {
         String email = uniqueEmail("fisio");
         String nationalId = TestPatients.randomNationalId();
 
-        String body = TestStaff.register(mockMvc, adminToken,
+        String body = TestStaff.register(mockMvc, directorToken,
                         TestStaff.json("PHYSIOTHERAPIST", nationalId, "  LUCÍA   fernanda ", "mora  DE LA paz",
                                 email.toUpperCase()))
                 .andExpect(status().isCreated())
@@ -104,7 +105,7 @@ class StaffRegistrationIntegrationTests extends AbstractIntegrationTest {
                 .isEqualTo(userId);
 
         assertThat(auditEntries("CREATE", "StaffRecord", staffId)).singleElement()
-                .satisfies(entry -> assertThat(entry).containsEntry("user_id", admin.getId()));
+                .satisfies(entry -> assertThat(entry).containsEntry("user_id", director.getId()));
         assertThat(auditEntries("CREATE", "User", userId)).hasSize(1);
         assertThat(auditEntries("INVITATION_SENT", "User", userId)).hasSize(1);
         assertThat(mailSender.messagesTo(email)).singleElement().satisfies(message -> {
@@ -121,7 +122,7 @@ class StaffRegistrationIntegrationTests extends AbstractIntegrationTest {
         String nationalId = TestPatients.randomNationalId();
         mailSender.failFor(email);
         try {
-            TestStaff.register(mockMvc, adminToken, TestStaff.json("OPERATIONS_DIRECTOR", nationalId, "Sin", "Correo",
+            TestStaff.register(mockMvc, directorToken, TestStaff.json("OPERATIONS_DIRECTOR", nationalId, "Sin", "Correo",
                             email))
                     .andExpect(status().isServiceUnavailable())
                     .andExpect(jsonPath("$.detail")
@@ -137,11 +138,11 @@ class StaffRegistrationIntegrationTests extends AbstractIntegrationTest {
 
     @Test
     void thePatientRoleAndInvalidDataAreRejected() throws Exception {
-        TestStaff.register(mockMvc, adminToken, TestStaff.json("PATIENT", TestPatients.randomNationalId(), "Rosa",
+        TestStaff.register(mockMvc, directorToken, TestStaff.json("PATIENT", TestPatients.randomNationalId(), "Rosa",
                         "Ortiz", uniqueEmail("paciente")))
                 .andExpect(status().isBadRequest());
 
-        TestStaff.register(mockMvc, adminToken, """
+        TestStaff.register(mockMvc, directorToken, """
                         {"role":"PHYSIOTHERAPIST","nationalId":"1234567890","firstName":"","lastName":"X",
                          "birthDate":"1990-01-01","sex":"MALE","phone":"12345","email":"no-es-correo",
                          "address":{"provinceCode":"09","cantonCode":"1701","parishCode":"170156","mainStreet":"A",
@@ -194,7 +195,7 @@ class StaffRegistrationIntegrationTests extends AbstractIntegrationTest {
                 INSERT INTO staff_records (user_id, first_name, last_name, email)
                 VALUES (?, 'Paula', 'Herrera Vásconez', ?) RETURNING id""", Long.class, existing.getId(), email);
 
-        mockMvc.perform(get("/api/staff/{id}", staffId).header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
+        mockMvc.perform(get("/api/staff/{id}", staffId).header(HttpHeaders.AUTHORIZATION, "Bearer " + directorToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nationalId").doesNotExist())
                 .andExpect(jsonPath("$.age").doesNotExist())
@@ -217,34 +218,39 @@ class StaffRegistrationIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
-    void theInitialAdministratorOfANewDatabaseHasItsRecord() {
-        // The test database starts empty, so app.admin is created at startup, after V7 (StaffAccountCreated)
+    void theInitialDirectorOfANewDatabaseHasItsRecord() {
+        // The test database starts without directors, so app.initial-director is created at startup (MEJ-05)
         Map<String, Object> record = jdbc.queryForMap("""
                 SELECT s.first_name, s.last_name, s.email, s.national_id, u.full_name
                 FROM staff_records s JOIN users u ON u.id = s.user_id
-                WHERE u.email = ?""", properties.admin().email());
+                WHERE u.email = ?""", properties.initialDirector().email());
 
-        assertThat(record).containsEntry("first_name", "Administrador")
-                .containsEntry("last_name", "del sistema")
-                .containsEntry("email", properties.admin().email())
-                .containsEntry("full_name", "Administrador del sistema");
+        assertThat(record).containsEntry("first_name", "Dirección")
+                .containsEntry("last_name", "Operativa")
+                .containsEntry("email", properties.initialDirector().email())
+                .containsEntry("full_name", "Dirección Operativa");
         assertThat(record.get("national_id")).isNull();
     }
 
     @Test
-    void anUnknownRecordIsNotFoundAndOnlyTheAdministratorRegistersStaff() throws Exception {
-        mockMvc.perform(get("/api/staff/{id}", 999_999_999L).header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
+    void anUnknownRecordIsNotFoundAndOnlyTheOperationsDirectorRegistersStaff() throws Exception {
+        mockMvc.perform(get("/api/staff/{id}", 999_999_999L)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + directorToken))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.detail").value("El registro del personal no existe."));
 
-        User physio = userRepository.save(User.create(uniqueEmail("fisio"), "not-a-real-hash", "Fisio",
-                Role.PHYSIOTHERAPIST, null, Instant.now()));
-        mockMvc.perform(post("/api/staff")
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenService.issue(physio, Instant.now()).token())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(TestStaff.json("PHYSIOTHERAPIST", TestPatients.randomNationalId(), "A", "B",
-                                uniqueEmail("x"))))
-                .andExpect(status().isForbidden());
+        // MEJ-05: neither a physiotherapist nor the reception (ADMINISTRATOR) registers staff
+        for (Role role : List.of(Role.PHYSIOTHERAPIST, Role.ADMINISTRATOR)) {
+            User other = userRepository.save(User.create(uniqueEmail("otro"), "not-a-real-hash", "Otro rol", role,
+                    null, Instant.now()));
+            mockMvc.perform(post("/api/staff")
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenService.issue(other, Instant.now())
+                                    .token())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(TestStaff.json("PHYSIOTHERAPIST", TestPatients.randomNationalId(), "A", "B",
+                                    uniqueEmail("x"))))
+                    .andExpect(status().isForbidden());
+        }
     }
 
     @Test
@@ -260,7 +266,7 @@ class StaffRegistrationIntegrationTests extends AbstractIntegrationTest {
     }
 
     private Long register(String nationalId, String firstName, String lastName, String email) throws Exception {
-        String body = TestStaff.register(mockMvc, adminToken,
+        String body = TestStaff.register(mockMvc, directorToken,
                         TestStaff.json("PHYSIOTHERAPIST", nationalId, firstName, lastName, email))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
@@ -268,7 +274,7 @@ class StaffRegistrationIntegrationTests extends AbstractIntegrationTest {
     }
 
     private ResultActions update(Long staffId, String body) throws Exception {
-        return mockMvc.perform(put("/api/staff/{id}", staffId).header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+        return mockMvc.perform(put("/api/staff/{id}", staffId).header(HttpHeaders.AUTHORIZATION, "Bearer " + directorToken)
                 .contentType(MediaType.APPLICATION_JSON).content(body));
     }
 

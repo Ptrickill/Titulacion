@@ -64,14 +64,19 @@ class EmailChangeIntegrationTests extends AbstractIntegrationTest {
     @Autowired
     private JdbcTemplate jdbc;
 
-    private User admin;
+    /** MEJ-05: the reception edits the patients and the operations director the staff. */
     private String adminToken;
+    private User director;
+    private String directorToken;
 
     @BeforeEach
     void setUp() {
-        admin = userRepository.save(User.create(uniqueEmail("admin"), "not-a-real-hash", "Admin de prueba",
+        User admin = userRepository.save(User.create(uniqueEmail("admin"), "not-a-real-hash", "Admin de prueba",
                 Role.ADMINISTRATOR, null, Instant.now()));
         adminToken = tokenService.issue(admin, Instant.now()).token();
+        director = userRepository.save(User.create(uniqueEmail("director"), "not-a-real-hash",
+                "Dirección de prueba", Role.OPERATIONS_DIRECTOR, null, Instant.now()));
+        directorToken = tokenService.issue(director, Instant.now()).token();
     }
 
     @Test
@@ -113,7 +118,7 @@ class EmailChangeIntegrationTests extends AbstractIntegrationTest {
         assertThat(RecordingMailSender.html(notice)).doesNotContain("<a href");
 
         assertThat(auditEntries("EMAIL_CHANGE", staff.userId())).singleElement()
-                .satisfies(entry -> assertThat(entry).containsEntry("user_id", admin.getId()));
+                .satisfies(entry -> assertThat(entry).containsEntry("user_id", director.getId()));
 
         confirmEmail(token).andExpect(status().isNoContent());
 
@@ -207,7 +212,7 @@ class EmailChangeIntegrationTests extends AbstractIntegrationTest {
         String first = RecordingMailSender.tokenOf(only(mailSender.messagesTo(next)));
 
         mockMvc.perform(post("/api/users/{id}/resend-invitation", staff.userId())
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + directorToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.emailChangePending").value(true));
         List<MimeMessage> confirmations = mailSender.messagesTo(next);
@@ -227,7 +232,7 @@ class EmailChangeIntegrationTests extends AbstractIntegrationTest {
         String previous = uniqueEmail("inactiva");
         Staff staff = activatedStaff(previous);
         mockMvc.perform(patch("/api/users/{id}/status", staff.userId())
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + directorToken)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"active\":false}"))
                 .andExpect(status().isOk());
 
@@ -276,7 +281,7 @@ class EmailChangeIntegrationTests extends AbstractIntegrationTest {
 
     private Staff registeredStaff(String email) throws Exception {
         String nationalId = TestPatients.randomNationalId();
-        String body = TestStaff.register(mockMvc, adminToken,
+        String body = TestStaff.register(mockMvc, directorToken,
                         TestStaff.json("PHYSIOTHERAPIST", nationalId, "Lucía", "Mora Paz", email))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
         return new Staff(((Number) JsonPath.read(body, "$.id")).longValue(),
@@ -291,7 +296,7 @@ class EmailChangeIntegrationTests extends AbstractIntegrationTest {
 
     private ResultActions updateStaffEmail(Staff staff, String email) throws Exception {
         return mockMvc.perform(put("/api/staff/{id}", staff.id())
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + directorToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(TestStaff.json("PHYSIOTHERAPIST", staff.nationalId(), "Lucía", "Mora Paz", email)));
     }

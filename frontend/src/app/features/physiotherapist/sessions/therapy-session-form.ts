@@ -25,7 +25,7 @@ import { EmptyState } from '../../../shared/ui/empty-state';
 import { PageHeader } from '../../../shared/ui/page-header';
 import { StatusBadge } from '../../../shared/ui/status-badge';
 // GET /api/patients/{id} is shared by the administrator and the physiotherapist (personal data only)
-import { Patient, PatientApi } from '../../admin/patients/patient-api';
+import { Patient, PatientApi } from '../../../shared/people/patient-api';
 import { painScoreTone } from '../clinical-records/clinical-labels';
 import { Treatment } from '../clinical-records/clinical-record-api';
 import { TreatmentApi } from '../clinical-records/treatment-api';

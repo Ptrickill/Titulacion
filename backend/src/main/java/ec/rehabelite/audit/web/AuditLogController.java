@@ -6,6 +6,7 @@ import ec.rehabelite.audit.application.AuditLogQueryService;
 import ec.rehabelite.audit.application.AuditLogQueryService.AuditLogPage;
 import ec.rehabelite.audit.domain.AuditLog;
 import ec.rehabelite.audit.domain.AuditLogFilter;
+import ec.rehabelite.audit.domain.AuditLogScope;
 import ec.rehabelite.shared.domain.InvalidRequestException;
 import ec.rehabelite.shared.web.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -37,6 +39,8 @@ import org.springframework.web.bind.annotation.RestController;
 class AuditLogController {
 
     static final String INVALID_RANGE = "La fecha inicial no puede ser posterior a la fecha final.";
+    /** The authority of the reception's role; audit does not depend on auth, so it is a string here. */
+    static final String RECEPTION_AUTHORITY = "ROLE_ADMINISTRATOR";
 
     private final AuditLogQueryService queryService;
 
@@ -60,7 +64,9 @@ class AuditLogController {
     @Operation(summary = "Consultar la auditoría",
             description = "Entradas del registro de auditoría, de la más reciente a la más antigua, con filtros "
                     + "opcionales por usuario, acción, entidad e id, y por rango de fechas (días de Quito, ambos "
-                    + "incluidos). Solo lectura: el registro no se modifica ni se elimina.")
+                    + "incluidos). La dirección operativa ve todo; la recepción, solo las entradas de los pacientes "
+                    + "(Patient) y de sus cuentas del portal (User), y ningún filtro amplía ese alcance (MEJ-05). Solo "
+                    + "lectura: el registro no se modifica ni se elimina.")
     @ApiResponse(responseCode = "200", description = "Página de entradas")
     @ApiResponse(responseCode = "400", description = "Filtros no válidos (p. ej. fecha inicial posterior a la final)",
             content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
@@ -81,29 +87,38 @@ class AuditLogController {
             @Parameter(description = "Número de página, desde 0", example = "0")
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @Parameter(description = "Tamaño de página (1 a 100)", example = "20")
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
+            @Parameter(hidden = true) Authentication authentication) {
         if (from != null && to != null && from.isAfter(to)) {
             throw new InvalidRequestException(INVALID_RANGE);
         }
-        AuditLogPage result = queryService.search(
-                new AuditLogFilter(userId, action, entityType, entityId, from, to), page, size);
+        AuditLogPage result = queryService.search(new AuditLogFilter(userId, action, entityType, entityId, from, to),
+                scopeOf(authentication), page, size);
         return PageResponse.of(result.entries(), entry -> toResponse(entry, result));
     }
 
     @GetMapping("/entity-types")
     @Operation(summary = "Entidades de la auditoría", description = "Tipos de entidad que aparecen en el registro, "
-            + "para el filtro por entidad.")
+            + "para el filtro por entidad. Para la recepción, solo Patient y User (MEJ-05).")
     @ApiResponse(responseCode = "200", description = "Tipos de entidad ordenados")
-    List<String> entityTypes() {
-        return queryService.entityTypes();
+    List<String> entityTypes(@Parameter(hidden = true) Authentication authentication) {
+        return queryService.entityTypes(scopeOf(authentication));
     }
 
     @GetMapping("/users")
-    @Operation(summary = "Usuarios de la auditoría", description = "Todas las cuentas (id y nombre), activas o no, "
-            + "para el filtro por usuario.")
+    @Operation(summary = "Usuarios de la auditoría", description = "Cuentas (id y nombre), activas o no, para el "
+            + "filtro por usuario: todas para la dirección operativa; para la recepción, solo las que aparecen en las "
+            + "entradas que puede ver (MEJ-05).")
     @ApiResponse(responseCode = "200", description = "Usuarios ordenados por nombre")
-    List<AuditUserResponse> users() {
-        return queryService.users().stream().map(AuditLogController::toResponse).toList();
+    List<AuditUserResponse> users(@Parameter(hidden = true) Authentication authentication) {
+        return queryService.users(scopeOf(authentication)).stream().map(AuditLogController::toResponse).toList();
+    }
+
+    /** MEJ-05: the reception (ADMINISTRATOR) reads only the entries of the patients and of their portal accounts. */
+    private AuditLogScope scopeOf(Authentication authentication) {
+        boolean reception = authentication.getAuthorities().stream()
+                .anyMatch(authority -> RECEPTION_AUTHORITY.equals(authority.getAuthority()));
+        return queryService.scopeFor(reception);
     }
 
     private static AuditLogResponse toResponse(AuditLog entry, AuditLogPage page) {

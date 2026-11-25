@@ -81,8 +81,8 @@ class StaffScheduleIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
-    void theAdministratorReplacesTheWeekOrderedAndWithTheContiguousSlotsMerged() throws Exception {
-        replace(adminToken, """
+    void theDirectorReplacesTheWeekOrderedAndWithTheContiguousSlotsMerged() throws Exception {
+        replace(directorToken, """
                 [{"day":"WEDNESDAY","start":"14:00","end":"18:00"},
                  {"day":"MONDAY","start":"12:00","end":"14:00"},
                  {"day":"MONDAY","start":"08:00","end":"12:00"},
@@ -126,7 +126,7 @@ class StaffScheduleIntegrationTests extends AbstractIntegrationTest {
     void replacingSlotsThatOverlapTheSavedOnesWorksBecauseTheOldOnesGoFirst() throws Exception {
         TestStaff.insertSlots(jdbc, staffId, "1 08:00 12:00");
 
-        replace(adminToken, "[{\"day\":\"MONDAY\",\"start\":\"10:00\",\"end\":\"16:00\"}]")
+        replace(directorToken, "[{\"day\":\"MONDAY\",\"start\":\"10:00\",\"end\":\"16:00\"}]")
                 .andExpect(status().isOk());
 
         assertThat(storedSlots()).containsExactly("1 10:00:00-16:00:00");
@@ -160,15 +160,15 @@ class StaffScheduleIntegrationTests extends AbstractIntegrationTest {
                         "La clínica atiende de lunes a sábado: el domingo no puede tener franjas."),
                 new Invalid("[{\"day\":\"MONDAY\",\"start\":\"08:00:30\",\"end\":\"10:00\"}]",
                         "Las horas de las franjas van en horas y minutos, sin segundos."))) {
-            replace(adminToken, invalid.slots())
+            replace(directorToken, invalid.slots())
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.detail").value(invalid.detail()));
         }
 
-        replace(adminToken, "[{\"day\":\"MONDAY\",\"start\":\"08:00\"}]")
+        replace(directorToken, "[{\"day\":\"MONDAY\",\"start\":\"08:00\"}]")
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].field").value("slots[0].end"));
-        putBody(adminToken, "{}").andExpect(status().isBadRequest())
+        putBody(directorToken, "{}").andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].field").value("slots"));
 
         // Nothing changed and nothing was audited
@@ -185,7 +185,7 @@ class StaffScheduleIntegrationTests extends AbstractIntegrationTest {
                 mockMvc.perform(get("/api/staff/{id}/schedule", adminStaffId)
                         .header(HttpHeaders.AUTHORIZATION, bearer(adminToken))),
                 mockMvc.perform(put("/api/staff/{id}/schedule", adminStaffId)
-                        .header(HttpHeaders.AUTHORIZATION, bearer(adminToken))
+                        .header(HttpHeaders.AUTHORIZATION, bearer(directorToken))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"slots\":[]}")))) {
             notPhysio.andExpect(status().isUnprocessableContent())
                     .andExpect(jsonPath("$.detail").value("Solo los fisioterapeutas tienen horario."));
@@ -220,6 +220,25 @@ class StaffScheduleIntegrationTests extends AbstractIntegrationTest {
         assertThat(storedSlots()).hasSize(2);
     }
 
+    /** MEJ-05: the reception reads the schedules (it will book appointments with them) but never edits them. */
+    @Test
+    void theReceptionReadsASchedulesButCannotEditIt() throws Exception {
+        TestStaff.insertSlots(jdbc, staffId, "1 08:00 12:00");
+
+        mockMvc.perform(get("/api/staff/{id}/schedule", staffId).header(HttpHeaders.AUTHORIZATION, bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.slots.length()").value(1));
+        replace(adminToken, "[]")
+                .andExpect(status().isForbidden());
+
+        assertThat(storedSlots()).containsExactly("1 08:00:00-12:00:00");
+        assertThat(audits("UPDATE")).isEmpty();
+        assertThat(jdbc.queryForObject("""
+                SELECT count(*) FROM audit_logs
+                WHERE action = 'ACCESS_DENIED' AND entity_type = 'staff' AND entity_id = ?""", Integer.class, staffId))
+                .isEqualTo(1);
+    }
+
     @Test
     void thePatientNeverReachesASchedule() throws Exception {
         String patientToken = tokenOf(createUser(Role.PATIENT, "Paciente Horario"));
@@ -247,7 +266,7 @@ class StaffScheduleIntegrationTests extends AbstractIntegrationTest {
             for (String week : List.of(first, second)) {
                 Callable<Integer> call = () -> {
                     start.await();
-                    return replace(adminToken, week).andReturn().getResponse().getStatus();
+                    return replace(directorToken, week).andReturn().getResponse().getStatus();
                 };
                 results.add(executor.submit(call));
             }

@@ -20,7 +20,7 @@ import { problemDetailMessage } from '../../../core/http/problem-detail';
 import { EmptyState } from '../../../shared/ui/empty-state';
 import { PageHeader } from '../../../shared/ui/page-header';
 import { StatusBadge } from '../../../shared/ui/status-badge';
-import { Patient, PatientApi } from '../../admin/patients/patient-api';
+import { Patient, PatientApi } from '../../../shared/people/patient-api';
 import { painScoreTone } from '../clinical-records/clinical-labels';
 import { PainCurveChart } from './pain-curve-chart';
 import {

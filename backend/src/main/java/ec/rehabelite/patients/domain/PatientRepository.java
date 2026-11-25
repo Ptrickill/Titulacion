@@ -22,4 +22,19 @@ public interface PatientRepository extends JpaRepository<Patient, Long>, Patient
     @Query("SELECT p.id FROM Patient p WHERE p.email = :email ORDER BY p.id")
     List<Long> findIdsByEmail(@Param("email") String email);
 
+    /** Registered patients and those without a portal account (MEJ-05), in one statement. */
+    @Query("""
+            SELECT count(p) AS patients,
+                   coalesce(sum(CASE WHEN p.portalUserId IS NULL THEN 1 ELSE 0 END), 0) AS withoutPortal
+            FROM Patient p""")
+    RegistryCounts countRegistry();
+
+    interface RegistryCounts {
+
+        long getPatients();
+
+        long getWithoutPortal();
+
+    }
+
 }

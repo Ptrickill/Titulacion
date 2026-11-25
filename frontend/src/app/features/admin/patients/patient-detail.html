@@ -1,21 +1,21 @@
 @let current = state();
 @switch (current.status) {
   @case ('loading') {
-    <app-page-header title="Registro del paciente" backLink="/admin/people" />
+    <app-page-header title="Registro del paciente" backLink="/admin/patients" />
     <mat-progress-bar mode="indeterminate" aria-label="Cargando paciente" />
   }
   @case ('notFound') {
-    <app-page-header title="Registro del paciente" backLink="/admin/people" />
+    <app-page-header title="Registro del paciente" backLink="/admin/patients" />
     <app-empty-state
       icon="person_off"
       title="El paciente no existe"
-      message="Revise el enlace o vuelva al Registro de Usuarios."
+      message="Revise el enlace o vuelva al Registro de Pacientes."
     >
-      <a mat-stroked-button routerLink="/admin/people">Volver al registro</a>
+      <a mat-stroked-button routerLink="/admin/patients">Volver al registro</a>
     </app-empty-state>
   }
   @case ('error') {
-    <app-page-header title="Registro del paciente" backLink="/admin/people" />
+    <app-page-header title="Registro del paciente" backLink="/admin/patients" />
     <app-empty-state
       icon="cloud_off"
       title="No se pudo cargar el paciente"
@@ -27,7 +27,7 @@
     <app-page-header
       [title]="patient.firstName + ' ' + patient.lastName"
       [subtitle]="'Historia clínica N.º ' + patient.medicalRecordNumber"
-      backLink="/admin/people"
+      backLink="/admin/patients"
     >
       <button mat-flat-button actions type="button" (click)="edit(patient)">
         <mat-icon aria-hidden="true">edit</mat-icon>

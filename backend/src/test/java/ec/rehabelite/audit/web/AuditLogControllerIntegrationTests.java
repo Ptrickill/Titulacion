@@ -31,8 +31,9 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 /**
- * HU-18: GET /api/audit-logs, read-only, for the administrator and the operations director, with filters by user,
- * action, entity and date range (days in Quito, both included).
+ * HU-18: GET /api/audit-logs, read-only, for the operations director (all of it) and the reception (only the entries
+ * of the patients and of their portal accounts, MEJ-05), with filters by user, action, entity and date range (days in
+ * Quito, both included).
  */
 @AutoConfigureMockMvc
 class AuditLogControllerIntegrationTests extends AbstractIntegrationTest {
@@ -49,7 +50,7 @@ class AuditLogControllerIntegrationTests extends AbstractIntegrationTest {
     @Autowired
     private JdbcTemplate jdbc;
 
-    private User admin;
+    private User director;
     private User valeria;
     private User mateo;
     /** Entity type no other test uses, so each test sees only its own entries. */
@@ -58,7 +59,7 @@ class AuditLogControllerIntegrationTests extends AbstractIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        admin = createUser(Role.ADMINISTRATOR, "Administrador de prueba");
+        director = createUser(Role.OPERATIONS_DIRECTOR, "Dirección de prueba");
         valeria = createUser(Role.PHYSIOTHERAPIST, "Lcda. Valeria Andrade");
         mateo = createUser(Role.PHYSIOTHERAPIST, "Lcdo. Mateo Ríos");
         entity = "Prueba" + randomLetters();
@@ -71,7 +72,7 @@ class AuditLogControllerIntegrationTests extends AbstractIntegrationTest {
 
     @Test
     void listsTheEntriesNewestFirstWithTheUserNamesAndOnlyMetadata() throws Exception {
-        search(admin, "entityType", entity)
+        search(director, "entityType", entity)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(4))
                 .andExpect(jsonPath("$.content[*].action")
@@ -91,30 +92,30 @@ class AuditLogControllerIntegrationTests extends AbstractIntegrationTest {
 
     @Test
     void filtersByUserActionAndEntityId() throws Exception {
-        search(admin, "entityType", entity, "userId", valeria.getId().toString())
+        search(director, "entityType", entity, "userId", valeria.getId().toString())
                 .andExpect(jsonPath("$.content[*].action").value(contains("UPDATE", "READ")));
-        search(admin, "entityType", entity, "action", "STATUS_CHANGE")
+        search(director, "entityType", entity, "action", "STATUS_CHANGE")
                 .andExpect(jsonPath("$.content[*].userId").value(contains(mateo.getId().intValue())));
-        search(admin, "entityType", entity, "entityId", "2")
+        search(director, "entityType", entity, "entityId", "2")
                 .andExpect(jsonPath("$.content[*].action").value(contains("STATUS_CHANGE", "UPDATE")));
-        search(admin, "entityType", entity, "userId", valeria.getId().toString(), "action", "STATUS_CHANGE")
+        search(director, "entityType", entity, "userId", valeria.getId().toString(), "action", "STATUS_CHANGE")
                 .andExpect(jsonPath("$.totalElements").value(0));
     }
 
     @Test
     void theDateRangeUsesWholeDaysInQuitoWithBothEndsIncluded() throws Exception {
         // 23:30 in Quito on 10 March belongs to that day although it is 11 March in UTC
-        search(admin, "entityType", entity, "from", "2026-03-10", "to", "2026-03-10")
+        search(director, "entityType", entity, "from", "2026-03-10", "to", "2026-03-10")
                 .andExpect(jsonPath("$.content[*].action").value(contains("UPDATE", "READ")));
-        search(admin, "entityType", entity, "from", "2026-03-11")
+        search(director, "entityType", entity, "from", "2026-03-11")
                 .andExpect(jsonPath("$.content[*].action").value(contains("ACCESS_DENIED", "STATUS_CHANGE")));
-        search(admin, "entityType", entity, "to", "2026-03-12")
+        search(director, "entityType", entity, "to", "2026-03-12")
                 .andExpect(jsonPath("$.totalElements").value(3));
     }
 
     @Test
     void pagesTheResults() throws Exception {
-        search(admin, "entityType", entity, "page", "1", "size", "3")
+        search(director, "entityType", entity, "page", "1", "size", "3")
                 .andExpect(jsonPath("$.page").value(1))
                 .andExpect(jsonPath("$.size").value(3))
                 .andExpect(jsonPath("$.totalElements").value(4))
@@ -123,11 +124,7 @@ class AuditLogControllerIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
-    void theOperationsDirectorAlsoReadsTheLog() throws Exception {
-        User director = createUser(Role.OPERATIONS_DIRECTOR, "Dirección de prueba");
-
-        search(director, "entityType", entity).andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalElements").value(4));
+    void theOperationsDirectorReadsEveryEntityAndEveryUser() throws Exception {
         perform(director, get("/api/audit-logs/entity-types")).andExpect(status().isOk())
                 .andExpect(jsonPath("$").value(hasItem(entity)));
         perform(director, get("/api/audit-logs/users")).andExpect(status().isOk())
@@ -135,20 +132,59 @@ class AuditLogControllerIntegrationTests extends AbstractIntegrationTest {
                         .value(contains("Lcdo. Mateo Ríos")));
     }
 
+    /**
+     * MEJ-05: the reception reads only the entries of the patients (Patient) and of their portal accounts (User whose
+     * id is a patient account), never those of the staff or of clinical data, and no filter widens that.
+     */
     @Test
-    void invalidFiltersAre400() throws Exception {
-        search(admin, "from", "2026-03-12", "to", "2026-03-10")
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.title").value("Solicitud no válida"))
-                .andExpect(jsonPath("$.detail").value("La fecha inicial no puede ser posterior a la fecha final."));
-        search(admin, "size", "0").andExpect(status().isBadRequest());
-        search(admin, "size", "101").andExpect(status().isBadRequest());
-        search(admin, "action", "DELETE").andExpect(status().isBadRequest());
-        search(admin, "from", "10/03/2026").andExpect(status().isBadRequest());
+    void theReceptionReadsOnlyTheEntriesOfThePatientsAndOfTheirPortalAccounts() throws Exception {
+        User reception = createUser(Role.ADMINISTRATOR, "Recepción de prueba");
+        User portalAccount = createUser(Role.PATIENT, "Paciente de prueba");
+        long patientId = ThreadLocalRandom.current().nextLong(1_000_000_000L, 2_000_000_000L);
+        insert(reception.getId(), "UPDATE", "Patient", patientId, "2026-03-14T15:00:00Z");
+        insert(reception.getId(), "STATUS_CHANGE", "User", portalAccount.getId(), "2026-03-14T16:00:00Z");
+        insert(mateo.getId(), "STATUS_CHANGE", "User", valeria.getId(), "2026-03-14T17:00:00Z");
+        insert(mateo.getId(), "READ", "ClinicalRecord", patientId, "2026-03-14T18:00:00Z");
+
+        search(reception, "entityType", "Patient", "entityId", String.valueOf(patientId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].userName").value("Recepción de prueba"));
+        search(reception, "entityType", "User", "entityId", portalAccount.getId().toString())
+                .andExpect(jsonPath("$.content[*].action").value(contains("STATUS_CHANGE")));
+        // The staff account, the clinical record and the other entities stay out, whatever the filters
+        search(reception, "entityType", "User", "entityId", valeria.getId().toString())
+                .andExpect(jsonPath("$.totalElements").value(0));
+        search(reception, "entityType", "ClinicalRecord", "entityId", String.valueOf(patientId))
+                .andExpect(jsonPath("$.totalElements").value(0));
+        search(reception, "entityType", entity).andExpect(jsonPath("$.totalElements").value(0));
+        search(reception, "userId", mateo.getId().toString()).andExpect(jsonPath("$.totalElements").value(0));
+        // The director sees all four
+        search(director, "from", "2026-03-14", "to", "2026-03-14", "userId", mateo.getId().toString())
+                .andExpect(jsonPath("$.totalElements").value(2));
+
+        perform(reception, get("/api/audit-logs/entity-types")).andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@ != 'Patient' && @ != 'User')]").isEmpty());
+        perform(reception, get("/api/audit-logs/users")).andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id == %d)].fullName".formatted(reception.getId()))
+                        .value(contains("Recepción de prueba")))
+                .andExpect(jsonPath("$[?(@.id == %d)]".formatted(mateo.getId())).isEmpty());
     }
 
     @Test
-    void onlyTheAdministratorAndTheDirectorReadTheLog() throws Exception {
+    void invalidFiltersAre400() throws Exception {
+        search(director, "from", "2026-03-12", "to", "2026-03-10")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Solicitud no válida"))
+                .andExpect(jsonPath("$.detail").value("La fecha inicial no puede ser posterior a la fecha final."));
+        search(director, "size", "0").andExpect(status().isBadRequest());
+        search(director, "size", "101").andExpect(status().isBadRequest());
+        search(director, "action", "DELETE").andExpect(status().isBadRequest());
+        search(director, "from", "10/03/2026").andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void onlyTheReceptionAndTheDirectorReadTheLog() throws Exception {
         for (Role role : List.of(Role.PHYSIOTHERAPIST, Role.PATIENT)) {
             User user = createUser(role, "Usuario de prueba");
             search(user, "entityType", entity).andExpect(status().isForbidden());
@@ -161,11 +197,11 @@ class AuditLogControllerIntegrationTests extends AbstractIntegrationTest {
     @Test
     void theLogIsReadOnlyThroughTheApi() throws Exception {
         // The collection only answers GET; a single entry is not even a resource of the API
-        perform(admin, post("/api/audit-logs")).andExpect(status().isMethodNotAllowed());
-        perform(admin, put("/api/audit-logs")).andExpect(status().isMethodNotAllowed());
-        perform(admin, delete("/api/audit-logs")).andExpect(status().isMethodNotAllowed());
-        perform(admin, put("/api/audit-logs/{id}", newestId)).andExpect(status().isNotFound());
-        perform(admin, delete("/api/audit-logs/{id}", newestId)).andExpect(status().isNotFound());
+        perform(director, post("/api/audit-logs")).andExpect(status().isMethodNotAllowed());
+        perform(director, put("/api/audit-logs")).andExpect(status().isMethodNotAllowed());
+        perform(director, delete("/api/audit-logs")).andExpect(status().isMethodNotAllowed());
+        perform(director, put("/api/audit-logs/{id}", newestId)).andExpect(status().isNotFound());
+        perform(director, delete("/api/audit-logs/{id}", newestId)).andExpect(status().isNotFound());
 
         assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_logs WHERE entity_type = ?", Integer.class,
                 entity)).isEqualTo(4);
@@ -173,11 +209,11 @@ class AuditLogControllerIntegrationTests extends AbstractIntegrationTest {
 
     @Test
     void readingTheLogIsNotAudited() throws Exception {
-        search(admin, "entityType", entity).andExpect(status().isOk());
-        perform(admin, get("/api/audit-logs/users")).andExpect(status().isOk());
+        search(director, "entityType", entity).andExpect(status().isOk());
+        perform(director, get("/api/audit-logs/users")).andExpect(status().isOk());
 
         assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_logs WHERE user_id = ?", Integer.class,
-                admin.getId())).isZero();
+                director.getId())).isZero();
     }
 
     @Test
@@ -205,10 +241,14 @@ class AuditLogControllerIntegrationTests extends AbstractIntegrationTest {
     }
 
     private Long insert(Long userId, String action, Long entityId, String occurredAt) {
+        return insert(userId, action, entity, entityId, occurredAt);
+    }
+
+    private Long insert(Long userId, String action, String entityType, Long entityId, String occurredAt) {
         return jdbc.queryForObject("""
                 INSERT INTO audit_logs (user_id, action, entity_type, entity_id, occurred_at, ip_address)
                 VALUES (?, ?, ?, ?, ?, '190.152.10.4') RETURNING id""", Long.class,
-                userId, action, entity, entityId, Timestamp.from(Instant.parse(occurredAt)));
+                userId, action, entityType, entityId, Timestamp.from(Instant.parse(occurredAt)));
     }
 
     private User createUser(Role role, String fullName) {

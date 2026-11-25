@@ -66,13 +66,14 @@ class AccountActivationIntegrationTests extends AbstractIntegrationTest {
     @Autowired
     private JdbcTemplate jdbc;
 
-    private String adminToken;
+    private String directorToken;
 
     @BeforeEach
     void setUp() {
-        User admin = userRepository.save(User.create(uniqueEmail("admin"), "not-a-real-hash", "Admin de prueba",
-                Role.ADMINISTRATOR, null, Instant.now()));
-        adminToken = tokenService.issue(admin, Instant.now()).token();
+        // MEJ-05: the operations director manages the staff accounts
+        User director = userRepository.save(User.create(uniqueEmail("director"), "not-a-real-hash",
+                "Dirección de prueba", Role.OPERATIONS_DIRECTOR, null, Instant.now()));
+        directorToken = tokenService.issue(director, Instant.now()).token();
     }
 
     @Test
@@ -160,7 +161,7 @@ class AccountActivationIntegrationTests extends AbstractIntegrationTest {
         String first = onlyActivationToken(email);
 
         mockMvc.perform(post("/api/users/{id}/resend-invitation", userId)
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + directorToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("PENDING_ACTIVATION"));
 
@@ -177,13 +178,13 @@ class AccountActivationIntegrationTests extends AbstractIntegrationTest {
 
         // Once activated, there is nothing to resend
         mockMvc.perform(post("/api/users/{id}/resend-invitation", userId)
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + directorToken))
                 .andExpect(status().isUnprocessableContent())
                 .andExpect(jsonPath("$.detail")
                         .value("Solo se puede reenviar el enlace a una cuenta habilitada que aún no se ha activado o que "
                                 + "tiene un cambio de correo por confirmar."));
         mockMvc.perform(post("/api/users/{id}/resend-invitation", 999_999_999L)
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + directorToken))
                 .andExpect(status().isNotFound());
     }
 
@@ -193,7 +194,7 @@ class AccountActivationIntegrationTests extends AbstractIntegrationTest {
         Long userId = createAccount(email);
         String token = onlyActivationToken(email);
         mockMvc.perform(patch("/api/users/{id}/status", userId)
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + directorToken)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"active\":false}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("INACTIVE"));
@@ -348,7 +349,7 @@ class AccountActivationIntegrationTests extends AbstractIntegrationTest {
 
     /** Since MEJ-02 an account is created by registering its person. */
     private Long createAccount(String email) throws Exception {
-        return TestStaff.registerAccount(mockMvc, adminToken, "PHYSIOTHERAPIST", email);
+        return TestStaff.registerAccount(mockMvc, directorToken, "PHYSIOTHERAPIST", email);
     }
 
     private String onlyActivationToken(String email) {

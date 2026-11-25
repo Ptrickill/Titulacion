@@ -4,7 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { logInForTest } from '../../../core/auth/auth-testing';
-import { fakePatient } from '../../admin/patients/patient-testing';
+import { fakePatient } from '../../../shared/people/patient-testing';
 import { fakeTreatment } from '../clinical-records/treatment-testing';
 import { fakeSession, pageOf } from './session-testing';
 import { TherapySessionForm } from './therapy-session-form';

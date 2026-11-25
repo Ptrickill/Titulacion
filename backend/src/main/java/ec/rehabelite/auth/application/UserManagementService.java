@@ -2,14 +2,18 @@ package ec.rehabelite.auth.application;
 
 import ec.rehabelite.audit.AuditAction;
 import ec.rehabelite.audit.AuditLogService;
+import ec.rehabelite.auth.CurrentUser;
 import ec.rehabelite.auth.CurrentUserProvider;
+import ec.rehabelite.auth.Role;
 import ec.rehabelite.auth.domain.User;
 import ec.rehabelite.auth.domain.UserRepository;
 import ec.rehabelite.shared.domain.BusinessRuleException;
 import ec.rehabelite.shared.domain.ExternalServiceException;
+import ec.rehabelite.shared.domain.ForbiddenOperationException;
 import ec.rehabelite.shared.domain.ResourceNotFoundException;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +35,8 @@ public class UserManagementService {
     static final String SELF_DEACTIVATION = "No puede desactivar su propia cuenta.";
     static final String NOT_PENDING = "Solo se puede reenviar el enlace a una cuenta habilitada que aún no se ha "
             + "activado o que tiene un cambio de correo por confirmar.";
+    static final String NOT_MANAGED = "No puede administrar esa cuenta.";
+    static final String LAST_ACTIVE_DIRECTOR = "Debe existir al menos una cuenta de dirección operativa activa.";
 
     private static final Logger log = LoggerFactory.getLogger(UserManagementService.class);
 
@@ -53,6 +59,7 @@ public class UserManagementService {
     public User resendInvitation(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
+        checkManagedByCaller(user);
         if (!user.isActive() || (!user.isPendingActivation() && user.getPendingEmail() == null)) {
             throw new BusinessRuleException(NOT_PENDING);
         }
@@ -74,18 +81,24 @@ public class UserManagementService {
      * nothing and is not audited.
      *
      * @throws ResourceNotFoundException if the account does not exist
-     * @throws BusinessRuleException if administrators try to deactivate their own account
+     * @throws ForbiddenOperationException if the account is not managed by the caller's role (MEJ-05)
+     * @throws BusinessRuleException if users try to deactivate their own account, or if it is the last active
+     *         operations director (MEJ-05)
      */
     @Transactional
     public User changeStatus(Long userId, boolean active) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
+        checkManagedByCaller(user);
         Long changedBy = currentUserProvider.currentUserId().orElse(null);
         if (!active && user.getId().equals(changedBy)) {
             throw new BusinessRuleException(SELF_DEACTIVATION);
         }
         if (user.isActive() == active) {
             return user;
+        }
+        if (!active && user.getRole() == Role.OPERATIONS_DIRECTOR) {
+            checkAnotherActiveDirectorRemains(user);
         }
 
         if (active) {
@@ -96,6 +109,33 @@ public class UserManagementService {
         auditLogService.record(AuditAction.STATUS_CHANGE, AUDITED_ENTITY, user.getId());
         log.info("User account status changed userId={} active={} changedBy={}", user.getId(), active, changedBy);
         return user;
+    }
+
+    /**
+     * MEJ-05: the reception manages only the patients' portal accounts and the operations director only the staff
+     * accounts. Any other combination is a 403, audited as ACCESS_DENIED.
+     */
+    private void checkManagedByCaller(User user) {
+        Role callerRole = currentUserProvider.currentUser().map(CurrentUser::role).orElse(null);
+        boolean patientAccount = user.getRole() == Role.PATIENT;
+        boolean allowed = (callerRole == Role.ADMINISTRATOR && patientAccount)
+                || (callerRole == Role.OPERATIONS_DIRECTOR && !patientAccount);
+        if (!allowed) {
+            throw new ForbiddenOperationException(NOT_MANAGED);
+        }
+    }
+
+    /**
+     * MEJ-05: at least one operations director stays active (enabled and activated). The active directors are locked
+     * first, so two directors deactivating each other at the same time run one after the other. A director that is
+     * not active yet does not count: it cannot log in. V9 backs the rule with a trigger.
+     */
+    private void checkAnotherActiveDirectorRemains(User director) {
+        List<User> activeDirectors = userRepository.lockActiveDirectors();
+        boolean anotherRemains = activeDirectors.stream().anyMatch(other -> !other.getId().equals(director.getId()));
+        if (!anotherRemains) {
+            throw new BusinessRuleException(LAST_ACTIVE_DIRECTOR);
+        }
     }
 
 }

@@ -17,7 +17,7 @@ import { EmptyState } from '../../../shared/ui/empty-state';
 import { FormSection } from '../../../shared/ui/form-section';
 import { PageHeader } from '../../../shared/ui/page-header';
 // GET /api/patients/{id} is shared by the administrator and the physiotherapist (personal data only)
-import { PatientApi } from '../../admin/patients/patient-api';
+import { PatientApi } from '../../../shared/people/patient-api';
 import { CLINICAL_HISTORY_FIELDS, SEVERITIES, SEVERITY_LABELS } from './clinical-labels';
 import {
   ClinicalHistoryRequest,

@@ -25,12 +25,12 @@ import { openConfirmDialog } from '../../../shared/ui/confirm-dialog';
 import { EmptyState } from '../../../shared/ui/empty-state';
 import { FormSection } from '../../../shared/ui/form-section';
 import { PageHeader } from '../../../shared/ui/page-header';
-import { AccountActions } from '../people/account-actions';
-import { PersonAccountCard } from '../people/person-account-card';
-import { openPersonFormDialog } from '../people/person-form-dialog';
-import { formatAge } from './patient-age';
-import { Patient, PatientApi } from './patient-api';
-import { SEX_LABELS } from './patient-options';
+import { AccountActions } from '../../../shared/people/account-actions';
+import { PersonAccountCard } from '../../../shared/people/person-account-card';
+import { openPersonFormDialog } from '../../../shared/people/person-form-dialog';
+import { formatAge } from '../../../shared/people/patient-age';
+import { Patient, PatientApi } from '../../../shared/people/patient-api';
+import { SEX_LABELS } from '../../../shared/people/patient-options';
 
 type DetailState =
   | { status: 'loading' }
@@ -39,7 +39,7 @@ type DetailState =
   | { status: 'error' };
 
 /**
- * Record of a patient's admission and personal data (HU-05): opened from the people registry, after registering a
+ * Record of a patient's admission and personal data (HU-05): opened from the reception's patient registry (MEJ-05), after registering a
  * patient and from the "already registered" notice. "Editar datos" opens the form in edit mode (HU-06), and
  * "Acceso al portal" (MEJ-02) creates the patient's account with its email and names, or shows its status and resends
  * the pending link. Never shows clinical data.

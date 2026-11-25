@@ -61,11 +61,18 @@ class RoleAccessIntegrationTests extends AbstractIntegrationTest {
 
     private static final List<Area> AREAS = List.of(
             new Area("/api/admin/settings", "admin", null, ADMINISTRATOR),
-            new Area("/api/users/5", "users", 5L, ADMINISTRATOR),
-            // MEJ-02: people registry, staff records and the portal account created from a patient's record
+            // MEJ-05: account actions for both, each on its own accounts (the service answers 403 otherwise)
+            new Area("/api/users/5", "users", 5L, ADMINISTRATOR, OPERATIONS_DIRECTOR),
+            // MEJ-05: the reception's patient registry and the director's staff management; the national ID and email
+            // lookup serves both registration forms
             new Area("/api/people", "people", null, ADMINISTRATOR),
-            new Area("/api/staff/4", "staff", 4L, ADMINISTRATOR),
-            // MEJ-04: a physiotherapist's schedule (also the director), "Mi horario" and the director's assignments
+            new Area("/api/people/stats", "people", null, ADMINISTRATOR),
+            new Area("/api/people/matches", "people", null, ADMINISTRATOR, OPERATIONS_DIRECTOR),
+            new Area("/api/staff", "staff", null, OPERATIONS_DIRECTOR),
+            new Area("/api/staff/stats", "staff", null, OPERATIONS_DIRECTOR),
+            new Area("/api/staff/4", "staff", 4L, OPERATIONS_DIRECTOR),
+            // MEJ-04, MEJ-05: a physiotherapist's schedule (the reception reads it, the director also edits it),
+            // "Mi horario" and the director's assignments
             new Area("/api/staff/4/schedule", "staff", 4L, ADMINISTRATOR, OPERATIONS_DIRECTOR),
             new Area("/api/physio/schedule", "physio", null, PHYSIOTHERAPIST),
             new Area("/api/operations/schedules", "operations", null, OPERATIONS_DIRECTOR),
@@ -158,7 +165,7 @@ class RoleAccessIntegrationTests extends AbstractIntegrationTest {
         return AREAS.stream();
     }
 
-    /** Physiotherapists look patients up (GET, in the matrix above) but only the administrator registers them. */
+    /** Physiotherapists look patients up (GET, in the matrix above) but only the reception registers them. */
     @ParameterizedTest(name = "POST /api/patients → {0}")
     @MethodSource("roles")
     void onlyTheAdministratorRegistersPatients(Role role) throws Exception {
@@ -249,12 +256,12 @@ class RoleAccessIntegrationTests extends AbstractIntegrationTest {
     }
 
     /**
-     * MEJ-04: the administrator and the director edit a schedule; a physiotherapist only reads its own, and the
-     * director alone reassigns treatments from /api/operations.
+     * MEJ-04, MEJ-05: only the director edits a schedule (the reception only reads it); a physiotherapist only reads
+     * its own, and the director alone reassigns treatments from /api/operations.
      */
     @ParameterizedTest(name = "PUT de horario y reasignación → {0}")
     @MethodSource("roles")
-    void onlyTheAdministratorAndTheDirectorEditSchedulesAndOnlyTheDirectorReassigns(Role role) throws Exception {
+    void onlyTheDirectorEditsSchedulesAndReassigns(Role role) throws Exception {
         User user = createUser(role);
         String token = tokenService.issue(user, Instant.now()).token();
 
@@ -265,7 +272,7 @@ class RoleAccessIntegrationTests extends AbstractIntegrationTest {
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON).content("{}"));
 
-        if (role == ADMINISTRATOR || role == OPERATIONS_DIRECTOR) {
+        if (role == OPERATIONS_DIRECTOR) {
             schedule.andExpect(status().isBadRequest());
         } else {
             schedule.andExpect(status().isForbidden());
@@ -277,9 +284,8 @@ class RoleAccessIntegrationTests extends AbstractIntegrationTest {
         }
         assertThat(accessDeniedEntries(user)).extracting(entry -> entry.get("entity_type")).containsExactlyInAnyOrder(
                 switch (role) {
-                    case ADMINISTRATOR -> new Object[] {"operations/treatments"};
                     case OPERATIONS_DIRECTOR -> new Object[] {};
-                    case PHYSIOTHERAPIST, PATIENT -> new Object[] {"staff", "operations/treatments"};
+                    case ADMINISTRATOR, PHYSIOTHERAPIST, PATIENT -> new Object[] {"staff", "operations/treatments"};
                 });
     }
 
@@ -336,9 +342,10 @@ class RoleAccessIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(status().isAccepted());
     }
 
+    /** MEJ-05: the reception and the director resend invitations (each to its own accounts); nobody else does. */
     @Test
-    void resendingAnInvitationIsForTheAdministratorOnly() throws Exception {
-        for (Role role : List.of(PHYSIOTHERAPIST, PATIENT, OPERATIONS_DIRECTOR)) {
+    void resendingAnInvitationIsForTheReceptionAndTheDirectorOnly() throws Exception {
+        for (Role role : List.of(PHYSIOTHERAPIST, PATIENT)) {
             String token = tokenService.issue(createUser(role), Instant.now()).token();
             mockMvc.perform(post("/api/users/5/resend-invitation")
                             .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))

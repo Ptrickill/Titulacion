@@ -92,4 +92,4 @@ Status colors (`--re-success`, `--re-warning`, `--re-danger`, `--re-info`, `--re
 - **Requests:** `authInterceptor` adds `Authorization: Bearer <token>` to `/api` calls; a 401 from any endpoint other than the login ends the session and redirects to `/login`.
 - **Redirects:** after login, and when opening `/` or `/login` with a valid session, the user goes to the panel of their role (`ROLE_HOME`).
 
-To log in locally, start the backend: the first start creates the administrator from `ADMIN_EMAIL` / `ADMIN_PASSWORD` in `.env`. In unit tests, use `logInForTest(role, fullName?, id?)` from `core/auth/auth-testing.ts`.
+To log in locally, start the backend: if no active operations director exists, the start creates one from `INITIAL_DIRECTOR_EMAIL` / `INITIAL_DIRECTOR_PASSWORD` in `.env` (MEJ-05); it registers the rest of the staff, including the reception. In unit tests, use `logInForTest(role, fullName?, id?)` from `core/auth/auth-testing.ts`.

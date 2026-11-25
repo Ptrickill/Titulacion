@@ -18,7 +18,8 @@ export const ROLE_HOME: Record<Role, string> = {
 
 /** User-facing role names (Spanish). */
 export const ROLE_LABELS: Record<Role, string> = {
-  ADMINISTRATOR: 'Administrador',
+  // MEJ-05: the ADMINISTRATOR role is the reception: it registers the patients and their portal access
+  ADMINISTRATOR: 'Recepción',
   PHYSIOTHERAPIST: 'Fisioterapeuta',
   OPERATIONS_DIRECTOR: 'Dirección operativa',
   PATIENT: 'Paciente',

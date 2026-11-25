@@ -6,6 +6,7 @@ import ec.rehabelite.auth.AccountStatus;
 import ec.rehabelite.auth.AccountSummary;
 import ec.rehabelite.auth.Role;
 import ec.rehabelite.patients.PatientDirectory;
+import ec.rehabelite.patients.PatientRegistryCounts;
 import ec.rehabelite.patients.PatientRegistryEntry;
 import ec.rehabelite.patients.PatientRegistrySlice;
 import ec.rehabelite.patients.PortalAccountFilter;
@@ -27,9 +28,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * The people registry ("Registro de Usuarios", MEJ-02): patients and staff in one list, with the status of each
- * account, and the lookup that tells the registration form whether a national ID or an email is already registered.
- * Personal data only: nothing here is audited.
+ * The registries of people (MEJ-02, MEJ-05): the reception's patient registry ("Registro de Pacientes") and the
+ * operations director's staff list ("Gestión de Personal"), each with the status of the accounts, and the lookup that
+ * tells the registration forms whether a national ID or an email is already registered. Personal data only: nothing
+ * here is audited.
  */
 @Service
 @RequiredArgsConstructor
@@ -123,10 +125,37 @@ public class PeopleRegistryService {
         return new PeoplePage(content, staffTotal + patientSlice.total());
     }
 
-    /** The indicators of the registry: active accounts and accounts per role (MEJ-02). One statement. */
+    /** Indicators of the reception's patient registry (MEJ-05). */
+    public record PatientStatistics(long patients, long portalActive, long portalPending, long withoutPortal) {
+    }
+
+    /** Indicators of the operations director's staff management (MEJ-05). */
+    public record StaffStatistics(long activeAccounts, long physiotherapists, long receptionists, long directors) {
+    }
+
+    /** The staff roles: every role except PATIENT. */
+    public static final List<Role> STAFF_ROLES =
+            List.of(Role.PHYSIOTHERAPIST, Role.ADMINISTRATOR, Role.OPERATIONS_DIRECTOR);
+
+    /**
+     * Registered patients, their portal accounts that are active or wait for their activation, and the patients
+     * without a portal account (MEJ-05). Two statements.
+     */
     @Transactional(readOnly = true)
-    public AccountStatistics statistics() {
-        return accounts.statistics();
+    public PatientStatistics patientStatistics() {
+        PatientRegistryCounts counts = patients.registryCounts();
+        AccountStatistics.RoleAccounts portal = accounts.statistics().of(Role.PATIENT);
+        return new PatientStatistics(counts.patients(), portal.active(), portal.pendingActivation(),
+                counts.withoutPortal());
+    }
+
+    /** Active staff accounts, and the accounts of each staff role in any status (MEJ-05). One statement. */
+    @Transactional(readOnly = true)
+    public StaffStatistics staffStatistics() {
+        AccountStatistics statistics = accounts.statistics();
+        return new StaffStatistics(statistics.activeOf(STAFF_ROLES),
+                statistics.of(Role.PHYSIOTHERAPIST).accounts(), statistics.of(Role.ADMINISTRATOR).accounts(),
+                statistics.of(Role.OPERATIONS_DIRECTOR).accounts());
     }
 
     /**

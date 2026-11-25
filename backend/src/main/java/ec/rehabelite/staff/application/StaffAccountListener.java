@@ -12,8 +12,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Creates the staff record of an account created outside the people registry: the initial administrator from
- * {@code app.admin} (MEJ-02). Synchronous ({@code @EventListener}) and in the publisher's transaction, so the account
+ * Creates the staff record of an account created outside the registries: the initial operations director from
+ * {@code app.initial-director} (MEJ-02, MEJ-05). Synchronous ({@code @EventListener}) and in the publisher's transaction, so the account
  * and its record are created together or not at all. The record has the account's names and email, and the rest is
  * to be completed.
  */

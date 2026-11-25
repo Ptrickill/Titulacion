@@ -41,25 +41,26 @@ class UserControllerIntegrationTests extends AbstractIntegrationTest {
     @Autowired
     private JwtTokenService tokenService;
 
-    private String adminToken;
+    private String directorToken;
 
     @BeforeEach
     void setUp() {
-        User admin = userRepository.save(User.create(uniqueEmail("admin"), "not-a-real-hash", "Admin de prueba",
-                Role.ADMINISTRATOR, null, Instant.now()));
-        adminToken = tokenService.issue(admin, Instant.now()).token();
+        // MEJ-05: the operations director manages the staff accounts
+        User director = userRepository.save(User.create(uniqueEmail("director"), "not-a-real-hash",
+                "Dirección de prueba", Role.OPERATIONS_DIRECTOR, null, Instant.now()));
+        directorToken = tokenService.issue(director, Instant.now()).token();
     }
 
     @Test
     void thereIsNoListOfAccountsNorACreationByTypingANameAndAnEmail() throws Exception {
         String email = uniqueEmail("a-mano");
 
-        mockMvc.perform(post("/api/users").header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+        mockMvc.perform(post("/api/users").header(HttpHeaders.AUTHORIZATION, "Bearer " + directorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"%s\",\"fullName\":\"Escrito A Mano\",\"role\":\"PHYSIOTHERAPIST\"}"
                                 .formatted(email)))
                 .andExpect(status().isNotFound());
-        mockMvc.perform(get("/api/users").header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
+        mockMvc.perform(get("/api/users").header(HttpHeaders.AUTHORIZATION, "Bearer " + directorToken))
                 .andExpect(status().isNotFound());
 
         assertThat(userRepository.findByEmail(email)).isEmpty();
@@ -67,17 +68,17 @@ class UserControllerIntegrationTests extends AbstractIntegrationTest {
 
     @Test
     void theAccountActionsAnswerTheAccountWithItsStatusAndWithoutPasswordHash() throws Exception {
-        Long userId = TestStaff.registerAccount(mockMvc, adminToken, "OPERATIONS_DIRECTOR", uniqueEmail("cuenta"));
+        Long userId = TestStaff.registerAccount(mockMvc, directorToken, "OPERATIONS_DIRECTOR", uniqueEmail("cuenta"));
 
         mockMvc.perform(post("/api/users/{id}/resend-invitation", userId)
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + directorToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("PENDING_ACTIVATION"))
                 .andExpect(jsonPath("$.fullName").value("Cuenta Nueva Prueba"))
                 .andExpect(jsonPath("$.emailChangePending").value(false))
                 .andExpect(jsonPath("$.passwordHash").doesNotExist());
         mockMvc.perform(patch("/api/users/{id}/status", userId)
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + directorToken)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"active\":false}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("INACTIVE"));

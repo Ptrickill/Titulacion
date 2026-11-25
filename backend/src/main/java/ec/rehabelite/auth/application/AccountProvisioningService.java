@@ -160,16 +160,9 @@ class AccountProvisioningService implements AccountProvisioning {
     @Override
     @Transactional(readOnly = true)
     public AccountStatistics statistics() {
-        Map<Role, UserRepository.RoleCount> byRole = userRepository.countByRole().stream()
-                .collect(Collectors.toMap(UserRepository.RoleCount::getRole, Function.identity()));
-        long active = byRole.values().stream().mapToLong(UserRepository.RoleCount::getActive).sum();
-        return new AccountStatistics(active, accountsOf(byRole, Role.PHYSIOTHERAPIST),
-                accountsOf(byRole, Role.PATIENT), accountsOf(byRole, Role.ADMINISTRATOR));
-    }
-
-    private static long accountsOf(Map<Role, UserRepository.RoleCount> byRole, Role role) {
-        UserRepository.RoleCount count = byRole.get(role);
-        return count == null ? 0 : count.getAccounts();
+        return new AccountStatistics(userRepository.countByRole().stream()
+                .collect(Collectors.toMap(UserRepository.RoleCount::getRole, count -> new AccountStatistics
+                        .RoleAccounts(count.getAccounts(), count.getActive(), count.getPending()))));
     }
 
     private User find(Long userId) {

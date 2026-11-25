@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { FAKE_LOCATIONS } from '../../features/admin/patients/patient-testing';
+import { FAKE_LOCATIONS } from '../people/patient-testing';
 import { formatAddress, LocationCatalogApi, placeOf } from './location-catalog';
 
 describe('LocationCatalogApi (MEJ-03)', () => {

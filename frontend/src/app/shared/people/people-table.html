@@ -1,0 +1,114 @@
+<app-data-table
+  [columns]="columns"
+  [rows]="rows()"
+  [totalItems]="total()"
+  [pageSize]="pageSize()"
+  [pageIndex]="pageIndex()"
+  (pageIndexChange)="pageIndexChange.emit($event)"
+  [caption]="caption()"
+  [itemLabel]="itemLabel()"
+  [emptyMessage]="emptyMessage()"
+>
+  <ng-template appDataTableCell="lastName" [appDataTableCellOf]="rows()" let-person>
+    <div class="person">
+      <span class="avatar" [class.staff]="person.type === 'STAFF'" aria-hidden="true">{{
+        initials(person)
+      }}</span>
+      <div>
+        <a class="name-link" [routerLink]="link(person.type, person.id)">
+          {{ person.firstName }} {{ person.lastName }}
+        </a>
+        <div class="meta">Cédula: {{ person.nationalId ?? 'por completar' }}</div>
+        <div class="tags">
+          <app-status-badge
+            class="role"
+            [label]="roleLabels[person.role]"
+            [tone]="roleTones[person.role]"
+          />
+          @if (person.needsCompletion) {
+            <app-status-badge class="pending" label="Datos por completar" tone="warning" />
+          }
+        </div>
+      </div>
+    </div>
+  </ng-template>
+  <ng-template appDataTableCell="phone" [appDataTableCellOf]="rows()" let-person>
+    <div class="phone">{{ person.phone ?? '—' }}</div>
+    @let email = emailParts(person.email);
+    <div class="email">{{ email[0] }}<wbr />{{ email[1] }}</div>
+  </ng-template>
+  <ng-template appDataTableCell="accountStatus" [appDataTableCellOf]="rows()" let-person>
+    <app-status-badge
+      class="account"
+      [label]="accountBadges[person.accountStatus].label"
+      [tone]="accountBadges[person.accountStatus].tone"
+    />
+    @if (person.emailChangePending) {
+      <div class="email-pending">Correo por confirmar</div>
+    }
+    @if (person.userId !== null) {
+      <div class="last-access">Último acceso: {{ formatLastAccess(person.lastLoginAt) }}</div>
+    }
+  </ng-template>
+  <ng-template appDataTableCell="id" [appDataTableCellOf]="rows()" let-person>
+    @let busy = pendingKeys().has(keyOf(person));
+    @let fullName = person.firstName + ' ' + person.lastName;
+    @if (
+      person.accountStatus === 'PENDING_ACTIVATION' ||
+      (person.accountStatus === 'ACTIVE' && person.emailChangePending)
+    ) {
+      @let resendLabel =
+        person.accountStatus === 'PENDING_ACTIVATION'
+          ? 'Reenviar invitación'
+          : 'Reenviar verificación';
+      <button
+        mat-icon-button
+        type="button"
+        class="resend-action"
+        [disabled]="busy"
+        [matTooltip]="resendLabel"
+        [attr.aria-label]="resendLabel + ' a ' + fullName"
+        (click)="resend(person)"
+      >
+        <mat-icon aria-hidden="true">forward_to_inbox</mat-icon>
+      </button>
+    }
+    @if (person.userId !== null) {
+      @let ownAccount = isOwnAccount(person);
+      @let statusAction =
+        person.accountStatus === 'INACTIVE' ? 'Activar cuenta' : 'Desactivar cuenta';
+      <button
+        mat-icon-button
+        type="button"
+        class="status-action"
+        [class.deactivate]="person.accountStatus !== 'INACTIVE'"
+        disabledInteractive
+        [disabled]="busy || ownAccount"
+        [matTooltip]="ownAccount ? 'No puede desactivar su propia cuenta' : statusAction"
+        [attr.aria-label]="
+          ownAccount ? 'No puede desactivar su propia cuenta' : statusAction + ' de ' + fullName
+        "
+        (click)="toggleStatus(person)"
+      >
+        <mat-icon aria-hidden="true">{{
+          person.accountStatus === 'INACTIVE' ? 'lock_open' : 'lock'
+        }}</mat-icon>
+      </button>
+    }
+    <button
+      mat-stroked-button
+      type="button"
+      class="edit"
+      [disabled]="openingKey() === keyOf(person)"
+      [attr.aria-label]="'Editar datos de ' + person.firstName + ' ' + person.lastName"
+      (click)="edit.emit(person)"
+    >
+      @if (openingKey() === keyOf(person)) {
+        <mat-spinner diameter="16" aria-hidden="true" />
+      } @else {
+        <mat-icon aria-hidden="true">edit</mat-icon>
+      }
+      Editar
+    </button>
+  </ng-template>
+</app-data-table>

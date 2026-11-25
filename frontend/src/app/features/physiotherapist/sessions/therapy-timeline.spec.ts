@@ -5,7 +5,7 @@ import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { logInForTest } from '../../../core/auth/auth-testing';
-import { fakePatient } from '../../admin/patients/patient-testing';
+import { fakePatient } from '../../../shared/people/patient-testing';
 import { PainCurveChart } from './pain-curve-chart';
 import { fakeTimeline, stubCanvas } from './session-testing';
 import { TherapyTimeline } from './therapy-timeline';

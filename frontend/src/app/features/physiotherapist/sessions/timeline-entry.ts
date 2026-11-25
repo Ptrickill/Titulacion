@@ -10,7 +10,7 @@ import { DataTableCell } from '../../../shared/ui/data-table/data-table-cell';
 import { EmptyState } from '../../../shared/ui/empty-state';
 import { PageHeader } from '../../../shared/ui/page-header';
 import { StatusBadge } from '../../../shared/ui/status-badge';
-import { formatAge } from '../../admin/patients/patient-age';
+import { formatAge } from '../../../shared/people/patient-age';
 import {
   patientInitials,
   TREATMENT_STATUS_LABELS,

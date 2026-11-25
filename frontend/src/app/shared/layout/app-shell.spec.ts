@@ -61,11 +61,17 @@ describe('AppShell', () => {
 
   it('shows the administrator, director and patient menus', async () => {
     await renderAs('ADMINISTRATOR');
-    expect(menuLabels()).toEqual(['Inicio', 'Registro de Usuarios', 'Auditoría']);
+    // MEJ-05: the reception registers patients; the director manages the staff
+    expect(menuLabels()).toEqual(['Inicio', 'Registro de Pacientes', 'Auditoría']);
     fixture.destroy();
 
     await renderAs('OPERATIONS_DIRECTOR');
-    expect(menuLabels()).toEqual(['Reportes Consolidados', 'Horarios y asignaciones', 'Auditoría']);
+    expect(menuLabels()).toEqual([
+      'Reportes Consolidados',
+      'Gestión de Personal',
+      'Horarios y asignaciones',
+      'Auditoría',
+    ]);
     fixture.destroy();
 
     await renderAs('PATIENT');

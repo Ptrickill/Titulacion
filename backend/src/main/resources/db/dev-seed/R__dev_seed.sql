@@ -27,6 +27,8 @@ VALUES ('fisio.andrade@dev-seed.rehabelite.test', 'dev-seed:password-set-at-star
        ('fisio.cevallos@dev-seed.rehabelite.test', 'dev-seed:password-set-at-startup', 'Martín Cevallos Ruiz', 'PHYSIOTHERAPIST', now()),
        ('fisio.paredes@dev-seed.rehabelite.test', 'dev-seed:password-set-at-startup', 'Andrés Paredes Salinas', 'PHYSIOTHERAPIST', now()),
        ('direccion@dev-seed.rehabelite.test', 'dev-seed:password-set-at-startup', 'Paula Herrera Vásconez', 'OPERATIONS_DIRECTOR', now()),
+       -- MEJ-05: the reception (role ADMINISTRATOR) registers the patients; the operations director manages the staff
+       ('recepcion@dev-seed.rehabelite.test', 'dev-seed:password-set-at-startup', 'Gabriela Salazar Ponce', 'ADMINISTRATOR', now()),
        ('paciente.ortiz@dev-seed.rehabelite.test', 'dev-seed:password-set-at-startup', 'Rosa Elena Ortiz Vega', 'PATIENT', now()),
        ('paciente.quishpe@dev-seed.rehabelite.test', 'dev-seed:password-set-at-startup', 'Luis Alberto Quishpe Tipán', 'PATIENT', now()),
        ('paciente.zambrano@dev-seed.rehabelite.test', 'dev-seed:password-set-at-startup', 'Daniela Sofía Zambrano Loor', 'PATIENT', now())
@@ -53,7 +55,10 @@ FROM (VALUES ('fisio.andrade@dev-seed.rehabelite.test', '1702000165', 'Valeria',
               'Junto a la farmacia de prueba'),
              ('direccion@dev-seed.rehabelite.test', '1702000322', 'Paula', 'Herrera Vásconez', DATE '1979-11-25',
               'FEMALE', '022345201', '17', '1701', '170108', 'Pasaje Ficticio', 'E3-45', 'Calle de Prueba',
-              'Frente a la plaza de prueba'))
+              'Frente a la plaza de prueba'),
+             ('recepcion@dev-seed.rehabelite.test', '1702000504', 'Gabriela', 'Salazar Ponce', DATE '1995-05-30',
+              'FEMALE', '0990000204', '17', '1701', '170156', 'Calle Imaginaria', 'N8-20', 'Av. de Prueba',
+              'Junto a la panadería de prueba'))
          AS staff (email, national_id, first_name, last_name, birth_date, sex, phone, province_code, canton_code,
                    parish_code, main_street, street_number, cross_street, address_reference)
          JOIN users u ON u.email = staff.email

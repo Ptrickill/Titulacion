@@ -9,11 +9,11 @@ import { HeroBanner } from '../../shared/ui/hero-banner';
     <app-hero-banner
       eyebrow="Rehab Elite clínica"
       title="Seguimiento terapéutico centralizado"
-      message="Gestiona usuarios, registra pacientes y consulta la auditoría de la clínica."
+      message="Registra pacientes, administra su acceso al portal y consulta su auditoría."
     />
     <app-empty-state
       icon="admin_panel_settings"
-      title="Las operaciones administrativas aparecerán aquí"
+      title="Las operaciones de recepción aparecerán aquí"
       message="Indicadores, accesos rápidos y seguimiento semanal estarán disponibles próximamente."
     />
   `,
