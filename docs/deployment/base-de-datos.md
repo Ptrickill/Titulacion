@@ -1,6 +1,6 @@
 # Base de datos de producción (Render)
 
-Requisitos de la base PostgreSQL 16 donde se desplegará Rehab Elite (TEC-07, sprint 6).
+Requisitos de la base PostgreSQL 16 donde se desplegará Rehab Elite (TEC-07, sprint 6). El envío de los correos en producción está en [correo.md](correo.md).
 
 ## Extensiones
 

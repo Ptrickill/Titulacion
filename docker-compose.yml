@@ -48,7 +48,9 @@ services:
     environment:
       # Inside the compose network the database is "db" on its internal port 5432
       DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-rehab_elite}
-      # ...and the test SMTP server is "mailpit" on 1025
+      # ...and the test SMTP server is "mailpit" on 1025. SMTP even if .env says MAIL_TRANSPORT=api (TEC-16): the
+      # local stack never sends real emails
+      MAIL_TRANSPORT: smtp
       MAIL_HOST: mailpit
       MAIL_PORT: "1025"
     depends_on:

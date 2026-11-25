@@ -97,6 +97,14 @@ app:
   frontend-url: ${APP_FRONTEND_URL:http://localhost:4200}
   mail:
     from: ${MAIL_FROM:no-reply@rehabelite.local}
+    # TEC-16: smtp (default, also when MAIL_TRANSPORT is empty) or api (Brevo's HTTP API, for Render, whose free plan
+    # blocks outbound SMTP). See docs/deployment/correo.md
+    transport: ${MAIL_TRANSPORT:smtp}
+    brevo:
+      api-key: ${BREVO_API_KEY:}
+      base-url: https://api.brevo.com
+      connect-timeout: 5s
+      read-timeout: 10s
   # Lifetime of the one-time account links
   tokens:
     activation-ttl: 48h
