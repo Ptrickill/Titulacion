@@ -5,6 +5,7 @@ import ec.rehabelite.catalogs.AddressView;
 import ec.rehabelite.patients.PatientCard;
 import ec.rehabelite.patients.PatientDirectory;
 import ec.rehabelite.patients.PatientProfile;
+import ec.rehabelite.patients.PatientRegistryCounts;
 import ec.rehabelite.patients.PatientRegistryEntry;
 import ec.rehabelite.patients.PatientRegistrySlice;
 import ec.rehabelite.patients.PortalAccountFilter;
@@ -87,6 +88,13 @@ class PatientDirectoryService implements PatientDirectory {
                 : patientRepository.searchSlice(query, accounts.withoutAccount(), accounts.accountIds(), offset,
                         limit).stream().map(PatientDirectoryService::toRegistryEntry).toList();
         return new PatientRegistrySlice(content, total);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PatientRegistryCounts registryCounts() {
+        PatientRepository.RegistryCounts counts = patientRepository.countRegistry();
+        return new PatientRegistryCounts(counts.getPatients(), counts.getWithoutPortal());
     }
 
     private static PatientCard toCard(Patient patient) {

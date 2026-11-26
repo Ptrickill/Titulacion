@@ -61,7 +61,7 @@ class AccountLinkSenderApiTransportTests {
                 new AppProperties.Brevo("test-only-brevo-key", baseUrl, Duration.ofSeconds(2), Duration.ofSeconds(2)));
         AppProperties properties = new AppProperties(
                 new AppProperties.Jwt("test-only-secret-for-api-transport-0123456789", 30),
-                new AppProperties.Admin(null, null), new AppProperties.Cors(List.of("http://localhost:4200")),
+                new AppProperties.InitialDirector(null, null), new AppProperties.Cors(List.of("http://localhost:4200")),
                 new AppProperties.Ai(null), null, "http://localhost:4200", mail,
                 new AppProperties.Tokens(Duration.ofHours(48), Duration.ofHours(1)),
                 new AppProperties.Clinic(LocalTime.of(7, 0), LocalTime.of(20, 0)));

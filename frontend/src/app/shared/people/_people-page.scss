@@ -1,0 +1,50 @@
+// Layout of the pages that list people (MEJ-05): the reception's "Registro de Pacientes" and the operations
+// director's "Gestión de Personal". Four indicators, the filters and the shared table of people.
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px;
+  background: var(--re-card);
+  border: 1px solid var(--re-gray-200);
+  border-radius: var(--re-radius-lg);
+  box-shadow: var(--re-shadow-sm);
+}
+
+// Four indicators in one row; two per row on narrow screens, one on a phone
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.search {
+  flex: 1 1 280px;
+}
+
+.filter {
+  flex: 0 1 220px;
+  min-width: 160px;
+}
+
+@media (max-width: 1099.98px) {
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 599.98px) {
+  .stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .filter {
+    flex: 1 1 100%;
+  }
+}

@@ -5,7 +5,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { logInForTest } from '../../../core/auth/auth-testing';
-import { fakePatient } from '../../admin/patients/patient-testing';
+import { fakePatient } from '../../../shared/people/patient-testing';
 import { ClinicalRecordForm } from './clinical-record-form';
 import { Icd10Diagnosis } from './clinical-record-api';
 import { fakeClinicalRecord } from './clinical-record-testing';

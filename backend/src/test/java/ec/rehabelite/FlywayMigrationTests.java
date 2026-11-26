@@ -35,9 +35,9 @@ class FlywayMigrationTests extends AbstractIntegrationTest {
     }
 
     @Test
-    void appliesV1ToV8() {
+    void appliesV1ToV9() {
         assertThat(Arrays.stream(flyway.info().applied()).map(MigrationInfo::getVersion).map(Object::toString))
-                .containsExactly("1", "2", "3", "4", "5", "6", "7", "8");
+                .containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9");
         assertThat(flyway.info().applied()).allMatch(migration -> migration.getState().isApplied());
         assertThat(flyway.info().pending()).isEmpty();
     }
@@ -315,6 +315,58 @@ class FlywayMigrationTests extends AbstractIntegrationTest {
             other.update(slot, staffId, "12:00", "14:00");
             assertThatThrownBy(() -> other.update(slot, staffId, "13:00", "15:00"))
                     .rootCause().hasMessageContaining("ex_staff_schedule_slots_overlap");
+        } finally {
+            jdbc.execute("DROP DATABASE IF EXISTS " + database + " WITH (FORCE)");
+        }
+    }
+
+    /**
+     * MEJ-05: V9 on a database with V8 data. No account changes (the administrators become the reception with the
+     * same access), and from then on the trigger keeps at least one active operations director: the last one is never
+     * deactivated, demoted or left unverified, while a database without directors can still be updated.
+     */
+    @Test
+    void v9KeepsAnActiveOperationsDirectorOnADatabaseWithV8Data() {
+        String database = "mej05_" + UUID.randomUUID().toString().replace("-", "");
+        jdbc.execute("CREATE DATABASE " + database);
+        try {
+            String url = POSTGRES.getJdbcUrl().replaceFirst("/[^/?]+(\\?|$)", "/" + database + "$1");
+            DriverManagerDataSource dataSource = new DriverManagerDataSource(url, POSTGRES.getUsername(),
+                    POSTGRES.getPassword());
+            JdbcTemplate other = new JdbcTemplate(dataSource);
+            Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").target("8").load().migrate();
+            String account = """
+                    INSERT INTO users (email, password_hash, full_name, role, email_verified_at)
+                    VALUES (?, '$2a$10$hash', 'Cuenta', ?, now()) RETURNING id""";
+            Long admin = other.queryForObject(account, Long.class, "recepcion@rehabelite.test", "ADMINISTRATOR");
+            Long physio = other.queryForObject(account, Long.class, "fisio@rehabelite.test", "PHYSIOTHERAPIST");
+
+            Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").load().migrate();
+
+            assertThat(other.queryForList("SELECT role || ':' || active FROM users ORDER BY id", String.class))
+                    .containsExactly("ADMINISTRATOR:true", "PHYSIOTHERAPIST:true");
+            // Without any director, the other accounts still change
+            other.update("UPDATE users SET active = false WHERE id = ?", physio);
+            other.update("UPDATE users SET active = true WHERE id = ?", physio);
+
+            Long first = other.queryForObject(account, Long.class, "direccion1@rehabelite.test",
+                    "OPERATIONS_DIRECTOR");
+            Long second = other.queryForObject(account, Long.class, "direccion2@rehabelite.test",
+                    "OPERATIONS_DIRECTOR");
+            other.update("UPDATE users SET active = false WHERE id = ?", second);
+            for (String change : new String[] {"active = false", "role = 'ADMINISTRATOR'",
+                    "email_verified_at = NULL"}) {
+                assertThatThrownBy(() -> other.update("UPDATE users SET " + change + " WHERE id = ?", first))
+                        .rootCause().hasMessageContaining("At least one active operations director must remain");
+            }
+            // A pending director does not count; once the second one is active again, the first one may leave
+            other.update("UPDATE users SET active = true WHERE id = ?", second);
+            other.update("UPDATE users SET active = false WHERE id = ?", first);
+            assertThat(other.queryForObject("""
+                    SELECT count(*) FROM users
+                    WHERE role = 'OPERATIONS_DIRECTOR' AND active AND email_verified_at IS NOT NULL""",
+                    Integer.class)).isEqualTo(1);
+            assertThat(other.queryForObject("SELECT active FROM users WHERE id = ?", Boolean.class, admin)).isTrue();
         } finally {
             jdbc.execute("DROP DATABASE IF EXISTS " + database + " WITH (FORCE)");
         }

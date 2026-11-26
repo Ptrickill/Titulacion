@@ -30,8 +30,8 @@ public final class TestStaff {
                 .formatted(role, nationalId, firstName, lastName, email);
     }
 
-    public static ResultActions register(MockMvc mockMvc, String adminToken, String body) throws Exception {
-        return mockMvc.perform(post("/api/staff").header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+    public static ResultActions register(MockMvc mockMvc, String directorToken, String body) throws Exception {
+        return mockMvc.perform(post("/api/staff").header(HttpHeaders.AUTHORIZATION, "Bearer " + directorToken)
                 .contentType(MediaType.APPLICATION_JSON).content(body));
     }
 
@@ -58,9 +58,9 @@ public final class TestStaff {
     }
 
     /** Registers a staff member and returns the id of its new account (pending activation). */
-    public static Long registerAccount(MockMvc mockMvc, String adminToken, String role, String email)
+    public static Long registerAccount(MockMvc mockMvc, String directorToken, String role, String email)
             throws Exception {
-        String body = register(mockMvc, adminToken,
+        String body = register(mockMvc, directorToken,
                 json(role, TestPatients.randomNationalId(), "Cuenta", "Nueva Prueba", email))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();

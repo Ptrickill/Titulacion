@@ -7,7 +7,7 @@ import { problemDetailMessage } from '../../../core/http/problem-detail';
 import { EmptyState } from '../../../shared/ui/empty-state';
 import { PageHeader } from '../../../shared/ui/page-header';
 // GET /api/patients/{id} is shared by the administrator and the physiotherapist (personal data only)
-import { Patient, PatientApi } from '../../admin/patients/patient-api';
+import { Patient, PatientApi } from '../../../shared/people/patient-api';
 import { Treatment } from './clinical-record-api';
 import { PatientSummaryCard } from './patient-summary-card';
 import { TreatmentApi } from './treatment-api';

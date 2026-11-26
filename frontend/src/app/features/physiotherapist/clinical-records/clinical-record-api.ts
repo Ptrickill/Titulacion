@@ -3,7 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Page } from '../../../core/http/page';
 import type { TreatmentStatus } from '../../../shared/clinical/treatment-labels';
-import { Sex } from '../../admin/patients/patient-api';
+import { Sex } from '../../../shared/people/patient-api';
 import type { ResponsiblePeriod } from './treatment-api';
 
 export type { TreatmentStatus };

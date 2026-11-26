@@ -9,15 +9,18 @@ import static org.mockito.Mockito.when;
 
 import ec.rehabelite.audit.AuditAction;
 import ec.rehabelite.audit.AuditLogService;
+import ec.rehabelite.auth.CurrentUser;
 import ec.rehabelite.auth.CurrentUserProvider;
 import ec.rehabelite.auth.Role;
 import ec.rehabelite.auth.domain.User;
 import ec.rehabelite.auth.domain.UserRepository;
 import ec.rehabelite.shared.domain.BusinessRuleException;
+import ec.rehabelite.shared.domain.ForbiddenOperationException;
 import ec.rehabelite.shared.domain.ResourceNotFoundException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,9 +40,10 @@ class UserManagementServiceTests {
     private final UserManagementService service = new UserManagementService(userRepository, linkSender,
             currentUserProvider, auditLogService, Clock.fixed(NOW, ZoneOffset.UTC));
 
+    /** The operations director acts by default (MEJ-05: staff accounts); the tests of patients act as the reception. */
     @BeforeEach
     void setUp() {
-        when(currentUserProvider.currentUserId()).thenReturn(Optional.of(ADMIN_ID));
+        actAs(Role.OPERATIONS_DIRECTOR);
     }
 
     @Test
@@ -104,6 +108,7 @@ class UserManagementServiceTests {
 
     @Test
     void reactivatesAnAccountWithoutFailedAttemptsOrLock() {
+        actAs(Role.ADMINISTRATOR);
         User user = existingUser(USER_ID, Role.PATIENT);
         for (int attempt = 0; attempt < User.MAX_FAILED_ATTEMPTS; attempt++) {
             user.registerFailedAttempt(NOW);
@@ -119,8 +124,8 @@ class UserManagementServiceTests {
     }
 
     @Test
-    void administratorsCannotDeactivateTheirOwnAccount() {
-        User self = existingUser(ADMIN_ID, Role.ADMINISTRATOR);
+    void directorsCannotDeactivateTheirOwnAccount() {
+        User self = existingUser(ADMIN_ID, Role.OPERATIONS_DIRECTOR);
 
         assertThatThrownBy(() -> service.changeStatus(ADMIN_ID, false))
                 .isInstanceOf(BusinessRuleException.class)
@@ -132,6 +137,7 @@ class UserManagementServiceTests {
     @Test
     void askingForTheCurrentStatusChangesNothing() {
         User user = existingUser(USER_ID, Role.OPERATIONS_DIRECTOR);
+        when(userRepository.lockActiveDirectors()).thenReturn(List.of(user));
 
         User result = service.changeStatus(USER_ID, true);
 
@@ -149,6 +155,61 @@ class UserManagementServiceTests {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage(UserManagementService.USER_NOT_FOUND);
         verifyNoInteractions(auditLogService);
+    }
+
+    @Test
+    void theReceptionManagesOnlyPatientAccountsAndTheDirectorOnlyStaffAccounts() {
+        existingUser(USER_ID, Role.PHYSIOTHERAPIST);
+        existingUser(41L, Role.PATIENT);
+
+        actAs(Role.ADMINISTRATOR);
+        assertThatThrownBy(() -> service.changeStatus(USER_ID, false))
+                .isInstanceOf(ForbiddenOperationException.class)
+                .hasMessage(UserManagementService.NOT_MANAGED);
+        assertThatThrownBy(() -> service.resendInvitation(USER_ID))
+                .isInstanceOf(ForbiddenOperationException.class);
+
+        actAs(Role.OPERATIONS_DIRECTOR);
+        assertThatThrownBy(() -> service.changeStatus(41L, false))
+                .isInstanceOf(ForbiddenOperationException.class)
+                .hasMessage(UserManagementService.NOT_MANAGED);
+        assertThatThrownBy(() -> service.resendInvitation(41L))
+                .isInstanceOf(ForbiddenOperationException.class);
+
+        for (Role role : List.of(Role.PHYSIOTHERAPIST, Role.PATIENT)) {
+            actAs(role);
+            assertThatThrownBy(() -> service.changeStatus(41L, false))
+                    .isInstanceOf(ForbiddenOperationException.class);
+        }
+        verifyNoInteractions(auditLogService, linkSender);
+    }
+
+    @Test
+    void theLastActiveOperationsDirectorIsNeverDeactivated() {
+        User lastDirector = existingUser(USER_ID, Role.OPERATIONS_DIRECTOR);
+        when(userRepository.lockActiveDirectors()).thenReturn(List.of(lastDirector));
+
+        assertThatThrownBy(() -> service.changeStatus(USER_ID, false))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage(UserManagementService.LAST_ACTIVE_DIRECTOR);
+        assertThat(lastDirector.isActive()).isTrue();
+        verifyNoInteractions(auditLogService);
+    }
+
+    @Test
+    void aDirectorIsDeactivatedWhileAnotherOneStaysActive() {
+        User director = existingUser(USER_ID, Role.OPERATIONS_DIRECTOR);
+        User other = existingUser(42L, Role.OPERATIONS_DIRECTOR);
+        when(userRepository.lockActiveDirectors()).thenReturn(List.of(director, other));
+
+        assertThat(service.changeStatus(USER_ID, false).isActive()).isFalse();
+        verify(userRepository).lockActiveDirectors();
+    }
+
+    private void actAs(Role role) {
+        when(currentUserProvider.currentUser())
+                .thenReturn(Optional.of(new CurrentUser(ADMIN_ID, "actor@rehabelite.test", "Actor", role)));
+        when(currentUserProvider.currentUserId()).thenReturn(Optional.of(ADMIN_ID));
     }
 
     private User pendingUser(Long id) {

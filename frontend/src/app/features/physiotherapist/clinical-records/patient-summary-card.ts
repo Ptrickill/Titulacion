@@ -1,9 +1,9 @@
 import { DatePipe } from '@angular/common';
 import { Component, computed, input } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { formatAge } from '../../admin/patients/patient-age';
-import { Patient, PatientAddress } from '../../admin/patients/patient-api';
-import { SEX_LABELS } from '../../admin/patients/patient-options';
+import { formatAge } from '../../../shared/people/patient-age';
+import { Patient, PatientAddress } from '../../../shared/people/patient-api';
+import { SEX_LABELS } from '../../../shared/people/patient-options';
 
 /** Data the card shows: the patient of GET /api/patients/{id} or of the clinical record view (HU-09). */
 export type SummaryCardPatient = Pick<

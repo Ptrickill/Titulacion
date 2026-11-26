@@ -34,15 +34,17 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
 /**
- * MEJ-02: GET /api/people lists patients and staff in one registry, staff first, with the status of each account and
- * the filters by type and role. Every test searches a word unique to its own people, so the shared database never
- * interferes.
+ * MEJ-05: the reception's GET /api/people lists only patients with their portal accounts, and the operations
+ * director's GET /api/staff only the staff, with the filters by role and by account status (MEJ-02). Every test
+ * searches a word unique to its own people, so the shared database never interferes.
  */
 @AutoConfigureMockMvc
 class PeopleRegistryIntegrationTests extends AbstractIntegrationTest {
 
-    /** Token validation, staff count and slice, patient count and slice, and the accounts of the page. */
-    private static final long LIST_STATEMENTS = 6;
+    /** Token validation, patient count and slice, and the accounts of the page. */
+    private static final long PATIENT_LIST_STATEMENTS = 4;
+    /** Token validation, staff count and slice, and the accounts of the page. */
+    private static final long STAFF_LIST_STATEMENTS = 4;
 
     @Autowired
     private MockMvc mockMvc;
@@ -62,14 +64,14 @@ class PeopleRegistryIntegrationTests extends AbstractIntegrationTest {
     @Autowired
     private JdbcTemplate jdbc;
 
-    private String adminToken;
+    private String receptionToken;
+    private String directorToken;
     private String word;
 
     @BeforeEach
     void setUp() throws Exception {
-        User admin = userRepository.save(User.create(uniqueEmail("admin"), "not-a-real-hash", "Admin de prueba",
-                Role.ADMINISTRATOR, null, Instant.now()));
-        adminToken = tokenService.issue(admin, Instant.now()).token();
+        receptionToken = tokenOf(Role.ADMINISTRATOR, "Recepción de prueba");
+        directorToken = tokenOf(Role.OPERATIONS_DIRECTOR, "Dirección de prueba");
         word = randomWord();
 
         // Staff: pending, activated and deactivated accounts
@@ -80,13 +82,13 @@ class PeopleRegistryIntegrationTests extends AbstractIntegrationTest {
                         {"token":"%s","password":"Clave.Activa2026","passwordConfirmation":"Clave.Activa2026"}"""
                         .formatted(RecordingMailSender.tokenOf(mailSender.messagesTo(activeEmail).get(0)))))
                 .andExpect(status().isNoContent());
-        // The active account has logged in once: the registry shows its last access
+        // The active account has logged in once: the list shows its last access
         mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content("""
                         {"email":"%s","password":"Clave.Activa2026"}""".formatted(activeEmail)))
                 .andExpect(status().isOk());
         Long inactive = registerStaff("ADMINISTRATOR", "Gama");
         mockMvc.perform(patch("/api/users/{id}/status", inactive)
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + directorToken)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"active\":false}"))
                 .andExpect(status().isOk());
 
@@ -95,7 +97,7 @@ class PeopleRegistryIntegrationTests extends AbstractIntegrationTest {
         Long withAccount = TestPatients.insert(jdbc, "Persona", "Epsilon " + word);
         jdbc.update("UPDATE patients SET email = ? WHERE id = ?", uniqueEmail("epsilon"), withAccount);
         mockMvc.perform(post("/api/patients/{id}/portal-account", withAccount)
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + receptionToken))
                 .andExpect(status().isCreated());
         Long legacy = TestPatients.insert(jdbc, "Persona", "Zeta " + word);
         jdbc.update("""
@@ -104,59 +106,65 @@ class PeopleRegistryIntegrationTests extends AbstractIntegrationTest {
     }
 
     @Test
-    void listsTheStaffFirstAndThenThePatientsWithTheStatusOfEachAccount() throws Exception {
-        list("q", word)
+    void theReceptionListsOnlyThePatientsWithTheStatusOfTheirPortalAccess() throws Exception {
+        patients("q", word)
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalElements").value(6))
-                .andExpect(jsonPath("$.content[*].lastName").value(contains("Alfa " + capitalized(),
-                        "Beta " + capitalized(), "Gama " + capitalized(), "Delta " + word, "Epsilon " + word,
-                        "Zeta " + word)))
-                .andExpect(jsonPath("$.content[*].type").value(contains("STAFF", "STAFF", "STAFF", "PATIENT",
-                        "PATIENT", "PATIENT")))
-                .andExpect(jsonPath("$.content[*].role").value(contains("PHYSIOTHERAPIST", "OPERATIONS_DIRECTOR",
-                        "ADMINISTRATOR", "PATIENT", "PATIENT", "PATIENT")))
-                .andExpect(jsonPath("$.content[*].accountStatus").value(contains("PENDING_ACTIVATION", "ACTIVE",
-                        "INACTIVE", "NONE", "PENDING_ACTIVATION", "NONE")))
-                .andExpect(jsonPath("$.content[*].needsCompletion").value(contains(false, false, false, false, false,
-                        true)))
-                .andExpect(jsonPath("$.content[3].userId").doesNotExist())
-                .andExpect(jsonPath("$.content[4].userId").exists());
-    }
-
-    @Test
-    void filtersByTypeAndByRole() throws Exception {
-        list("q", word, "type", "STAFF")
-                .andExpect(jsonPath("$.totalElements").value(3))
-                .andExpect(jsonPath("$.content[*].type").value(contains("STAFF", "STAFF", "STAFF")));
-        list("q", word, "type", "PATIENT")
                 .andExpect(jsonPath("$.totalElements").value(3))
                 .andExpect(jsonPath("$.content[*].lastName").value(contains("Delta " + word, "Epsilon " + word,
-                        "Zeta " + word)));
-        list("q", word, "role", "PHYSIOTHERAPIST")
-                .andExpect(jsonPath("$.totalElements").value(1))
-                .andExpect(jsonPath("$.content[0].lastName").value("Alfa " + capitalized()));
-        list("q", word, "type", "STAFF", "role", "OPERATIONS_DIRECTOR")
-                .andExpect(jsonPath("$.content[*].accountStatus").value(contains("ACTIVE")));
+                        "Zeta " + word)))
+                .andExpect(jsonPath("$.content[*].type").value(contains("PATIENT", "PATIENT", "PATIENT")))
+                .andExpect(jsonPath("$.content[*].accountStatus").value(contains("NONE", "PENDING_ACTIVATION",
+                        "NONE")))
+                .andExpect(jsonPath("$.content[*].needsCompletion").value(contains(false, false, true)))
+                .andExpect(jsonPath("$.content[0].userId").doesNotExist())
+                .andExpect(jsonPath("$.content[1].userId").exists());
 
-        list("q", word, "type", "PATIENT", "role", "ADMINISTRATOR")
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.detail").value("El filtro de rol solo aplica al personal."));
-        list("role", "PATIENT").andExpect(status().isBadRequest());
+        // The former filters of MEJ-02 no longer reach the staff
+        patients("q", word, "type", "STAFF").andExpect(jsonPath("$.totalElements").value(3));
+        patients("q", word, "role", "PHYSIOTHERAPIST").andExpect(jsonPath("$.totalElements").value(3));
+        patients("q", word, "accountStatus", "NONE")
+                .andExpect(jsonPath("$.content[*].lastName").value(contains("Delta " + word, "Zeta " + word)));
+        patients("q", word, "accountStatus", "PENDING_ACTIVATION")
+                .andExpect(jsonPath("$.content[*].lastName").value(contains("Epsilon " + word)));
+        patients("q", word, "accountStatus", "BLOCKED").andExpect(status().isBadRequest());
     }
 
     @Test
-    void aPageCanStartAmongTheStaffAndEndAmongThePatients() throws Exception {
-        list("q", word, "size", "2", "page", "0")
-                .andExpect(jsonPath("$.totalPages").value(3))
+    void theDirectorListsOnlyTheStaffWithTheFiltersByRoleAndAccountStatus() throws Exception {
+        staff("q", word)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(3))
                 .andExpect(jsonPath("$.content[*].lastName").value(contains("Alfa " + capitalized(),
-                        "Beta " + capitalized())));
-        list("q", word, "size", "2", "page", "1")
-                .andExpect(jsonPath("$.content[*].lastName").value(contains("Gama " + capitalized(), "Delta " + word)));
-        list("q", word, "size", "2", "page", "2")
-                .andExpect(jsonPath("$.content[*].lastName").value(contains("Epsilon " + word, "Zeta " + word)));
-        list("q", word, "size", "2", "page", "3")
-                .andExpect(jsonPath("$.content.length()").value(0))
-                .andExpect(jsonPath("$.totalElements").value(6));
+                        "Beta " + capitalized(), "Gama " + capitalized())))
+                .andExpect(jsonPath("$.content[*].type").value(contains("STAFF", "STAFF", "STAFF")))
+                .andExpect(jsonPath("$.content[*].role").value(contains("PHYSIOTHERAPIST", "OPERATIONS_DIRECTOR",
+                        "ADMINISTRATOR")))
+                .andExpect(jsonPath("$.content[*].accountStatus").value(contains("PENDING_ACTIVATION", "ACTIVE",
+                        "INACTIVE")))
+                .andExpect(jsonPath("$.content[1].lastLoginAt").isNotEmpty())
+                .andExpect(jsonPath("$.content[0].lastLoginAt").doesNotExist());
+
+        staff("q", word, "role", "PHYSIOTHERAPIST")
+                .andExpect(jsonPath("$.content[*].lastName").value(contains("Alfa " + capitalized())));
+        staff("q", word, "accountStatus", "INACTIVE")
+                .andExpect(jsonPath("$.content[*].lastName").value(contains("Gama " + capitalized())));
+        staff("q", word, "role", "OPERATIONS_DIRECTOR", "accountStatus", "ACTIVE")
+                .andExpect(jsonPath("$.totalElements").value(1));
+        staff("q", word, "role", "PHYSIOTHERAPIST", "accountStatus", "ACTIVE")
+                .andExpect(jsonPath("$.totalElements").value(0));
+        // Every staff member has an account, and a patient is not staff
+        staff("q", word, "accountStatus", "NONE").andExpect(status().isBadRequest());
+        staff("q", word, "role", "PATIENT").andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void aStaffPageAndAPatientPageAreBuiltFromTheirOwnRegistry() throws Exception {
+        staff("q", word, "size", "2", "page", "1")
+                .andExpect(jsonPath("$.totalPages").value(2))
+                .andExpect(jsonPath("$.content[*].lastName").value(contains("Gama " + capitalized())));
+        patients("q", word, "size", "2", "page", "1")
+                .andExpect(jsonPath("$.totalPages").value(2))
+                .andExpect(jsonPath("$.content[*].lastName").value(contains("Zeta " + word)));
     }
 
     @Test
@@ -164,107 +172,123 @@ class PeopleRegistryIntegrationTests extends AbstractIntegrationTest {
         String nationalId = jdbc.queryForObject("""
                 SELECT national_id FROM staff_records WHERE last_name = ?""", String.class, "Alfa " + capitalized());
 
-        list("q", nationalId)
+        staff("q", nationalId)
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.content[0].nationalId").value(nationalId));
+        patients("q", nationalId).andExpect(jsonPath("$.totalElements").value(0));
     }
 
     @Test
     void aPageNeedsTheSameFixedNumberOfStatementsWhateverItsSize() throws Exception {
-        Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
-        list("q", word, "size", "4", "page", "0").andExpect(status().isOk());
-
-        statistics.clear();
-        list("q", word, "size", "4", "page", "0").andExpect(status().isOk());
-        long smallPage = statistics.getPrepareStatementCount();
-        statistics.clear();
-        list("q", word, "size", "50", "page", "0").andExpect(status().isOk());
-        long largePage = statistics.getPrepareStatementCount();
-
-        assertThat(smallPage).isEqualTo(LIST_STATEMENTS);
-        assertThat(largePage).isEqualTo(LIST_STATEMENTS);
+        assertThat(statementsOf(() -> patients("q", word, "size", "2"))).isEqualTo(PATIENT_LIST_STATEMENTS);
+        assertThat(statementsOf(() -> patients("q", word, "size", "50"))).isEqualTo(PATIENT_LIST_STATEMENTS);
+        assertThat(statementsOf(() -> staff("q", word, "size", "2"))).isEqualTo(STAFF_LIST_STATEMENTS);
+        assertThat(statementsOf(() -> staff("q", word, "size", "50"))).isEqualTo(STAFF_LIST_STATEMENTS);
+        // A filter by status or role reads the accounts that have it, in one more statement
+        assertThat(statementsOf(() -> patients("q", word, "accountStatus", "PENDING_ACTIVATION")))
+                .isEqualTo(PATIENT_LIST_STATEMENTS + 1);
+        assertThat(statementsOf(() -> staff("q", word, "role", "PHYSIOTHERAPIST")))
+                .isEqualTo(STAFF_LIST_STATEMENTS + 1);
     }
 
     @Test
-    void filtersByTheStatusOfTheAccountAndShowsTheLastAccess() throws Exception {
-        list("q", word, "accountStatus", "NONE")
-                .andExpect(jsonPath("$.content[*].lastName").value(contains("Delta " + word, "Zeta " + word)));
-        list("q", word, "accountStatus", "PENDING_ACTIVATION")
-                .andExpect(jsonPath("$.content[*].lastName").value(contains("Alfa " + capitalized(),
-                        "Epsilon " + word)));
-        list("q", word, "accountStatus", "ACTIVE")
-                .andExpect(jsonPath("$.totalElements").value(1))
-                .andExpect(jsonPath("$.content[0].lastName").value("Beta " + capitalized()))
-                .andExpect(jsonPath("$.content[0].lastLoginAt").isNotEmpty());
-        list("q", word, "accountStatus", "INACTIVE")
-                .andExpect(jsonPath("$.content[*].lastName").value(contains("Gama " + capitalized())));
+    void theIndicatorsOfEachSideCountTheirOwnAccounts() throws Exception {
+        String accounts = "SELECT count(*) FROM users WHERE role = ?";
+        String activeOf = "SELECT count(*) FROM users WHERE role = ? AND active AND email_verified_at IS NOT NULL";
+        String pendingOf = "SELECT count(*) FROM users WHERE role = ? AND active AND email_verified_at IS NULL";
 
-        // Combined with the role and the type
-        list("q", word, "role", "OPERATIONS_DIRECTOR", "accountStatus", "ACTIVE")
-                .andExpect(jsonPath("$.totalElements").value(1));
-        list("q", word, "role", "PHYSIOTHERAPIST", "accountStatus", "ACTIVE")
-                .andExpect(jsonPath("$.totalElements").value(0));
-        list("q", word, "type", "STAFF", "accountStatus", "NONE")
-                .andExpect(jsonPath("$.totalElements").value(0));
-        list("q", word, "type", "PATIENT", "accountStatus", "PENDING_ACTIVATION")
-                .andExpect(jsonPath("$.content[*].lastName").value(contains("Epsilon " + word)));
-        list("q", word, "accountStatus", "BLOCKED").andExpect(status().isBadRequest());
-
-        // Nobody else has logged in
-        list("q", word).andExpect(jsonPath("$.content[?(@.lastLoginAt != null)].lastName")
-                .value(contains("Beta " + capitalized())));
-    }
-
-    @Test
-    void theIndicatorsCountTheActiveAccountsAndTheAccountsOfEachRole() throws Exception {
-        String count = "SELECT count(*) FROM users WHERE role = ?";
-        long active = jdbc.queryForObject(
-                "SELECT count(*) FROM users WHERE active AND email_verified_at IS NOT NULL", Long.class);
-
-        mockMvc.perform(get("/api/people/stats").header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
+        mockMvc.perform(get("/api/people/stats").header(HttpHeaders.AUTHORIZATION, "Bearer " + receptionToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.activeAccounts").value(active))
-                .andExpect(jsonPath("$.physiotherapists")
-                        .value(jdbc.queryForObject(count, Long.class, "PHYSIOTHERAPIST")))
-                .andExpect(jsonPath("$.portalPatients").value(jdbc.queryForObject(count, Long.class, "PATIENT")))
-                .andExpect(jsonPath("$.administrators")
-                        .value(jdbc.queryForObject(count, Long.class, "ADMINISTRATOR")));
+                .andExpect(jsonPath("$.patients").value(jdbc.queryForObject("SELECT count(*) FROM patients",
+                        Long.class)))
+                .andExpect(jsonPath("$.portalActive").value(jdbc.queryForObject(activeOf, Long.class, "PATIENT")))
+                .andExpect(jsonPath("$.portalPending").value(jdbc.queryForObject(pendingOf, Long.class, "PATIENT")))
+                .andExpect(jsonPath("$.withoutPortal").value(jdbc.queryForObject(
+                        "SELECT count(*) FROM patients WHERE portal_user_id IS NULL", Long.class)));
 
-        Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
-        statistics.clear();
-        mockMvc.perform(get("/api/people/stats").header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
-                .andExpect(status().isOk());
-        // Token validation and one GROUP BY
-        assertThat(statistics.getPrepareStatementCount()).isEqualTo(2);
+        long activeStaff = jdbc.queryForObject("""
+                SELECT count(*) FROM users
+                WHERE role <> 'PATIENT' AND active AND email_verified_at IS NOT NULL""", Long.class);
+        mockMvc.perform(get("/api/staff/stats").header(HttpHeaders.AUTHORIZATION, "Bearer " + directorToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.activeAccounts").value(activeStaff))
+                .andExpect(jsonPath("$.physiotherapists")
+                        .value(jdbc.queryForObject(accounts, Long.class, "PHYSIOTHERAPIST")))
+                .andExpect(jsonPath("$.receptionists").value(jdbc.queryForObject(accounts, Long.class,
+                        "ADMINISTRATOR")))
+                .andExpect(jsonPath("$.directors").value(jdbc.queryForObject(accounts, Long.class,
+                        "OPERATIONS_DIRECTOR")));
+
+        // Token validation, the patient counts and one GROUP BY; the director only needs the GROUP BY
+        assertThat(statementsOf(() -> mockMvc.perform(get("/api/people/stats")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + receptionToken)))).isEqualTo(3);
+        assertThat(statementsOf(() -> mockMvc.perform(get("/api/staff/stats")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + directorToken)))).isEqualTo(2);
     }
 
     @Test
-    void aFilteredPageNeedsOneMoreStatement() throws Exception {
+    void eachSideIsForbiddenTheOtherList() throws Exception {
+        mockMvc.perform(get("/api/staff").header(HttpHeaders.AUTHORIZATION, "Bearer " + receptionToken))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/staff/stats").header(HttpHeaders.AUTHORIZATION, "Bearer " + receptionToken))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/people").header(HttpHeaders.AUTHORIZATION, "Bearer " + directorToken))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/people/stats").header(HttpHeaders.AUTHORIZATION, "Bearer " + directorToken))
+                .andExpect(status().isForbidden());
+        // Both registration forms look up national IDs and emails
+        for (String token : new String[] {receptionToken, directorToken}) {
+            mockMvc.perform(get("/api/people/matches").param("nationalId", TestPatients.randomNationalId())
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                    .andExpect(status().isOk());
+        }
+    }
+
+    @FunctionalInterface
+    private interface Request {
+
+        ResultActions perform() throws Exception;
+
+    }
+
+    private long statementsOf(Request request) throws Exception {
+        request.perform().andExpect(status().isOk());
         Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
-        list("q", word, "accountStatus", "PENDING_ACTIVATION").andExpect(status().isOk());
-
         statistics.clear();
-        list("q", word, "accountStatus", "PENDING_ACTIVATION").andExpect(status().isOk());
-
-        // The accounts with the status, then the same six statements
-        assertThat(statistics.getPrepareStatementCount()).isEqualTo(LIST_STATEMENTS + 1);
+        request.perform().andExpect(status().isOk());
+        return statistics.getPrepareStatementCount();
     }
 
     /** Registers a staff member whose last name has the word of the test, and returns its account. */
     private Long registerStaff(String role, String surname) throws Exception {
-        String body = TestStaff.register(mockMvc, adminToken, TestStaff.json(role, TestPatients.randomNationalId(),
-                        "Persona", surname + " " + word, uniqueEmail(surname.toLowerCase())))
+        String body = TestStaff.register(mockMvc, directorToken, TestStaff.json(role,
+                        TestPatients.randomNationalId(), "Persona", surname + " " + word,
+                        uniqueEmail(surname.toLowerCase())))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
         return ((Number) JsonPath.read(body, "$.account.userId")).longValue();
     }
 
-    private ResultActions list(String... parameters) throws Exception {
-        var request = get("/api/people").header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken);
+    private ResultActions patients(String... parameters) throws Exception {
+        return list("/api/people", receptionToken, parameters);
+    }
+
+    private ResultActions staff(String... parameters) throws Exception {
+        return list("/api/staff", directorToken, parameters);
+    }
+
+    private ResultActions list(String path, String token, String... parameters) throws Exception {
+        var request = get(path).header(HttpHeaders.AUTHORIZATION, "Bearer " + token);
         for (int i = 0; i < parameters.length; i += 2) {
             request.param(parameters[i], parameters[i + 1]);
         }
         return mockMvc.perform(request);
+    }
+
+    private String tokenOf(Role role, String fullName) {
+        User user = userRepository.save(User.create(uniqueEmail(role.name().toLowerCase()), "not-a-real-hash",
+                fullName, role, null, Instant.now()));
+        return tokenService.issue(user, Instant.now()).token();
     }
 
     /** The staff names are stored with a capital initial (NameCase); TestPatients inserts them as written. */

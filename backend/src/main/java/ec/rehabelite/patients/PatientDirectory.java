@@ -51,4 +51,7 @@ public interface PatientDirectory {
      */
     PatientRegistrySlice registry(String query, PortalAccountFilter accounts, long offset, int limit);
 
+    /** Registered patients and those without a portal account, for the indicators of the reception (MEJ-05). */
+    PatientRegistryCounts registryCounts();
+
 }

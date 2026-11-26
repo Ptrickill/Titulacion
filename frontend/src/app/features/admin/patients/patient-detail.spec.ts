@@ -6,10 +6,10 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { of } from 'rxjs';
-import { fakeAccount } from '../people/people-testing';
-import { fakeUser } from '../people/user-testing';
+import { fakeAccount } from '../../../shared/people/people-testing';
+import { fakeUser } from '../../../shared/people/user-testing';
 import { PatientDetail } from './patient-detail';
-import { fakePatient } from './patient-testing';
+import { fakePatient } from '../../../shared/people/patient-testing';
 
 describe('PatientDetail', () => {
   let harness: RouterTestingHarness;
@@ -18,7 +18,7 @@ describe('PatientDetail', () => {
 
   async function open(id: string): Promise<HTMLElement> {
     harness = await RouterTestingHarness.create();
-    await harness.navigateByUrl(`/admin/people/patients/${id}`, PatientDetail);
+    await harness.navigateByUrl(`/admin/patients/${id}`, PatientDetail);
     element = harness.routeNativeElement as HTMLElement;
     return element;
   }
@@ -40,7 +40,7 @@ describe('PatientDetail', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
-        provideRouter([{ path: 'admin/people/patients/:id', component: PatientDetail }]),
+        provideRouter([{ path: 'admin/patients/:id', component: PatientDetail }]),
         provideHttpClient(),
         provideHttpClientTesting(),
       ],
@@ -60,7 +60,7 @@ describe('PatientDetail', () => {
     expect(text).toContain('(30 años)');
     expect(text).toContain('Masculino');
     expect(text).toContain('No especificada');
-    expect(element.querySelector('a[href="/admin/people"]')).toBeTruthy();
+    expect(element.querySelector('a[href="/admin/patients"]')).toBeTruthy();
   });
 
   it('edits the data and shows the saved record with its last update', async () => {
@@ -230,7 +230,7 @@ describe('PatientDetail', () => {
     await settle();
 
     expect(element.textContent).toContain('El paciente no existe');
-    expect(element.querySelector('a[href="/admin/people"]')).toBeTruthy();
+    expect(element.querySelector('a[href="/admin/patients"]')).toBeTruthy();
   });
 
   it('does not call the API for an id that is not a number', async () => {

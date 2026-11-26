@@ -2,6 +2,7 @@ package ec.rehabelite.auth.application;
 
 import ec.rehabelite.audit.AuditUser;
 import ec.rehabelite.audit.AuditUserDirectory;
+import ec.rehabelite.auth.Role;
 import ec.rehabelite.auth.StaffDirectory;
 import ec.rehabelite.auth.domain.UserRepository;
 import java.util.Collection;
@@ -34,6 +35,12 @@ class AuditUserDirectoryService implements AuditUserDirectory {
         return userRepository.findAll(Sort.by("fullName", "id")).stream()
                 .map(user -> new AuditUser(user.getId(), user.getFullName()))
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Long> patientAccountIds() {
+        return userRepository.findIdsByRole(Role.PATIENT);
     }
 
 }

@@ -34,7 +34,7 @@ rehab-elite/
 │       │   ├── aisummary/           AI summaries
 │       │   ├── portal/              patient portal
 │       │   ├── reports/             operational reports
-│       │   ├── audit/               append-only audit log (read-only API for the administrator and the director)
+│       │   ├── audit/               append-only audit log (read-only API: all of it for the director, the patients' part for the reception)
 │       │   │                        and Hibernate Envers revisions of treatments and therapy sessions
 │       │   └── shared/              cross-cutting config and error handling
 │       └── resources/
@@ -82,7 +82,7 @@ Architecture overview (C4 Level 2, containers):
    | `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | PostgreSQL connection |
    | `POSTGRES_DB` | Database name of the optional Docker PostgreSQL (`docker-compose.yml`) |
    | `JWT_SECRET`, `JWT_EXPIRATION_MINUTES` | Token signing key (≥ 32 chars) and lifetime |
-   | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Initial administrator account |
+   | `INITIAL_DIRECTOR_EMAIL`, `INITIAL_DIRECTOR_PASSWORD` | Initial operations director account, created only while no active director exists (MEJ-05) |
    | `ANTHROPIC_API_KEY` | Claude API key (AI summaries) |
    | `CORS_ALLOWED_ORIGINS` | Comma-separated allowed origins |
    | `DEV_SEED_PASSWORD` | Password of the synthetic seed accounts (dev profile only, see [Development data](#development-data-dev-profile)) |
@@ -110,7 +110,7 @@ Architecture overview (C4 Level 2, containers):
 
    - Health: <http://localhost:8080/actuator/health>
    - OpenAPI UI: <http://localhost:8080/swagger-ui.html> (public; use **Authorize** with the token from `POST /api/auth/login`)
-   - On first start, if no administrator exists, the account from `ADMIN_EMAIL` / `ADMIN_PASSWORD` is created
+   - On start, if no active operations director exists, the account from `INITIAL_DIRECTOR_EMAIL` / `INITIAL_DIRECTOR_PASSWORD` is created, already activated. The operations director registers the rest of the staff, including the reception (role `ADMINISTRATOR`, MEJ-05), which registers the patients
 
 4. **Frontend.** In a second terminal:
 
@@ -135,12 +135,12 @@ The `dev` profile loads synthetic data so the screens can be tried without typin
 
 | What | Detail |
 |---|---|
-| Accounts | 3 physiotherapists, 1 operations director and 3 patient-portal accounts, all with emails ending in `@dev-seed.rehabelite.test` (`fisio.andrade@…`, `fisio.cevallos@…`, `fisio.paredes@…`, `direccion@…`, `paciente.ortiz@…`, `paciente.quishpe@…`, `paciente.zambrano@…`) |
+| Accounts | 1 reception (role `ADMINISTRATOR`), 1 operations director, 3 physiotherapists and 3 patient-portal accounts, all with emails ending in `@dev-seed.rehabelite.test` (`recepcion@…`, `direccion@…`, `fisio.andrade@…`, `fisio.cevallos@…`, `fisio.paredes@…`, `paciente.ortiz@…`, `paciente.quishpe@…`, `paciente.zambrano@…`) |
 | Patients | 15 fictitious patients with valid Ecuadorian national IDs; the three portal accounts are linked to three of them, and eight have a clinical record with a synthetic treatment |
 | Schedules | Weekly schedules of the three physiotherapists and different treatment loads (MEJ-04) |
 | Password | Every seed account uses `DEV_SEED_PASSWORD` from `.env`. At startup it is stored as a BCrypt hash; neither the password nor the hash is in the repository. Change it in `.env` and restart to update it |
 
-The data lives in `backend/src/main/resources/db/dev-seed/R__dev_seed.sql`, a Flyway repeatable migration that `application-dev.yml` adds to the Flyway locations. Every statement is idempotent (`ON CONFLICT DO NOTHING`), so restarting never duplicates rows. The initial administrator still comes from `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
+The data lives in `backend/src/main/resources/db/dev-seed/R__dev_seed.sql`, a Flyway repeatable migration that `application-dev.yml` adds to the Flyway locations. Every statement is idempotent (`ON CONFLICT DO NOTHING`), so restarting never duplicates rows. The seed already has an active operations director, so `INITIAL_DIRECTOR_EMAIL` / `INITIAL_DIRECTOR_PASSWORD` create nothing on a seeded database.
 
 **Activate it** (from `backend/`), with either:
 

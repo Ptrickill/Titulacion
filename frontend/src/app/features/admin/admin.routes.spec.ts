@@ -15,7 +15,7 @@ const routesWithoutPages: Routes = ADMIN_ROUTES.map((route) =>
   route.loadComponent ? { path: route.path, component: Page } : route,
 );
 
-describe('ADMIN_ROUTES (MEJ-02)', () => {
+describe('ADMIN_ROUTES (MEJ-05: the reception)', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
@@ -26,37 +26,26 @@ describe('ADMIN_ROUTES (MEJ-02)', () => {
     });
   });
 
-  it('serves the people registry and the records of patients and staff in English routes', () => {
-    const paths = ADMIN_ROUTES.map((route) => route.path);
+  it('serves the patient registry and the patient records, and no staff record', () => {
+    const pages = ADMIN_ROUTES.filter((route) => route.loadComponent).map((route) => route.path);
 
-    expect(paths).toContain('people');
-    expect(paths).toContain('people/patients/:id');
-    expect(paths).toContain('people/staff/:id');
+    expect(pages).toEqual(['', 'patients', 'patients/:id', 'audit']);
   });
 
-  it('redirects /admin/patients to /admin/people', async () => {
+  it('redirects the former registries to the patient registry', async () => {
     const harness = await RouterTestingHarness.create();
-
-    await harness.navigateByUrl('/admin/patients');
-
-    expect(TestBed.inject(Router).url).toBe('/admin/people');
+    for (const url of ['/admin/people', '/admin/users', '/admin/people/staff/4']) {
+      await harness.navigateByUrl(url);
+      expect(TestBed.inject(Router).url).toBe('/admin/patients');
+    }
   });
 
-  it('redirects the former "Gestión de Usuarios" to the people registry', async () => {
+  it('redirects the former record of a patient to its route', async () => {
     const harness = await RouterTestingHarness.create();
 
-    await harness.navigateByUrl('/admin/users');
+    await harness.navigateByUrl('/admin/people/patients/15');
 
-    expect(TestBed.inject(Router).url).toBe('/admin/people');
-    expect(ADMIN_ROUTES.some((route) => route.loadComponent && route.path === 'users')).toBe(false);
-  });
-
-  it('redirects the record of a patient to its new route', async () => {
-    const harness = await RouterTestingHarness.create();
-
-    await harness.navigateByUrl('/admin/patients/15');
-
-    expect(TestBed.inject(Router).url).toBe('/admin/people/patients/15');
+    expect(TestBed.inject(Router).url).toBe('/admin/patients/15');
   });
 
   it('serves the public /confirmar-correo page of the emailed link', () => {

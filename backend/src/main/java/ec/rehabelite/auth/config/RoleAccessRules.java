@@ -28,14 +28,20 @@ final class RoleAccessRules {
     }
 
     static final List<Rule> RULES = List.of(
-            // User and system administration (HU-02, HU-03)
+            // Reception area (HU-02, HU-03; the ADMINISTRATOR role is the reception since MEJ-05)
             new Rule("/api/admin/**", Role.ADMINISTRATOR),
-            new Rule("/api/users/**", Role.ADMINISTRATOR),
-            // People registry (MEJ-02): staff records and the unified list of patients and staff
+            // Account actions (HU-03, MEJ-01): the reception on patient accounts, the operations director on staff
+            // accounts; UserManagementService answers 403 for an account of the other side (MEJ-05)
+            new Rule("/api/users/**", Role.ADMINISTRATOR, Role.OPERATIONS_DIRECTOR),
+            // National ID and email lookup of both registration forms (MEJ-05), before /api/people/**
+            new Rule("/api/people/matches", Role.ADMINISTRATOR, Role.OPERATIONS_DIRECTOR),
+            // The reception's patient registry (MEJ-05): patients only
             new Rule("/api/people/**", Role.ADMINISTRATOR),
-            // A physiotherapist's weekly schedule (MEJ-04): also the operations director, so before /api/staff/**
-            new Rule("/api/staff/*/schedule", Role.ADMINISTRATOR, Role.OPERATIONS_DIRECTOR),
-            new Rule("/api/staff/**", Role.ADMINISTRATOR),
+            // A physiotherapist's weekly schedule (MEJ-04, MEJ-05): the reception reads it, only the operations
+            // director edits it; before /api/staff/**
+            new Rule(HttpMethod.GET, "/api/staff/*/schedule", Role.ADMINISTRATOR, Role.OPERATIONS_DIRECTOR),
+            // Staff management (MEJ-05): registration, records, accounts and schedules of the staff
+            new Rule("/api/staff/**", Role.OPERATIONS_DIRECTOR),
             // Schedules board, availability and reassignment of treatments (MEJ-04): no clinical data
             new Rule("/api/operations/**", Role.OPERATIONS_DIRECTOR),
             // Portal account of a patient, created from its record (MEJ-02).
@@ -58,7 +64,7 @@ final class RoleAccessRules {
             new Rule("/api/ai-summaries/**", Role.PHYSIOTHERAPIST),
             // Operations reports carry clinical data, which the administrator never sees (HU-06, HU-14)
             new Rule("/api/reports/**", Role.OPERATIONS_DIRECTOR),
-            // Audit log queries: metadata only (HU-18)
+            // Audit log queries: metadata only (HU-18); the reception sees only the patients' entries (MEJ-05)
             new Rule("/api/audit-logs/**", Role.OPERATIONS_DIRECTOR, Role.ADMINISTRATOR),
             // Read-only patient portal
             new Rule("/api/portal/**", Role.PATIENT));

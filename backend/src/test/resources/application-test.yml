@@ -20,8 +20,8 @@ app:
   jwt:
     secret: test-only-secret-for-automated-tests-0123456789
     expiration-minutes: 30
-  admin:
-    email: admin.test@rehabelite.test
+  initial-director:
+    email: director.test@rehabelite.test
     password: TestPassword.2026
   cors:
     allowed-origins: http://localhost:4200

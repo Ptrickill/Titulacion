@@ -3,7 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
-import { fakePatient } from '../../admin/patients/patient-testing';
+import { fakePatient } from '../../../shared/people/patient-testing';
 import { TreatmentPage } from './treatment-page';
 import { fakeHistory, fakeTreatment } from './treatment-testing';
 

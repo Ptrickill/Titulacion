@@ -16,19 +16,21 @@ export const NAV_ITEMS: Record<Role, readonly NavItem[]> = {
     { label: 'Gestión de Pacientes', icon: 'group', route: '/physio/patients' },
     { label: 'Historial Clínico', icon: 'description', route: '/physio/clinical-records' },
     { label: 'Línea de Tiempo', icon: 'schedule', route: '/physio/timeline' },
-    // MEJ-04: read only; the administrator and the operations director edit it
+    // MEJ-04: read only; the operations director edits it (MEJ-05)
     { label: 'Mi Horario', icon: 'calendar_month', route: '/physio/schedule' },
     { label: 'Asistente Clínico IA', icon: 'neurology', route: '/physio/ai-assistant' },
   ],
   ADMINISTRATOR: [
     { label: 'Inicio', icon: 'home', route: '/admin', exact: true },
-    // MEJ-02: patients, staff and their accounts in one registry (/admin/patients and /admin/users redirect here)
-    { label: 'Registro de Usuarios', icon: 'group', route: '/admin/people' },
+    // MEJ-05: the reception registers the patients and their portal access; the staff is the director's
+    { label: 'Registro de Pacientes', icon: 'group', route: '/admin/patients' },
     // No "Reportes Consolidados" (prototype 12): the reports carry clinical data (HU-06, HU-14)
     { label: 'Auditoría', icon: 'policy', route: '/admin/audit' },
   ],
   OPERATIONS_DIRECTOR: [
     { label: 'Reportes Consolidados', icon: 'bar_chart', route: '/director/reports' },
+    // MEJ-05: the staff and its accounts (physiotherapists, reception and operations direction)
+    { label: 'Gestión de Personal', icon: 'badge', route: '/director/staff' },
     // MEJ-04: weekly schedules board and reassignment of treatments by availability
     { label: 'Horarios y asignaciones', icon: 'event_available', route: '/director/schedules' },
     { label: 'Auditoría', icon: 'policy', route: '/director/audit' },
@@ -39,7 +41,7 @@ export const NAV_ITEMS: Record<Role, readonly NavItem[]> = {
 /** Subtitle under the logo in the sidebar. */
 export const PANEL_LABELS: Record<Role, string> = {
   PHYSIOTHERAPIST: 'Panel de especialistas',
-  ADMINISTRATOR: 'Control administrativo',
+  ADMINISTRATOR: 'Recepción',
   OPERATIONS_DIRECTOR: 'Dirección operativa',
   PATIENT: 'Portal del paciente',
 };

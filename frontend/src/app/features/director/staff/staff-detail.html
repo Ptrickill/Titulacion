@@ -1,0 +1,154 @@
+@let current = state();
+@switch (current.status) {
+  @case ('loading') {
+    <app-page-header title="Registro del personal" backLink="/director/staff" />
+    <mat-progress-bar mode="indeterminate" aria-label="Cargando registro" />
+  }
+  @case ('notFound') {
+    <app-page-header title="Registro del personal" backLink="/director/staff" />
+    <app-empty-state
+      icon="person_off"
+      title="El registro no existe"
+      message="Revise el enlace o vuelva a la Gestión de Personal."
+    >
+      <a mat-stroked-button routerLink="/director/staff">Volver al registro</a>
+    </app-empty-state>
+  }
+  @case ('error') {
+    <app-page-header title="Registro del personal" backLink="/director/staff" />
+    <app-empty-state
+      icon="cloud_off"
+      title="No se pudo cargar el registro"
+      message="Revise su conexión e intente nuevamente."
+    />
+  }
+  @case ('loaded') {
+    @let staff = current.staff;
+    <app-page-header
+      [title]="staff.firstName + ' ' + staff.lastName"
+      [subtitle]="'Personal · ' + roleLabels[staff.role]"
+      backLink="/director/staff"
+    >
+      <button mat-flat-button actions type="button" (click)="edit(staff)">
+        <mat-icon aria-hidden="true">edit</mat-icon>
+        Editar datos
+      </button>
+    </app-page-header>
+
+    @if (staff.needsCompletion) {
+      <div class="completion-notice" role="note">
+        <mat-icon aria-hidden="true">assignment_late</mat-icon>
+        <span>
+          Datos por completar: este registro se creó para una cuenta anterior al Registro de
+          Usuarios. Complete la cédula, la fecha de nacimiento, el sexo, el teléfono y la dirección
+          con "Editar datos".
+        </span>
+      </div>
+    }
+
+    <app-person-account-card
+      type="STAFF"
+      [account]="staff.account"
+      [email]="staff.email"
+      [busy]="accountBusy()"
+      [lastLoginAt]="staff.account?.lastLoginAt ?? null"
+      [ownAccount]="isOwnAccount(staff)"
+      (resend)="resend(staff)"
+      (toggleStatus)="toggleStatus(staff)"
+    />
+
+    <section class="record" aria-label="Datos del miembro del personal">
+      <app-form-section [step]="1" title="Rol y registro">
+        <div class="item">
+          <span class="label">Rol</span>
+          <span class="value">
+            <app-status-badge [label]="roleLabels[staff.role]" [tone]="roleTones[staff.role]" />
+          </span>
+        </div>
+        <div class="item">
+          <span class="label">Registrado el</span>
+          <span class="value">{{ staff.createdAt | date: 'dd/MM/yyyy, HH:mm' }}</span>
+        </div>
+        <div class="item">
+          <span class="label">Última actualización</span>
+          @if (staff.updatedAt) {
+            <span class="value">{{ staff.updatedAt | date: 'dd/MM/yyyy, HH:mm' }}</span>
+          } @else {
+            <span class="value empty">Sin cambios desde el registro</span>
+          }
+        </div>
+      </app-form-section>
+
+      <app-form-section [step]="2" title="Datos personales">
+        <div class="item">
+          <span class="label">Cédula</span>
+          @if (staff.nationalId) {
+            <span class="value mono">{{ staff.nationalId }}</span>
+          } @else {
+            <span class="value empty">Por completar</span>
+          }
+        </div>
+        <div class="item">
+          <span class="label">Nombres</span>
+          <span class="value">{{ staff.firstName }}</span>
+        </div>
+        <div class="item">
+          <span class="label">Apellidos</span>
+          @if (staff.lastName) {
+            <span class="value">{{ staff.lastName }}</span>
+          } @else {
+            <span class="value empty">Por completar</span>
+          }
+        </div>
+        <div class="item">
+          <span class="label">Fecha de nacimiento</span>
+          @if (staff.birthDate) {
+            <span class="value">
+              {{ staff.birthDate | date: 'dd/MM/yyyy' }}
+              @if (staff.age !== null) {
+                <span class="age">({{ formatAge(staff.age) }})</span>
+              }
+            </span>
+          } @else {
+            <span class="value empty">Por completar</span>
+          }
+        </div>
+        <div class="item">
+          <span class="label">Sexo</span>
+          @if (staff.sex) {
+            <span class="value">{{ sexLabels[staff.sex] }}</span>
+          } @else {
+            <span class="value empty">Por completar</span>
+          }
+        </div>
+        <div class="item">
+          <span class="label">Teléfono</span>
+          @if (staff.phone) {
+            <span class="value">{{ staff.phone }}</span>
+          } @else {
+            <span class="value empty">Por completar</span>
+          }
+        </div>
+        <div class="item">
+          <span class="label">Correo electrónico</span>
+          <span class="value">{{ staff.email }}</span>
+        </div>
+        <div class="item">
+          <span class="label">Dirección</span>
+          @if (staff.address.complete) {
+            <span class="value">{{ staff.address.formatted }}</span>
+          } @else {
+            <span class="value empty">Por completar</span>
+            <span class="incomplete">Dirección incompleta: complétela con "Editar datos".</span>
+          }
+        </div>
+      </app-form-section>
+
+      @if (staff.role === 'PHYSIOTHERAPIST') {
+        <app-form-section [step]="3" title="Horario">
+          <app-staff-schedule-panel class="full" [staffId]="staff.id" />
+        </app-form-section>
+      }
+    </section>
+  }
+}

@@ -28,7 +28,7 @@ class ClinicHoursPropertiesTests {
             .withPropertyValues("app.jwt.secret=test-only-secret-for-clinic-hours-0123456789",
                     "app.jwt.expiration-minutes=30", "app.cors.allowed-origins=http://localhost:4200",
                     "app.frontend-url=http://localhost:4200", "app.mail.from=no-reply@rehabelite.test",
-                    "app.admin.email=", "app.ai.anthropic-api-key=");
+                    "app.initial-director.email=", "app.ai.anthropic-api-key=");
 
     @Test
     void bindsTheDefaultsAndNarrowerHours() {

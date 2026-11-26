@@ -1,0 +1,75 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.record {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  background: var(--re-card);
+  border: 1px solid var(--re-gray-200);
+  border-radius: var(--re-radius-lg);
+  box-shadow: var(--re-shadow-sm);
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 0 12px;
+}
+
+.label {
+  color: var(--re-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.incomplete {
+  color: var(--re-warning);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.value {
+  color: var(--re-text);
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+
+  &.mono {
+    font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  }
+
+  &.empty {
+    color: var(--re-text-muted);
+    font-weight: 400;
+    font-style: italic;
+  }
+}
+
+.age {
+  color: var(--re-text-teal);
+  font-weight: 700;
+}
+
+// MEJ-02: a staff record created for an account that existed before the people registry
+.completion-notice {
+  display: flex;
+  gap: 8px;
+  padding: 12px 14px;
+  color: var(--re-info);
+  background: var(--re-info-bg);
+  border: 1px solid var(--re-info-border);
+  border-radius: var(--re-radius-sm);
+  font-size: 13.5px;
+
+  mat-icon {
+    flex-shrink: 0;
+  }
+}

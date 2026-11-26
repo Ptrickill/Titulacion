@@ -48,13 +48,18 @@ class PersonIdentityUniquenessIntegrationTests extends AbstractIntegrationTest {
     @Autowired
     private JdbcTemplate jdbc;
 
+    /** MEJ-05: the reception registers the patients and the operations director the staff. */
     private String adminToken;
+    private String directorToken;
 
     @BeforeEach
     void setUp() {
-        User admin = userRepository.save(User.create(uniqueEmail("admin"), "not-a-real-hash", "Admin de prueba",
+        User admin = userRepository.save(User.create(uniqueEmail("admin"), "not-a-real-hash", "Recepción de prueba",
                 Role.ADMINISTRATOR, null, Instant.now()));
         adminToken = tokenService.issue(admin, Instant.now()).token();
+        User director = userRepository.save(User.create(uniqueEmail("director"), "not-a-real-hash",
+                "Dirección de prueba", Role.OPERATIONS_DIRECTOR, null, Instant.now()));
+        directorToken = tokenService.issue(director, Instant.now()).token();
     }
 
     @Test
@@ -62,7 +67,7 @@ class PersonIdentityUniquenessIntegrationTests extends AbstractIntegrationTest {
         String patientNationalId = TestPatients.randomNationalId();
         Long patientId = registerPatient(patientNationalId, uniqueEmail("paciente"));
 
-        TestStaff.register(mockMvc, adminToken,
+        TestStaff.register(mockMvc, directorToken,
                         TestStaff.json("PHYSIOTHERAPIST", patientNationalId, "Ana", "Paz", uniqueEmail("fisio")))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.detail").value("Esta cédula pertenece a un paciente registrado."))
@@ -77,7 +82,7 @@ class PersonIdentityUniquenessIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.existingStaffId").value(staffId))
                 .andExpect(jsonPath("$.field").value("nationalId"));
 
-        TestStaff.register(mockMvc, adminToken,
+        TestStaff.register(mockMvc, directorToken,
                         TestStaff.json("ADMINISTRATOR", staffNationalId, "Otra", "Persona", uniqueEmail("admin")))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.existingStaffId").value(staffId));
@@ -87,7 +92,7 @@ class PersonIdentityUniquenessIntegrationTests extends AbstractIntegrationTest {
     void theEmailOfAStaffMemberIsUniqueAgainstPatientsStaffAndAccounts() throws Exception {
         String patientEmail = uniqueEmail("paciente");
         Long patientId = registerPatient(TestPatients.randomNationalId(), patientEmail);
-        TestStaff.register(mockMvc, adminToken, TestStaff.json("PHYSIOTHERAPIST", TestPatients.randomNationalId(),
+        TestStaff.register(mockMvc, directorToken, TestStaff.json("PHYSIOTHERAPIST", TestPatients.randomNationalId(),
                         "Ana", "Paz", patientEmail.toUpperCase()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.detail").value("Este correo pertenece a un paciente registrado."))
@@ -96,7 +101,7 @@ class PersonIdentityUniquenessIntegrationTests extends AbstractIntegrationTest {
 
         String staffEmail = uniqueEmail("fisio");
         Long staffId = registerStaff(TestPatients.randomNationalId(), staffEmail);
-        TestStaff.register(mockMvc, adminToken, TestStaff.json("PHYSIOTHERAPIST", TestPatients.randomNationalId(),
+        TestStaff.register(mockMvc, directorToken, TestStaff.json("PHYSIOTHERAPIST", TestPatients.randomNationalId(),
                         "Otra", "Persona", staffEmail))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.existingStaffId").value(staffId));
@@ -110,7 +115,7 @@ class PersonIdentityUniquenessIntegrationTests extends AbstractIntegrationTest {
         String pending = uniqueEmail("pendiente");
         jdbc.update("UPDATE users SET pending_email = ? WHERE id = (SELECT user_id FROM staff_records WHERE id = ?)",
                 pending, staffId);
-        TestStaff.register(mockMvc, adminToken, TestStaff.json("PHYSIOTHERAPIST", TestPatients.randomNationalId(),
+        TestStaff.register(mockMvc, directorToken, TestStaff.json("PHYSIOTHERAPIST", TestPatients.randomNationalId(),
                         "Otra", "Persona", pending))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.detail").value("Ya existe una cuenta con ese correo electrónico."))
@@ -164,7 +169,7 @@ class PersonIdentityUniquenessIntegrationTests extends AbstractIntegrationTest {
     }
 
     private Long registerStaff(String nationalId, String email) throws Exception {
-        String body = TestStaff.register(mockMvc, adminToken,
+        String body = TestStaff.register(mockMvc, directorToken,
                         TestStaff.json("PHYSIOTHERAPIST", nationalId, "Ana", "Paz", email))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();

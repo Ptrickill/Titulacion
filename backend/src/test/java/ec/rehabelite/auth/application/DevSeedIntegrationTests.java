@@ -86,8 +86,9 @@ class DevSeedIntegrationTests {
     }
 
     @Test
-    void seedsThreePhysiotherapistsOneDirectorAndThreePatientAccounts() {
-        assertThat(seedAccountsByRole()).containsOnly(
+    void seedsAReceptionistOneDirectorThreePhysiotherapistsAndThreePatientAccounts() {
+        // MEJ-05: the reception (ADMINISTRATOR) registers the patients and the director manages the staff
+        assertThat(seedAccountsByRole()).containsOnly(Map.entry("ADMINISTRATOR", 1L),
                 Map.entry("PHYSIOTHERAPIST", 3L), Map.entry("OPERATIONS_DIRECTOR", 1L), Map.entry("PATIENT", 3L));
     }
 
@@ -137,7 +138,7 @@ class DevSeedIntegrationTests {
     @Test
     void seedAccountsLogInWithTheDevSeedPassword() throws Exception {
         assertThat(jdbc.queryForList("SELECT password_hash FROM users WHERE email LIKE '%@dev-seed.rehabelite.test'",
-                String.class)).hasSize(7).allMatch(hash -> hash.startsWith("$2"));
+                String.class)).hasSize(8).allMatch(hash -> hash.startsWith("$2"));
 
         login("fisio.andrade@dev-seed.rehabelite.test", SEED_PASSWORD)
                 .andExpect(status().isOk())

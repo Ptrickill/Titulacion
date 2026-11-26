@@ -16,4 +16,10 @@ public interface AuditUserDirectory {
     /** Every account (any role, active or not) ordered by name, for the user filter of the audit log. */
     List<AuditUser> users();
 
+    /**
+     * The ids of the patients' portal accounts (MEJ-05): the reception sees in the audit log only the entries of the
+     * patients and of these accounts.
+     */
+    List<Long> patientAccountIds();
+
 }

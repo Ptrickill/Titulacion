@@ -44,10 +44,10 @@ class DevSeedDataTests {
 
     /**
      * MEJ-02: complete staff records with valid national IDs, none of them a patient's, and valid phones. MEJ-04
-     * adds a third physiotherapist (Paredes).
+     * adds a third physiotherapist (Paredes) and MEJ-05 the reception (Salazar).
      */
     @Test
-    void theFourStaffRecordsHaveValidNationalIdsThatNoPatientHas() {
+    void theFiveStaffRecordsHaveValidNationalIdsThatNoPatientHas() {
         Matcher row = Pattern.compile(
                 "\\('([^']+@dev-seed\\.rehabelite\\.test)', '(\\d{10})', '[^']+', '[^']+', DATE '[\\d-]+',\\s+'[A-Z]+', "
                         + "'(\\d+)'").matcher(script);
@@ -64,7 +64,7 @@ class DevSeedDataTests {
             patientIds.add(patients.group(1));
         }
 
-        assertThat(nationalIds).hasSize(4).doesNotHaveDuplicates().doesNotContainAnyElementsOf(patientIds);
+        assertThat(nationalIds).hasSize(5).doesNotHaveDuplicates().doesNotContainAnyElementsOf(patientIds);
         assertThat(script).contains("ON CONFLICT (user_id) DO UPDATE", "WHERE staff_records.national_id IS NULL");
     }
 
@@ -82,7 +82,7 @@ class DevSeedDataTests {
             accounts.add(emails.group(1));
         }
 
-        assertThat(accounts).hasSize(7).allMatch(email -> email.endsWith("@dev-seed.rehabelite.test"));
+        assertThat(accounts).hasSize(8).allMatch(email -> email.endsWith("@dev-seed.rehabelite.test"));
     }
 
     @Test

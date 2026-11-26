@@ -35,7 +35,7 @@ describe('app routes', () => {
   it('redirects a role trying another panel back to its own panel', async () => {
     logInForTest('PHYSIOTHERAPIST');
 
-    for (const url of ['/admin/people', '/director/reports', '/patient']) {
+    for (const url of ['/admin/patients', '/director/reports', '/patient']) {
       await harness.navigateByUrl(url);
       expect(router.url).toBe('/physio');
     }
