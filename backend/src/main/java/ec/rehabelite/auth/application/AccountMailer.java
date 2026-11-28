@@ -1,6 +1,7 @@
 package ec.rehabelite.auth.application;
 
 import ec.rehabelite.auth.domain.User;
+import ec.rehabelite.auth.mail.MailCategory;
 import ec.rehabelite.auth.mail.MailGateway;
 import ec.rehabelite.auth.mail.MailMessage;
 import ec.rehabelite.shared.config.AppProperties;
@@ -11,7 +12,9 @@ import org.springframework.web.util.HtmlUtils;
 
 /**
  * Emails of the account links (MEJ-01), in Spanish, as plain text and HTML. It only writes them: the
- * {@link MailGateway} chosen by {@code app.mail.transport} delivers them (TEC-16). The link carries the raw token: the
+ * {@link MailGateway} chosen by {@code app.mail.transport} delivers them (TEC-16), through the {@link MailDispatcher}.
+ * They are all account emails (MEJ-06, {@link MailCategory#ACCOUNT}): a patient gets them whatever its consent to
+ * email communications. The link carries the raw token: the
  * message is never logged. A delivery failure surfaces as Spring's {@code MailException}, whatever the transport.
  */
 @Component
@@ -27,7 +30,7 @@ class AccountMailer {
     /** Spanish like the other emailed links: the user sees it in the email and in the address bar (MEJ-02). */
     static final String EMAIL_CHANGE_PATH = "/confirmar-correo";
 
-    private final MailGateway mailGateway;
+    private final MailDispatcher dispatcher;
     private final AppProperties properties;
 
     void sendActivation(User user, String token) {
@@ -127,7 +130,7 @@ class AccountMailer {
     }
 
     private void send(String to, String subject, String text, String html) {
-        mailGateway.send(new MailMessage(to, subject, text, html));
+        dispatcher.send(MailCategory.ACCOUNT, null, new MailMessage(to, subject, text, html));
     }
 
     private String linkTo(String path, String token) {

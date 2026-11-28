@@ -1,2 +1,36 @@
 // The record of a person (MEJ-05): shared with the operations director's staff record
 @use '../../../shared/people/person-record';
+
+// MEJ-06: export and edition in the header, and the notices of a blocked patient or a pending consent
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  border: 1px solid;
+  border-radius: var(--re-radius-md);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+
+  mat-icon {
+    flex-shrink: 0;
+  }
+
+  &.warning {
+    color: var(--re-warning);
+    background: var(--re-warning-bg);
+    border-color: var(--re-warning-border);
+  }
+
+  &.danger {
+    color: var(--re-danger);
+    background: var(--re-danger-bg);
+    border-color: var(--re-danger-border);
+  }
+}

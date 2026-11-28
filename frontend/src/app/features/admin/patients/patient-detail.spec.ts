@@ -10,6 +10,10 @@ import { fakeAccount } from '../../../shared/people/people-testing';
 import { fakeUser } from '../../../shared/people/user-testing';
 import { PatientDetail } from './patient-detail';
 import { fakePatient } from '../../../shared/people/patient-testing';
+import { fakeConsents, flushConsentTexts } from '../../../shared/legal/legal-testing';
+import { DataRequest } from '../../../shared/legal/privacy-labels';
+import { PatientConsents } from './patient-privacy-api';
+import { FileDownload } from '../../../core/http/file-download';
 
 describe('PatientDetail', () => {
   let harness: RouterTestingHarness;
@@ -23,9 +27,21 @@ describe('PatientDetail', () => {
     return element;
   }
 
-  async function loaded(patient = fakePatient(25)): Promise<void> {
+  async function loaded(
+    patient = fakePatient(25),
+    consents = fakeConsents(),
+    requests: DataRequest[] = [],
+  ): Promise<void> {
     await open(String(patient.id));
     backend.expectOne(`/api/patients/${patient.id}`).flush(patient);
+    harness.detectChanges();
+    TestBed.tick();
+    // MEJ-06: the consents (with their texts) and the requests of the data subject
+    backend
+      .expectOne(`/api/patients/${patient.id}/consents`)
+      .flush({ consents, history: [] } satisfies PatientConsents);
+    flushConsentTexts(backend);
+    backend.expectOne(`/api/patients/${patient.id}/data-requests`).flush(requests);
     await settle();
   }
 
@@ -82,6 +98,66 @@ describe('PatientDetail', () => {
       'Cerrar',
       { duration: 5000 },
     );
+  });
+
+  describe('data protection (MEJ-06)', () => {
+    it('warns about a pending consent and shows the consents and requests sections', async () => {
+      await loaded(
+        fakePatient(25, { consentPending: true }),
+        fakeConsents({ status: 'PENDING', textVersion: null, channel: null, grantedAt: null }),
+      );
+
+      expect(element.querySelector('.banner.warning')?.textContent).toContain(
+        'Consentimiento pendiente',
+      );
+      expect(element.querySelector('app-patient-consents-panel')).not.toBeNull();
+      expect(element.querySelector('app-data-requests-panel')).not.toBeNull();
+      expect(button('Editar datos')).toBeTruthy();
+    });
+
+    it('shows a blocked patient read-only, without its cleared contact data', async () => {
+      await loaded(
+        fakePatient(25, {
+          blocked: true,
+          blockedAt: '2026-11-26T15:00:00Z',
+          email: null,
+          phone: null,
+          consentPending: true,
+        }),
+      );
+
+      expect(element.querySelector('.banner.danger')?.textContent).toContain(
+        'Datos bloqueados por una solicitud de eliminación aceptada el 26/11/2026',
+      );
+      expect(element.querySelector('.banner.warning')).toBeNull();
+      expect(button('Editar datos')).toBeUndefined();
+      expect(element.querySelector('app-person-account-card')).toBeNull();
+      expect(element.textContent).toContain('Sin correo');
+      expect(element.textContent).toContain('Sin teléfono');
+    });
+
+    it('exports the personal data as a file the reception hands to the data subject', async () => {
+      await loaded();
+      const save = vi
+        .spyOn(TestBed.inject(FileDownload), 'save')
+        .mockImplementation(() => undefined);
+
+      button('Exportar datos')!.click();
+      await settle();
+      Array.from(document.querySelectorAll<HTMLButtonElement>('.mat-mdc-menu-item'))
+        .find((item) => item.textContent?.includes('JSON'))!
+        .click();
+      await settle();
+
+      const request = backend.expectOne('/api/patients/25/data-export.json');
+      expect(request.request.responseType).toBe('blob');
+      request.flush(new Blob(['{}'], { type: 'application/json' }));
+      await settle();
+      expect(save).toHaveBeenCalledWith(
+        expect.any(Blob),
+        expect.stringMatching(/^datos-paciente-25-\d{4}-\d{2}-\d{2}\.json$/),
+      );
+    });
   });
 
   describe('portal access (MEJ-02)', () => {

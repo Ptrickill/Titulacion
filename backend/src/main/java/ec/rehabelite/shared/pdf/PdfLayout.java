@@ -1,4 +1,4 @@
-package ec.rehabelite.reports.application;
+package ec.rehabelite.shared.pdf;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -16,25 +16,26 @@ import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 
 /**
- * A minimal flowing layout on A4 pages with PDFBox (HU-15): paragraphs with line wrapping and tables whose rows never
+ * A minimal flowing layout on A4 pages with PDFBox (HU-15; shared since MEJ-06 by the operations report and the data
+ * exports): paragraphs with line wrapping and tables whose rows never
  * split and whose header repeats on every page. The text uses Helvetica, a standard font that is not embedded and
  * covers Spanish (WinAnsi); a character it cannot encode is written as "?", so a name never makes the PDF fail.
  * Not thread safe: one instance per document.
  */
-final class PdfLayout {
+public final class PdfLayout {
 
     /** Colors of the theme of the frontend (tokens --re-*), as RGB. */
-    static final int NAVY = 0x0F172A;
-    static final int TEAL_TEXT = 0x0F766E;
-    static final int TEXT = 0x1F2937;
-    static final int MUTED = 0x6B7280;
+    public static final int NAVY = 0x0F172A;
+    public static final int TEAL_TEXT = 0x0F766E;
+    public static final int TEXT = 0x1F2937;
+    public static final int MUTED = 0x6B7280;
     private static final int FIELD = 0xF3F4F6;
     private static final int BORDER = 0xE5E7EB;
 
-    static final Style TITLE = new Style(true, 18, NAVY);
-    static final Style HEADING = new Style(true, 12, TEAL_TEXT);
-    static final Style BODY = new Style(false, 9.5f, TEXT);
-    static final Style NOTE = new Style(false, 8.5f, MUTED);
+    public static final Style TITLE = new Style(true, 18, NAVY);
+    public static final Style HEADING = new Style(true, 12, TEAL_TEXT);
+    public static final Style BODY = new Style(false, 9.5f, TEXT);
+    public static final Style NOTE = new Style(false, 8.5f, MUTED);
     private static final Style CELL = new Style(false, 8.5f, TEXT);
     private static final Style CELL_HEADER = new Style(true, 8.5f, NAVY);
 
@@ -46,7 +47,7 @@ final class PdfLayout {
     private static final char REPLACEMENT = '?';
 
     /** A font weight, size and color. */
-    record Style(boolean bold, float size, int color) {
+    public record Style(boolean bold, float size, int color) {
     }
 
     /**
@@ -55,7 +56,7 @@ final class PdfLayout {
      * @param weight share of the width of the page
      * @param right  whether the column is aligned to the right (numbers)
      */
-    record Column(String header, float weight, boolean right) {
+    public record Column(String header, float weight, boolean right) {
     }
 
     private final PDDocument document = new PDDocument();
@@ -65,17 +66,17 @@ final class PdfLayout {
     private PDPageContentStream stream;
     private float y;
 
-    PdfLayout(String title) {
+    public PdfLayout(String title) {
         document.getDocumentInformation().setTitle(title);
         document.getDocumentInformation().setCreator("Rehab Elite");
     }
 
-    float contentWidth() {
+    public float contentWidth() {
         return PAGE_SIZE.getWidth() - 2 * MARGIN;
     }
 
     /** A paragraph wrapped to the width of the page. */
-    void text(String text, Style style) {
+    public void text(String text, Style style) {
         for (String line : wrap(text, style, contentWidth())) {
             float height = style.size() * LEADING;
             ensureSpace(height);
@@ -85,14 +86,14 @@ final class PdfLayout {
     }
 
     /** Vertical space; nothing at the top of a page. */
-    void space(float points) {
+    public void space(float points) {
         if (stream != null) {
             y -= points;
         }
     }
 
     /** A heading kept on the same page as at least its first lines of content. */
-    void heading(String text) {
+    public void heading(String text) {
         ensureSpace(HEADING.size() * LEADING + 40);
         space(6);
         text(text, HEADING);
@@ -103,7 +104,7 @@ final class PdfLayout {
      * A table. The header (bold, on a gray band) repeats at the top of each new page; a row is never split between
      * pages. Without headers, only the rows are drawn (label-value lists).
      */
-    void table(List<Column> columns, List<List<String>> rows, boolean showHeader) {
+    public void table(List<Column> columns, List<List<String>> rows, boolean showHeader) {
         float total = (float) columns.stream().mapToDouble(Column::weight).sum();
         float[] widths = new float[columns.size()];
         for (int i = 0; i < widths.length; i++) {
@@ -131,7 +132,7 @@ final class PdfLayout {
      * Closes the document: writes the footer of every page (the text on the left, "Página N de M" on the right) and
      * returns the bytes of the PDF.
      */
-    byte[] finish(String footer) {
+    public byte[] finish(String footer) {
         try (document) {
             ensureSpace(0);
             stream.close();

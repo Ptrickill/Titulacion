@@ -25,7 +25,9 @@
             [label]="roleLabels[person.role]"
             [tone]="roleTones[person.role]"
           />
-          @if (person.needsCompletion) {
+          @if (person.blocked) {
+            <app-status-badge class="blocked" label="Datos bloqueados" tone="danger" />
+          } @else if (person.needsCompletion) {
             <app-status-badge class="pending" label="Datos por completar" tone="warning" />
           }
         </div>

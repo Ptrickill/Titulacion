@@ -1,5 +1,6 @@
 package ec.rehabelite.auth.application;
 
+import ec.rehabelite.TestClinicalText;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -64,14 +65,17 @@ class AccountLinkSenderApiTransportTests {
                 new AppProperties.InitialDirector(null, null), new AppProperties.Cors(List.of("http://localhost:4200")),
                 new AppProperties.Ai(null), null, "http://localhost:4200", mail,
                 new AppProperties.Tokens(Duration.ofHours(48), Duration.ofHours(1)),
-                new AppProperties.Clinic(LocalTime.of(7, 0), LocalTime.of(20, 0)));
+                new AppProperties.Clinic(LocalTime.of(7, 0), LocalTime.of(20, 0)),
+                new AppProperties.ClinicalData(TestClinicalText.KEY, ""),
+                new AppProperties.Session(Duration.ofMinutes(15), Duration.ofMinutes(2)),
+                new AppProperties.Compliance(15));
         BrevoApiMailGateway gateway = new BrevoApiMailGateway(baseUrl, mail.brevo().apiKey(), mail.from(),
                 mail.brevo().connectTimeout(), mail.brevo().readTimeout());
 
         AccountTokenService tokenService = mock(AccountTokenService.class);
         when(tokenService.issue(any(), any(AccountTokenPurpose.class), any(Instant.class)))
                 .thenReturn("A".repeat(43));
-        sender = new AccountLinkSender(tokenService, new AccountMailer(gateway, properties), new SyncTaskExecutor());
+        sender = new AccountLinkSender(tokenService, new AccountMailer(new MailDispatcher(gateway, userId -> false), properties), new SyncTaskExecutor());
     }
 
     @AfterEach

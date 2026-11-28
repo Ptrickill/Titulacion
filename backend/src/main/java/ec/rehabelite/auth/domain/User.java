@@ -223,6 +223,18 @@ public class User {
     }
 
     /**
+     * Accepted erasure request of the account's patient (MEJ-06): deactivated, its email replaced by a placeholder
+     * that receives nothing, no pending email change, and its sessions closed. Irreversible.
+     */
+    public void anonymize(String placeholderEmail, Long updatedBy, Instant now) {
+        active = false;
+        email = normalizeEmail(placeholderEmail);
+        pendingEmail = null;
+        sessionVersion++;
+        markUpdated(updatedBy, now);
+    }
+
+    /**
      * Activation through the emailed link (MEJ-01): stores the first password and marks the email as verified.
      * The owner acts without a session, so there is no updating user.
      */

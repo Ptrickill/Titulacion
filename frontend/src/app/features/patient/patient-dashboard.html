@@ -57,6 +57,10 @@
   }
 }
 
+@if (!unlinked() && !loading()) {
+  <app-portal-consents-card class="consents" />
+}
+
 @if (loadError(); as message) {
   <div class="load-error" role="alert">
     <mat-icon aria-hidden="true">error_outline</mat-icon>

@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.jayway.jsonpath.JsonPath;
 import ec.rehabelite.AbstractIntegrationTest;
+import ec.rehabelite.TestClinicalText;
 import ec.rehabelite.TestSessions;
 import ec.rehabelite.TestTreatments;
 import ec.rehabelite.auth.Role;
@@ -131,10 +132,11 @@ class TherapySessionTimeZoneIntegrationTests extends AbstractIntegrationTest {
                                               session_time, session_type, activities_performed,
                                               clinical_observations, pain_score, progress_status, status,
                                               created_by, created_at)
-                VALUES (?, ?, 1, ?::date, '08:00'::time, 'Fisioterapia lumbar mecánica', 'Movilización lumbar',
-                        'Buena tolerancia al ejercicio', 5, 'IMPROVING', 'COMPLETED', ?,
-                        '2026-03-10T23:30:00-05:00'::timestamptz)
-                RETURNING id""", Long.class, treatmentId, physio.getId(), yesterday.toString(), physio.getId());
+                VALUES (?, ?, 1, ?::date, '08:00'::time, 'Fisioterapia lumbar mecánica', ?, ?, 5, 'IMPROVING',
+                        'COMPLETED', ?, '2026-03-10T23:30:00-05:00'::timestamptz)
+                RETURNING id""", Long.class, treatmentId, physio.getId(), yesterday.toString(),
+                TestClinicalText.encrypt("Movilización lumbar"), TestClinicalText.encrypt("Buena tolerancia al ejercicio"),
+                physio.getId());
 
         perform(get("/api/therapy-sessions/{id}", sessionId).accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())

@@ -1,8 +1,10 @@
 package ec.rehabelite.clinicalrecords.domain;
 
+import ec.rehabelite.shared.crypto.EncryptedText;
 import ec.rehabelite.shared.domain.BusinessRuleException;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -75,15 +77,18 @@ public class Treatment {
     @Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)
     private Icd10Diagnosis diagnosis;
 
+    @Convert(converter = EncryptedText.class)
     @Column(name = "chief_complaint", nullable = false)
     private String chiefComplaint;
 
+    @Convert(converter = EncryptedText.class)
     @Column(name = "current_illness", nullable = false)
     private String currentIllness;
 
     @Column(name = "referring_physician", nullable = false, length = 150)
     private String referringPhysician;
 
+    @Convert(converter = EncryptedText.class)
     @Column(name = "complementary_tests", nullable = false)
     private String complementaryTests;
 
@@ -107,6 +112,7 @@ public class Treatment {
     @Column(name = "session_frequency", nullable = false, length = 50)
     private String sessionFrequency;
 
+    @Convert(converter = EncryptedText.class)
     @Column(nullable = false)
     private String goal;
 

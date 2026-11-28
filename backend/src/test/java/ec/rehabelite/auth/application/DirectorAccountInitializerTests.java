@@ -1,5 +1,6 @@
 package ec.rehabelite.auth.application;
 
+import ec.rehabelite.TestClinicalText;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -79,7 +80,10 @@ class DirectorAccountInitializerTests {
                         AppProperties.MailTransport.SMTP, new AppProperties.Brevo(null, "https://api.brevo.com",
                                 Duration.ofSeconds(5), Duration.ofSeconds(10))),
                 new AppProperties.Tokens(Duration.ofHours(48), Duration.ofHours(1)),
-                new AppProperties.Clinic(LocalTime.of(7, 0), LocalTime.of(20, 0)));
+                new AppProperties.Clinic(LocalTime.of(7, 0), LocalTime.of(20, 0)),
+                new AppProperties.ClinicalData(TestClinicalText.KEY, ""),
+                new AppProperties.Session(Duration.ofMinutes(15), Duration.ofMinutes(2)),
+                new AppProperties.Compliance(15));
         return new DirectorAccountInitializer(users, encoder, properties, events,
                 Clock.fixed(Instant.parse("2026-11-25T15:00:00Z"), ZoneOffset.UTC));
     }

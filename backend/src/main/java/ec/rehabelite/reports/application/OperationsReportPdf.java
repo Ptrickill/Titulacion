@@ -1,10 +1,11 @@
 package ec.rehabelite.reports.application;
 
-import ec.rehabelite.reports.application.PdfLayout.Column;
 import ec.rehabelite.reports.application.ReportService.ReportFilter;
 import ec.rehabelite.reports.application.ReportService.ReportTreatment;
 import ec.rehabelite.reports.domain.OperationsSummary;
 import ec.rehabelite.reports.domain.OperationsSummary.PhysiotherapistSessions;
+import ec.rehabelite.shared.pdf.PdfLayout;
+import ec.rehabelite.shared.pdf.PdfLayout.Column;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;

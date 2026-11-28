@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { SessionStatus } from '../../shared/clinical/session-labels';
+import { ConsentType, PatientConsentView } from '../../shared/legal/legal-api';
 import { TreatmentStatus } from '../../shared/clinical/treatment-labels';
 
 /** A treatment of the authenticated patient (GET /api/portal/treatments, HU-12). */
@@ -84,6 +85,21 @@ export interface PortalInstruction {
 @Injectable({ providedIn: 'root' })
 export class PortalApi {
   private readonly http = inject(HttpClient);
+
+  /** MEJ-06: the patient's own consents, DATA_PROCESSING first. */
+  consents(): Observable<PatientConsentView[]> {
+    return this.http.get<PatientConsentView[]>('/api/portal/consents');
+  }
+
+  /** MEJ-06: the patient accepts the text in force of a consent. */
+  acceptConsent(type: ConsentType, version: string): Observable<PatientConsentView[]> {
+    return this.http.post<PatientConsentView[]>('/api/portal/consents', { type, version });
+  }
+
+  /** MEJ-06: only EMAIL_COMMUNICATIONS; the consent to process the data is revoked at the reception. */
+  revokeConsent(type: ConsentType): Observable<PatientConsentView[]> {
+    return this.http.post<PatientConsentView[]>(`/api/portal/consents/${type}/revocation`, null);
+  }
 
   /** The active treatment first, then the others from the most recent to the oldest. */
   treatments(): Observable<PortalTreatment[]> {

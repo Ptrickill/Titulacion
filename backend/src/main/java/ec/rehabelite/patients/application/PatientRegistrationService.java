@@ -33,15 +33,18 @@ public class PatientRegistrationService {
     private final PatientIdentityRules identityRules;
     private final CurrentUserProvider currentUserProvider;
     private final AuditLogService auditLogService;
+    private final ConsentService consentService;
     private final Clock clock;
 
     /**
      * Registers the patient with the national ID as medical record number and audits it as CREATE. Without an
-     * admission date, today's date in the clinic is used.
+     * admission date, today's date in the clinic is used. MEJ-06: the signed consents are recorded with it (CREATE
+     * PatientConsent each); registering is already processing the data, so DATA_PROCESSING is required.
      *
      * @throws ConflictException if a patient or a staff member has the national ID, or the email belongs to a staff
      *         member or a staff account (MEJ-02, see {@link PatientIdentityRules})
-     * @throws ec.rehabelite.shared.domain.BusinessRuleException if the birth date is after the admission date
+     * @throws ec.rehabelite.shared.domain.BusinessRuleException if the birth date is after the admission date, or a
+     *         consent version is not the one in force
      */
     @Transactional
     public Patient register(RegisterPatientCommand command) {
@@ -55,6 +58,8 @@ public class PatientRegistrationService {
         Patient patient = patientRepository.save(Patient.register(command.nationalId(), admissionDate,
                 command.personalData(), createdBy, clock.instant()));
         auditLogService.record(AuditAction.CREATE, AUDITED_ENTITY, patient.getId());
+        consentService.grantAtRegistration(patient, command.dataProcessingConsentVersion(),
+                command.emailCommunicationsConsentVersion());
         log.info("Patient registered patientId={} createdBy={}", patient.getId(), createdBy);
         return patient;
     }

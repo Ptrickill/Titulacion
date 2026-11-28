@@ -44,8 +44,10 @@ class PatientRegistrationServiceTests {
     private final CurrentUserProvider currentUserProvider = mock(CurrentUserProvider.class);
     private final AuditLogService auditLogService = mock(AuditLogService.class);
 
+    private final ConsentService consentService = mock(ConsentService.class);
+
     private final PatientRegistrationService service = new PatientRegistrationService(patientRepository,
-            identityRules, currentUserProvider, auditLogService, Clock.fixed(NOW, ZoneOffset.UTC));
+            identityRules, currentUserProvider, auditLogService, consentService, Clock.fixed(NOW, ZoneOffset.UTC));
 
     @BeforeEach
     void setUp() {
@@ -110,7 +112,7 @@ class PatientRegistrationServiceTests {
     }
 
     private static RegisterPatientCommand command(String nationalId, LocalDate admissionDate) {
-        return new RegisterPatientCommand(nationalId, admissionDate, personalData());
+        return new RegisterPatientCommand(nationalId, admissionDate, personalData(), "0.1-borrador", null);
     }
 
     private static PersonalData personalData() {

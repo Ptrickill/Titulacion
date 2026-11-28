@@ -21,6 +21,7 @@ import {
   PortalTreatment,
   TreatmentProgress,
 } from './portal-api';
+import { PortalConsentsCard } from './portal-consents-card';
 import { PortalSessionList } from './portal-session-list';
 import { TherapistInstructionCard } from './therapist-instruction-card';
 import { TreatmentProgressCard } from './treatment-progress-card';
@@ -58,6 +59,7 @@ const WELCOME =
     PainEvolutionCard,
     TherapistInstructionCard,
     PortalSessionList,
+    PortalConsentsCard,
   ],
   templateUrl: './patient-dashboard.html',
   styleUrl: './patient-dashboard.scss',

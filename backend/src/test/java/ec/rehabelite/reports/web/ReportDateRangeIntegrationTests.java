@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import ec.rehabelite.AbstractIntegrationTest;
+import ec.rehabelite.TestClinicalText;
 import ec.rehabelite.TestSessions;
 import ec.rehabelite.TestTreatments;
 import ec.rehabelite.auth.Role;
@@ -164,8 +165,8 @@ class ReportDateRangeIntegrationTests extends AbstractIntegrationTest {
         jdbc.update("""
                 INSERT INTO treatment_status_changes (treatment_id, user_id, previous_status, new_status, reason,
                                                       changed_at)
-                VALUES (?, ?, 'ACTIVE', ?, 'Cierre de prueba', ?)""", treatmentId, userId, newStatus,
-                Timestamp.from(Instant.parse(instant)));
+                VALUES (?, ?, 'ACTIVE', ?, ?, ?)""", treatmentId, userId, newStatus,
+                TestClinicalText.encrypt("Cierre de prueba"), Timestamp.from(Instant.parse(instant)));
     }
 
     private ResultActions summary(Long physiotherapistId, LocalDate from, LocalDate to, String... status)

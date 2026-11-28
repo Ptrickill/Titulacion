@@ -23,6 +23,12 @@ export const DIRECTOR_ROUTES: Routes = [
     title: 'Horarios y asignaciones | Rehab Elite',
     loadComponent: () => import('./schedules/schedules-page').then((m) => m.SchedulesPage),
   },
+  // MEJ-06: the erasure requests of the data subjects, which only the operations director accepts
+  {
+    path: 'data-requests',
+    title: 'Solicitudes de eliminación | Rehab Elite',
+    loadComponent: () => import('./data-requests/erasure-requests').then((m) => m.ErasureRequests),
+  },
   {
     path: 'audit',
     title: 'Auditoría | Rehab Elite',

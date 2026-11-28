@@ -3,6 +3,7 @@ package ec.rehabelite.auth.web;
 import ec.rehabelite.auth.application.AccountAccessService;
 import ec.rehabelite.auth.application.AuthService;
 import ec.rehabelite.auth.application.InvalidCredentialsException;
+import ec.rehabelite.shared.config.AppProperties;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -33,6 +34,7 @@ class AuthController {
 
     private final AuthService authService;
     private final AccountAccessService accountAccessService;
+    private final AppProperties properties;
 
     @PostMapping(path = "/login", consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
@@ -57,7 +59,8 @@ class AuthController {
                               "instance": "/api/auth/login"
                             }""")))
     LoginResponse login(@Valid @RequestBody LoginRequest request) {
-        return LoginResponse.from(authService.login(request.email(), request.password()));
+        return LoginResponse.from(authService.login(request.email(), request.password()),
+                properties.session().idleTimeout(), properties.session().idleWarning());
     }
 
     @PostMapping(path = "/activate", consumes = MediaType.APPLICATION_JSON_VALUE)

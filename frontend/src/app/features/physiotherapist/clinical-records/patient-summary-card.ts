@@ -18,7 +18,8 @@ export type SummaryCardPatient = Pick<
   | 'phone'
 > &
   Partial<{
-    email: string;
+    /** Null after an accepted erasure request (MEJ-06). */
+    email: string | null;
     /** The composed address (clinical record view) or the address of GET /api/patients/{id} (MEJ-03). */
     address: string | Pick<PatientAddress, 'formatted'>;
     hasHealthInsurance: boolean;

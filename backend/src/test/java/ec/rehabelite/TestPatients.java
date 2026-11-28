@@ -1,20 +1,36 @@
 package ec.rehabelite;
 
+import ec.rehabelite.patients.ConsentType;
+import ec.rehabelite.patients.application.LegalTextCatalog;
 import java.util.concurrent.ThreadLocalRandom;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * Synthetic patients for integration tests, inserted with SQL (faster than POST /api/patients and without an
  * audit entry). As in HU-05, the medical record number is the national ID; national IDs are random but carry a
- * valid Ecuadorian check digit (modulo 10).
+ * valid Ecuadorian check digit (modulo 10). MEJ-06: they get a valid DATA_PROCESSING consent, so they may receive
+ * care, unless they are inserted with {@link #insertWithoutConsent}.
  */
 public final class TestPatients {
+
+    private static final LegalTextCatalog LEGAL_TEXTS = new LegalTextCatalog();
+    /** Version in force of the consent texts, for the bodies of POST /api/patients and the consents. */
+    public static final String DATA_PROCESSING_VERSION = LEGAL_TEXTS.currentVersion(ConsentType.DATA_PROCESSING);
+    public static final String EMAIL_COMMUNICATIONS_VERSION =
+            LEGAL_TEXTS.currentVersion(ConsentType.EMAIL_COMMUNICATIONS);
 
     private TestPatients() {
     }
 
-    /** Inserts a patient and returns its id. */
+    /** Inserts a patient with a valid DATA_PROCESSING consent and returns its id. */
     public static Long insert(JdbcTemplate jdbc, String firstName, String lastName) {
+        Long patientId = insertWithoutConsent(jdbc, firstName, lastName);
+        grantConsent(jdbc, patientId, "DATA_PROCESSING");
+        return patientId;
+    }
+
+    /** Inserts a patient without consents ("Consentimiento pendiente", MEJ-06) and returns its id. */
+    public static Long insertWithoutConsent(JdbcTemplate jdbc, String firstName, String lastName) {
         String nationalId = randomNationalId();
         return jdbc.queryForObject("""
                 INSERT INTO patients (national_id, medical_record_number, first_name, last_name, birth_date, sex,
@@ -25,6 +41,14 @@ public final class TestPatients {
                         '17', '1701', '170156', 'Calle de prueba', 'Calle secundaria de prueba', 'Referencia de prueba',
                         'Ocupación de prueba', 'Superior', false)
                 RETURNING id""", Long.class, nationalId, nationalId, firstName, lastName);
+    }
+
+    /** A signed consent of the type in force (DATA_PROCESSING or EMAIL_COMMUNICATIONS), with SQL. */
+    public static void grantConsent(JdbcTemplate jdbc, Long patientId, String type) {
+        jdbc.update("""
+                INSERT INTO patient_consents (patient_id, consent_type, text_version, channel)
+                VALUES (?, ?, ?, 'PHYSICAL_SIGNATURE')""", patientId, type,
+                LEGAL_TEXTS.currentVersion(ConsentType.valueOf(type)));
     }
 
     public static String nationalIdOf(JdbcTemplate jdbc, Long patientId) {

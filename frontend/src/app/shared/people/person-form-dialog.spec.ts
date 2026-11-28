@@ -8,6 +8,7 @@ import { FAKE_LOCATIONS, fakePatient, legacyAddress } from './patient-testing';
 import { PersonMatch } from './people-api';
 import { fakeAccount, fakeMatch, fakeStaff, legacyStaff } from './people-testing';
 import { PersonFormDialog } from './person-form-dialog';
+import { FAKE_VERSION, flushConsentTexts } from '../legal/legal-testing';
 
 describe('PersonFormDialog (MEJ-03, MEJ-02, MEJ-05)', () => {
   let fixture: ComponentFixture<PersonFormDialog>;
@@ -47,6 +48,18 @@ describe('PersonFormDialog (MEJ-03, MEJ-02, MEJ-05)', () => {
     element = fixture.nativeElement as HTMLElement;
     await fixture.whenStable();
     backend.expectOne('/api/catalogs/locations').flush(FAKE_LOCATIONS);
+    // MEJ-06: the consent texts of the review step
+    flushConsentTexts(backend);
+    await fixture.whenStable();
+  }
+
+  /** MEJ-06: checks the consent to process the data (and the email communications when asked). */
+  async function signConsents(email = false): Promise<void> {
+    const checks = element.querySelectorAll<HTMLInputElement>('.consent-check input');
+    checks[0].click();
+    if (email) {
+      checks[1].click();
+    }
     await fixture.whenStable();
   }
 
@@ -320,6 +333,7 @@ describe('PersonFormDialog (MEJ-03, MEJ-02, MEJ-05)', () => {
       expect(review).toMatch(/Seguro de salud\s*No/);
       expect(stepContent().querySelectorAll('button.edit')).toHaveLength(3);
 
+      await signConsents();
       button('button.submit').click();
       await fixture.whenStable();
       const request = backend.expectOne('/api/patients');
@@ -330,6 +344,8 @@ describe('PersonFormDialog (MEJ-03, MEJ-02, MEJ-05)', () => {
           firstName: 'Juan Carlos',
           lastName: 'Pérez de la Torre',
           hasHealthInsurance: false,
+          dataProcessingConsentVersion: FAKE_VERSION,
+          emailCommunicationsConsentVersion: null,
         }),
       );
       const created = fakePatient(7);
@@ -344,6 +360,7 @@ describe('PersonFormDialog (MEJ-03, MEJ-02, MEJ-05)', () => {
       fillAdmission();
       await next();
 
+      await signConsents();
       button('button.submit').click();
       await fixture.whenStable();
       backend.expectOne('/api/patients').flush(
@@ -362,6 +379,38 @@ describe('PersonFormDialog (MEJ-03, MEJ-02, MEJ-05)', () => {
         'Su registro lo administra la dirección operativa.',
       );
       expect(element.querySelector('.duplicate a')).toBeNull();
+    });
+
+    it('shows the consent texts in force and does not register without the consent to process the data (MEJ-06)', async () => {
+      await passIdentification();
+      await fillPersonal();
+      await next();
+      fillAdmission();
+      await next();
+
+      const review = stepContent().textContent ?? '';
+      expect(review).toContain('Consentimientos');
+      expect(review).toContain('Consentimiento para el tratamiento de datos personales y de salud');
+      expect(review).toContain(`versión ${FAKE_VERSION}`);
+
+      button('button.submit').click();
+      await fixture.whenStable();
+      backend.expectNone('/api/patients');
+      expect(stepContent().textContent).toContain(
+        'Sin este consentimiento no se puede registrar al paciente.',
+      );
+
+      await signConsents(true);
+      button('button.submit').click();
+      await fixture.whenStable();
+      const request = backend.expectOne('/api/patients');
+      expect(request.request.body).toEqual(
+        expect.objectContaining({
+          dataProcessingConsentVersion: FAKE_VERSION,
+          emailCommunicationsConsentVersion: FAKE_VERSION,
+        }),
+      );
+      request.flush(fakePatient(8));
     });
   });
 

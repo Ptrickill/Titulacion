@@ -15,6 +15,8 @@ export function fakeLoginResponse(
     tokenType: 'Bearer',
     expiresAt: new Date(Date.now() + 30 * 60_000).toISOString(),
     user,
+    idleTimeoutSeconds: 900,
+    idleWarningSeconds: 120,
   };
 }
 

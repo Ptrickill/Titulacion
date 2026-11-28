@@ -4,9 +4,11 @@ import ec.rehabelite.audit.AuditAction;
 import ec.rehabelite.audit.AuditLogService;
 import ec.rehabelite.auth.AccountProvisioning;
 import ec.rehabelite.auth.CurrentUserProvider;
+import ec.rehabelite.patients.PatientConsents;
 import ec.rehabelite.patients.domain.Patient;
 import ec.rehabelite.patients.domain.PatientRepository;
 import ec.rehabelite.patients.domain.PersonalData;
+import ec.rehabelite.shared.domain.BusinessRuleException;
 import ec.rehabelite.shared.domain.ResourceNotFoundException;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -51,8 +53,9 @@ public class PatientManagementService {
      * @throws ResourceNotFoundException if the patient does not exist
      * @throws ec.rehabelite.shared.domain.ConflictException if the new email belongs to a staff member or to another
      *         account (see {@link PatientIdentityRules})
-     * @throws ec.rehabelite.shared.domain.BusinessRuleException if the birth date is after the admission date, or the
-     *         email changes while the portal account is deactivated
+     * @throws ec.rehabelite.shared.domain.BusinessRuleException if the birth date is after the admission date, the
+     *         email changes while the portal account is deactivated, or the patient is blocked by an erasure request
+     *         (MEJ-06)
      * @throws ec.rehabelite.shared.domain.ExternalServiceException if the link to the new email cannot be sent;
      *         nothing changes then
      */
@@ -60,6 +63,9 @@ public class PatientManagementService {
     public Patient update(Long patientId, LocalDate admissionDate, PersonalData data) {
         Patient patient = patientRepository.findById(patientId)
                 .orElseThrow(() -> new ResourceNotFoundException(PatientRegistrationService.PATIENT_NOT_FOUND));
+        if (patient.isBlocked()) {
+            throw new BusinessRuleException(PatientConsents.PATIENT_BLOCKED);
+        }
         boolean emailChanged = !data.email().equals(patient.getEmail());
         if (emailChanged) {
             identityRules.checkEmail(data.email(), patient.getPortalUserId());

@@ -16,6 +16,8 @@
 -- No audit entries: this is bootstrap data, not an action of a user.
 -- MEJ-04 adds the physiotherapists' schedules and a few synthetic clinical
 -- records and treatments, so each physiotherapist has a different load.
+-- MEJ-06: the clinical text goes in plain text; DevSeedClinicalTextInitializer
+-- encrypts it at startup. The consents of the patients are at the end.
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
@@ -241,3 +243,32 @@ FROM treatments t
 WHERE p.national_id = '0150000081'
   AND t.status = 'COMPLETED'
   AND NOT EXISTS (SELECT 1 FROM treatment_status_changes other WHERE other.treatment_id = t.id);
+
+-- ---------------------------------------------------------------------
+-- Consents (MEJ-06): every patient signed the consent to process its data at the reception except Elena Proaño
+-- (3050000151), who stays "Consentimiento pendiente"; the portal patients Ortiz and Quishpe and two more also accept
+-- email communications. Version 0.1-borrador is the draft text of resources/legal. A type
+-- the patient already has, revoked or not, is never inserted again.
+-- ---------------------------------------------------------------------
+INSERT INTO patient_consents (patient_id, consent_type, text_version, channel, granted_by, granted_at)
+SELECT p.id, c.consent_type, '0.1-borrador', 'PHYSICAL_SIGNATURE', u.id,
+       (p.admission_date + TIME '09:00') AT TIME ZONE 'America/Guayaquil'
+FROM patients p
+         JOIN (VALUES ('1750000018', 'DATA_PROCESSING'), ('1750000018', 'EMAIL_COMMUNICATIONS'),
+                      ('1750000026', 'DATA_PROCESSING'), ('1750000026', 'EMAIL_COMMUNICATIONS'),
+                      ('1750000034', 'DATA_PROCESSING'),
+                      ('1750000042', 'DATA_PROCESSING'),
+                      ('1750000059', 'DATA_PROCESSING'), ('1750000059', 'EMAIL_COMMUNICATIONS'),
+                      ('0950000067', 'DATA_PROCESSING'),
+                      ('0950000075', 'DATA_PROCESSING'),
+                      ('0150000081', 'DATA_PROCESSING'), ('0150000081', 'EMAIL_COMMUNICATIONS'),
+                      ('1350000095', 'DATA_PROCESSING'),
+                      ('1850000108', 'DATA_PROCESSING'),
+                      ('1050000114', 'DATA_PROCESSING'),
+                      ('0650000128', 'DATA_PROCESSING'),
+                      ('1150000139', 'DATA_PROCESSING'),
+                      ('2350000143', 'DATA_PROCESSING'))
+             AS c (national_id, consent_type) ON c.national_id = p.national_id
+         JOIN users u ON u.email = 'recepcion@dev-seed.rehabelite.test'
+WHERE NOT EXISTS (SELECT 1 FROM patient_consents other
+                  WHERE other.patient_id = p.id AND other.consent_type = c.consent_type);

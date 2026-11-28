@@ -4,7 +4,9 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSelectHarness } from '@angular/material/select/testing';
+import { provideRouter } from '@angular/router';
 import { logInForTest } from '../../core/auth/auth-testing';
+import { fakeConsents, flushConsentTexts } from '../../shared/legal/legal-testing';
 import { PatientDashboard } from './patient-dashboard';
 import { PortalInstruction, PortalSession, PortalTreatment, TreatmentProgress } from './portal-api';
 import {
@@ -52,8 +54,17 @@ describe('PatientDashboard', () => {
 
   async function settle(): Promise<void> {
     fixture.detectChanges();
+    // MEJ-06: "Mis consentimientos" asks for the consents and their texts once the portal loaded; a pending resource
+    // would keep the fixture from being stable
+    TestBed.tick();
+    answerConsents();
     await fixture.whenStable();
     fixture.detectChanges();
+  }
+
+  function answerConsents(): void {
+    backend.match('/api/portal/consents').forEach((request) => request.flush(fakeConsents()));
+    flushConsentTexts(backend);
   }
 
   /** Opens the portal; the list of treatments stays pending. */
@@ -86,12 +97,15 @@ describe('PatientDashboard', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
     });
     backend = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => backend.verify());
+  afterEach(() => {
+    answerConsents();
+    backend.verify();
+  });
 
   it('greets the patient and shows the diagnosis and who is in charge of the treatment', async () => {
     await open();
@@ -280,18 +294,25 @@ describe('PatientDashboard', () => {
     expect(progressCard()).not.toBeNull();
   });
 
-  it('offers no way to edit: no links nor form fields, and no buttons besides the pager', async () => {
+  it('offers no way to edit the treatment: no links nor form fields, and no buttons besides the pager', async () => {
     await open();
     await answerTreatments([ACTIVE, FINISHED]);
     await answerProgress(30, fakeProgress(), [fakeSession()], fakeInstruction());
 
-    expect(element.querySelectorAll('a, input, textarea')).toHaveLength(0);
-    const buttons = Array.from(element.querySelectorAll('button'));
-    expect(buttons.map((button) => button.getAttribute('aria-label'))).toEqual([
+    // MEJ-06: the only changes the portal allows are the patient's own consents, in their card
+    const outsideConsents = (selector: string) =>
+      Array.from(element.querySelectorAll(selector)).filter(
+        (node) => !node.closest('app-portal-consents-card'),
+      );
+    expect(outsideConsents('a, input, textarea')).toHaveLength(0);
+    expect(outsideConsents('button').map((button) => button.getAttribute('aria-label'))).toEqual([
       'Página anterior',
       'Página siguiente',
     ]);
     expect(element.textContent).not.toMatch(/Editar|Corregir|Registrar|Eliminar|Guardar/);
+    expect(element.querySelector('app-portal-consents-card a')?.getAttribute('href')).toBe(
+      '/privacy-notice',
+    );
   });
 
   // ----- HU-13: instructions and sessions -----

@@ -1,15 +1,25 @@
 package ec.rehabelite.patients.domain;
 
+import jakarta.persistence.LockModeType;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface PatientRepository extends JpaRepository<Patient, Long>, PatientSearch {
 
     Optional<Patient> findByNationalId(String nationalId);
+
+    /**
+     * Locks the patient row until the transaction ends (MEJ-06): consents, requests and the erasure of a patient go
+     * one after another.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM Patient p WHERE p.id = :id")
+    Optional<Patient> findForUpdate(@Param("id") Long id);
 
     /** The patient of a portal account; at most one (uq_patients_portal_user_id). */
     Optional<Patient> findByPortalUserId(Long portalUserId);

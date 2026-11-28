@@ -80,6 +80,17 @@ class RoleAccessIntegrationTests extends AbstractIntegrationTest {
             new Area("/api/operations/treatments", "operations", null, OPERATIONS_DIRECTOR),
             new Area("/api/patients/12/portal-account", "patients", 12L, ADMINISTRATOR),
             new Area("/api/patients/12/clinical-record", "patients", 12L, PHYSIOTHERAPIST),
+            // MEJ-06: consents, requests and the export of the personal data are the reception's; the export of the
+            // clinical record is the physiotherapist's; only the director accepts an erasure; the patient sees its own
+            // consents in the portal
+            new Area("/api/patients/12/consents", "patients", 12L, ADMINISTRATOR),
+            new Area("/api/patients/12/data-requests", "patients", 12L, ADMINISTRATOR),
+            new Area("/api/patients/12/data-export.json", "patients", 12L, ADMINISTRATOR),
+            new Area("/api/patients/12/data-export.pdf", "patients", 12L, ADMINISTRATOR),
+            new Area("/api/patients/12/clinical-record/export.json", "patients", 12L, PHYSIOTHERAPIST),
+            new Area("/api/patients/12/clinical-record/export.pdf", "patients", 12L, PHYSIOTHERAPIST),
+            new Area("/api/data-requests/erasures", "data-requests", null, OPERATIONS_DIRECTOR),
+            new Area("/api/portal/consents", "portal", null, PATIENT),
             new Area("/api/icd10-diagnoses", "icd10-diagnoses", null, PHYSIOTHERAPIST),
             new Area("/api/physio/patients", "physio", null, PHYSIOTHERAPIST),
             new Area("/api/patients/12", "patients", 12L, ADMINISTRATOR, PHYSIOTHERAPIST),
@@ -340,6 +351,23 @@ class RoleAccessIntegrationTests extends AbstractIntegrationTest {
         mockMvc.perform(post("/api/auth/forgot-password").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"nadie-" + UUID.randomUUID() + "@rehabelite.test\"}"))
                 .andExpect(status().isAccepted());
+    }
+
+    /** MEJ-06: the privacy notice is public (linked from the login page); the consent texts need a session. */
+    @Test
+    void thePrivacyNoticeIsPublicAndTheConsentTextsNeedASession() throws Exception {
+        mockMvc.perform(get("/api/legal/privacy-notice"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("Aviso de privacidad"))
+                .andExpect(jsonPath("$.version").isNotEmpty());
+        mockMvc.perform(get("/api/legal/consents")).andExpect(status().isUnauthorized());
+        for (Role role : Role.values()) {
+            String token = tokenService.issue(createUser(role), Instant.now()).token();
+            mockMvc.perform(get("/api/legal/consents").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].key").value("consent-data-processing"))
+                    .andExpect(jsonPath("$[1].key").value("consent-email-communications"));
+        }
     }
 
     /** MEJ-05: the reception and the director resend invitations (each to its own accounts); nobody else does. */

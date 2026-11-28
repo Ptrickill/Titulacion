@@ -3,9 +3,13 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { problemDetailMessage } from '../../../core/http/problem-detail';
+import { FileDownload } from '../../../core/http/file-download';
+import { blobProblemDetailMessage, problemDetailMessage } from '../../../core/http/problem-detail';
+import { todayIsoDate } from '../../../shared/people/patient-age';
 import { EmptyState } from '../../../shared/ui/empty-state';
 import { PageHeader } from '../../../shared/ui/page-header';
 import { StatusBadge } from '../../../shared/ui/status-badge';
@@ -29,7 +33,8 @@ const WITHOUT_RECORD = 'El paciente no tiene historial clínico.';
  * before a session. One request brings the patient, the habits and medical history, the active treatment with its
  * current responsible and the previous treatments; the server audits every read. "Editar historial" opens the form of
  * HU-07 in edit mode. "Ver sesiones" opens the sessions of the active treatment, or of the most recent one when none
- * is active (HU-10); "Registrar sesión" opens the session form of the active treatment.
+ * is active (HU-10); "Registrar sesión" opens the session form of the active treatment. MEJ-06: "Exportar historia
+ * clínica" downloads the whole record (PDF or JSON) to hand to the data subject.
  */
 @Component({
   selector: 'app-clinical-record-view',
@@ -38,6 +43,7 @@ const WITHOUT_RECORD = 'El paciente no tiene historial clínico.';
     RouterLink,
     MatButtonModule,
     MatIconModule,
+    MatMenuModule,
     MatProgressBarModule,
     PageHeader,
     EmptyState,
@@ -49,6 +55,11 @@ const WITHOUT_RECORD = 'El paciente no tiene historial clínico.';
 })
 export class ClinicalRecordView {
   protected readonly patientId = Number(inject(ActivatedRoute).snapshot.paramMap.get('patientId'));
+  private readonly api = inject(ClinicalRecordApi);
+  private readonly fileDownload = inject(FileDownload);
+  private readonly snackBar = inject(MatSnackBar);
+  /** The export of the record is being downloaded (MEJ-06). */
+  protected readonly exporting = signal(false);
 
   protected readonly historyFields = CLINICAL_HISTORY_FIELDS;
   protected readonly severityLabels = SEVERITY_LABELS;
@@ -70,12 +81,10 @@ export class ClinicalRecordView {
   protected readonly timelineLink = computed(() => this.treatmentLink('timeline'));
 
   constructor() {
-    inject(ClinicalRecordApi)
-      .findRecord(this.patientId)
-      .subscribe({
-        next: (record) => this.record.set(record),
-        error: (error: unknown) => this.loadError.set(this.errorFor(error)),
-      });
+    this.api.findRecord(this.patientId).subscribe({
+      next: (record) => this.record.set(record),
+      error: (error: unknown) => this.loadError.set(this.errorFor(error)),
+    });
   }
 
   private treatmentLink(page: 'sessions' | 'timeline'): (string | number)[] | null {
@@ -91,5 +100,30 @@ export class ClinicalRecordView {
       return { message, withoutRecord: message === WITHOUT_RECORD };
     }
     return { message: 'Revise su conexión e intente nuevamente.', withoutRecord: false };
+  }
+
+  /** "Exportar historia clínica" (MEJ-06): the file for the data subject, audited as EXPORT by the API. */
+  protected exportRecord(format: 'pdf' | 'json'): void {
+    if (this.exporting()) {
+      return;
+    }
+    this.exporting.set(true);
+    this.api.exportRecord(this.patientId, format).subscribe({
+      next: (file) => {
+        this.exporting.set(false);
+        this.fileDownload.save(
+          file,
+          `historia-clinica-${this.patientId}-${todayIsoDate()}.${format}`,
+        );
+      },
+      error: (error: unknown) =>
+        void blobProblemDetailMessage(
+          error,
+          'No se pudo exportar la historia clínica. Intente nuevamente.',
+        ).then((message) => {
+          this.exporting.set(false);
+          this.snackBar.open(message, 'Cerrar', { duration: 6000 });
+        }),
+    });
   }
 }

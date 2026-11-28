@@ -28,7 +28,17 @@ export interface RegisterPatientRequest {
   hasHealthInsurance: boolean;
   ethnicSelfIdentification: string | null;
   religion: string | null;
+  /** MEJ-06: version in force of the consent to process the data, signed by the patient (required). */
+  dataProcessingConsentVersion: string;
+  /** MEJ-06: version of the consent to email communications, or null when the patient did not sign it. */
+  emailCommunicationsConsentVersion: string | null;
 }
+
+/** The personal data of the form, without the consents (which only go with the registration). */
+type PersonalDataRequest = Omit<
+  RegisterPatientRequest,
+  'dataProcessingConsentVersion' | 'emailCommunicationsConsentVersion'
+>;
 
 /** Address of a patient as the API returns it, with the place names and the composed text (MEJ-03). */
 export interface PatientAddress {
@@ -49,8 +59,11 @@ export interface PatientAddress {
 }
 
 /** Patient as returned by the API; never includes clinical data. */
-export interface Patient extends Omit<RegisterPatientRequest, 'address'> {
+export interface Patient extends Omit<PersonalDataRequest, 'address' | 'phone' | 'email'> {
   id: number;
+  /** Null only after an accepted erasure request (MEJ-06). */
+  phone: string | null;
+  email: string | null;
   address: PatientAddress;
   /** "Datos por completar": incomplete address or phone outside the rule (MEJ-03). */
   needsCompletion: boolean;
@@ -63,10 +76,15 @@ export interface Patient extends Omit<RegisterPatientRequest, 'address'> {
   createdAt: string;
   /** Last update of the data (HU-06), or null if it was never updated. */
   updatedAt: string | null;
+  /** MEJ-06: "Consentimiento pendiente": no valid consent to process the data, so no new care nor portal. */
+  consentPending: boolean;
+  /** MEJ-06: blocked by an accepted erasure request: nobody edits it and its contact data was cleared. */
+  blocked: boolean;
+  blockedAt: string | null;
 }
 
 /** Body of PUT /api/patients/{id}: the national ID and the medical record number never change. */
-export type UpdatePatientRequest = Omit<RegisterPatientRequest, 'nationalId'>;
+export type UpdatePatientRequest = Omit<PersonalDataRequest, 'nationalId'>;
 
 /** Search result row (GET /api/patients): identification and contact data only. */
 export interface PatientSummary {

@@ -112,6 +112,26 @@ describe('PatientRegistry (MEJ-05: the reception registers patients only)', () =
     ).toEqual(['/admin/patients/20', '/admin/patients/21', '/admin/patients/22']);
   });
 
+  it('marks a patient blocked by an erasure instead of "Datos por completar" (MEJ-06)', async () => {
+    listRequest().flush(
+      fakePeoplePage([
+        fakePerson(41, {
+          firstName: 'Elena',
+          lastName: 'Proaño',
+          email: null,
+          phone: null,
+          needsCompletion: false,
+          blocked: true,
+        }),
+      ]),
+    );
+    await fixture.whenStable();
+
+    expect(cellTexts(1)[0]).toContain('Datos bloqueados');
+    expect(cellTexts(1)[0]).not.toContain('Datos por completar');
+    expect(cellTexts(2)[0]).toContain('—');
+  });
+
   it('shows the four indicators of the patients and their portal access', () => {
     listRequest().flush(fakePeoplePage([]));
     const cards = Array.from(element.querySelectorAll('app-stat-card')).map(

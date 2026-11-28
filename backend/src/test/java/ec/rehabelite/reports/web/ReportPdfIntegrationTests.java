@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.jayway.jsonpath.JsonPath;
 import ec.rehabelite.AbstractIntegrationTest;
+import ec.rehabelite.TestClinicalText;
 import ec.rehabelite.TestPatients;
 import ec.rehabelite.TestSessions;
 import ec.rehabelite.TestTreatments;
@@ -294,8 +295,8 @@ class ReportPdfIntegrationTests extends AbstractIntegrationTest {
         jdbc.update("""
                 INSERT INTO treatment_status_changes (treatment_id, user_id, previous_status, new_status, reason,
                                                       changed_at)
-                VALUES (?, ?, 'ACTIVE', ?, 'Cierre de prueba', ?)""", treatmentId, userId, newStatus,
-                Timestamp.from(Instant.parse(instant)));
+                VALUES (?, ?, 'ACTIVE', ?, ?, ?)""", treatmentId, userId, newStatus,
+                TestClinicalText.encrypt("Cierre de prueba"), Timestamp.from(Instant.parse(instant)));
     }
 
     private void session(Long treatmentId, Long responsibleId, int sequence, String date, String status) {

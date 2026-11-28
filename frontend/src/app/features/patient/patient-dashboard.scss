@@ -57,3 +57,9 @@ mat-progress-bar {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+// MEJ-06: "Mis consentimientos", under the treatment
+.consents {
+  display: block;
+  margin-top: 20px;
+}

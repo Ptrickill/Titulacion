@@ -24,16 +24,26 @@ export interface LoginResponse {
   /** ISO-8601 instant (UTC). */
   expiresAt: string;
   user: AuthUser;
+  /** MEJ-06: the session closes after this many seconds without activity (app.session.idle-timeout). */
+  idleTimeoutSeconds: number;
+  /** MEJ-06: seconds before that close in which the user is warned (app.session.idle-warning). */
+  idleWarningSeconds: number;
 }
 
 export interface UserSession {
   token: string;
   expiresAt: string;
   user: AuthUser;
+  /** Missing in a session stored before MEJ-06: the defaults apply. */
+  idleTimeoutSeconds?: number;
+  idleWarningSeconds?: number;
 }
 
 export const LOGIN_URL = '/api/auth/login';
 export const SESSION_STORAGE_KEY = 'rehab-elite.session';
+/** MEJ-06: the defaults of the backend (15 minutes, warning 2 minutes before). */
+export const DEFAULT_IDLE_TIMEOUT_SECONDS = 900;
+export const DEFAULT_IDLE_WARNING_SECONDS = 120;
 
 /** setTimeout cannot wait longer than this (about 24.8 days). */
 const MAX_TIMEOUT_MS = 2_147_483_647;
@@ -54,6 +64,15 @@ export class AuthService {
   readonly user = computed(() => this.state()?.user ?? null);
   readonly role = computed(() => this.state()?.user.role ?? null);
   readonly token = computed(() => this.state()?.token ?? null);
+  /** MEJ-06: inactivity limit and warning of the current session, in milliseconds. */
+  readonly idleTimeoutMs = computed(
+    () => (this.state()?.idleTimeoutSeconds ?? DEFAULT_IDLE_TIMEOUT_SECONDS) * 1000,
+  );
+  readonly idleWarningMs = computed(
+    () => (this.state()?.idleWarningSeconds ?? DEFAULT_IDLE_WARNING_SECONDS) * 1000,
+  );
+  /** Whether the session lives in localStorage ("Recordarme"), shared by the tabs of the browser. */
+  readonly remembered = computed(() => this.state() !== null && readsFrom(localStorage));
 
   constructor() {
     effect((onCleanup) => {
@@ -72,7 +91,13 @@ export class AuthService {
 
   login(request: LoginRequest, remember = false): Observable<AuthUser> {
     return this.http.post<LoginResponse>(LOGIN_URL, request).pipe(
-      map(({ token, expiresAt, user }) => ({ token, expiresAt, user })),
+      map(({ token, expiresAt, user, idleTimeoutSeconds, idleWarningSeconds }) => ({
+        token,
+        expiresAt,
+        user,
+        idleTimeoutSeconds,
+        idleWarningSeconds,
+      })),
       tap((session) => this.store(session, remember)),
       map((session) => session.user),
     );
@@ -141,6 +166,14 @@ function isUsableSession(session: Partial<UserSession> | null): session is UserS
     ROLES.includes(session.user?.role as Role) &&
     !isExpired(session as UserSession)
   );
+}
+
+function readsFrom(storage: Storage): boolean {
+  try {
+    return storage.getItem(SESSION_STORAGE_KEY) !== null;
+  } catch {
+    return false;
+  }
 }
 
 function clearStoredSession(): void {

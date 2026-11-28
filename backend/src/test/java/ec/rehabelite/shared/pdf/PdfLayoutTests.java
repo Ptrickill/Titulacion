@@ -1,8 +1,8 @@
-package ec.rehabelite.reports.application;
+package ec.rehabelite.shared.pdf;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import ec.rehabelite.reports.application.PdfLayout.Column;
+import ec.rehabelite.shared.pdf.PdfLayout.Column;
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.IntStream;

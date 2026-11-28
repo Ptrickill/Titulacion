@@ -19,6 +19,7 @@ export function fakePerson(id: number, overrides: Partial<PersonSummary> = {}): 
     emailChangePending: false,
     needsCompletion: false,
     lastLoginAt: null,
+    blocked: false,
     ...overrides,
   };
 }

@@ -29,13 +29,16 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+import org.springframework.security.web.header.writers.StaticHeadersWriter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 /**
  * Stateless security: every request needs a valid HS256 JWT (issued by POST /api/auth/login) except login, the
- * account links (activate, forgot-password, reset-password, confirm-email), health and the OpenAPI documentation. The token's "role" claim becomes the ROLE_&lt;role&gt; authority and
+ * account links (activate, forgot-password, reset-password, confirm-email), the privacy notice (MEJ-06), health and the
+ * OpenAPI documentation. The token's "role" claim becomes the ROLE_&lt;role&gt; authority and
  * {@link RoleAccessRules} decides which roles may use each API area. Failures answer a Spanish problem
  * response: 401 without a valid token (or with the token of an inactive account), 403 (audited as
  * ACCESS_DENIED) for a role outside the area.
@@ -53,6 +56,18 @@ class SecurityConfig {
         "/v3/api-docs", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**"
     };
 
+    /** MEJ-06: the privacy notice is public, linked from the login page. */
+    static final String PUBLIC_PRIVACY_NOTICE = "/api/legal/privacy-notice";
+
+    /**
+     * MEJ-06: the API only answers JSON and files, so its content may load nothing and be framed by nobody. Swagger UI
+     * is a page with its own scripts and styles.
+     */
+    static final String API_CONTENT_SECURITY_POLICY = "default-src 'none'; frame-ancestors 'none'";
+    static final String DOCUMENTATION_CONTENT_SECURITY_POLICY = "default-src 'self'; script-src 'self'; "
+            + "style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'";
+    static final String PERMISSIONS_POLICY = "camera=(), microphone=(), geolocation=()";
+
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http,
             ProblemDetailAuthenticationEntryPoint authenticationEntryPoint,
@@ -61,8 +76,18 @@ class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(withDefaults())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // MEJ-06: X-Content-Type-Options, X-Frame-Options and HSTS (only on HTTPS requests: behind the
+                // Render proxy, X-Forwarded-Proto) are Spring Security's defaults; the rest is set here
+                .headers(h -> h
+                        .referrerPolicy(r -> r.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
+                        .addHeaderWriter(new StaticHeadersWriter("Permissions-Policy", PERMISSIONS_POLICY))
+                        .addHeaderWriter((request, response) -> response.setHeader("Content-Security-Policy",
+                                isDocumentation(request.getRequestURI())
+                                        ? DOCUMENTATION_CONTENT_SECURITY_POLICY
+                                        : API_CONTENT_SECURITY_POLICY)))
                 .authorizeHttpRequests(a -> {
                     a.requestMatchers(HttpMethod.POST, PUBLIC_AUTH_ENDPOINTS).permitAll()
+                            .requestMatchers(HttpMethod.GET, PUBLIC_PRIVACY_NOTICE).permitAll()
                             .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                             .requestMatchers(PUBLIC_DOCUMENTATION).permitAll()
                             .requestMatchers("/error").permitAll();
@@ -82,6 +107,10 @@ class SecurityConfig {
                         .authenticationEntryPoint(authenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler));
         return http.build();
+    }
+
+    static boolean isDocumentation(String path) {
+        return path.startsWith("/swagger-ui") || path.startsWith("/v3/api-docs");
     }
 
     private static JwtAuthenticationConverter jwtAuthenticationConverter() {

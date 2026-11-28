@@ -64,6 +64,9 @@ export function fakePatient(id: number, overrides: Partial<Patient> = {}): Patie
     portalAccount: null,
     createdAt: '2026-10-29T15:00:00Z',
     updatedAt: null,
+    consentPending: false,
+    blocked: false,
+    blockedAt: null,
     ...overrides,
   };
 }

@@ -230,6 +230,7 @@ class PatientRegistrationFieldsIntegrationTests extends AbstractIntegrationTest 
                 "occupation", "Ingeniero civil",
                 "educationLevel", "Superior"));
         fields.put("hasHealthInsurance", "true");
+        fields.put("dataProcessingConsentVersion", TestPatients.DATA_PROCESSING_VERSION);
         fields.putAll(overrides);
         return json(fields);
     }

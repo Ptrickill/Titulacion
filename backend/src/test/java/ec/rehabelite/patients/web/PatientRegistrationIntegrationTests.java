@@ -168,7 +168,8 @@ class PatientRegistrationIntegrationTests extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"nationalId\":\"%s\"}".formatted(nationalId)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors.length()").value(10));
+                // MEJ-06: the consent to process the data is one of the required fields
+                .andExpect(jsonPath("$.errors.length()").value(11));
     }
 
     @Test
@@ -234,7 +235,8 @@ class PatientRegistrationIntegrationTests extends AbstractIntegrationTest {
                 Map.entry("address", ADDRESS),
                 Map.entry("occupation", "Ingeniero civil"),
                 Map.entry("educationLevel", "Superior"),
-                Map.entry("hasHealthInsurance", "true")));
+                Map.entry("hasHealthInsurance", "true"),
+                Map.entry("dataProcessingConsentVersion", TestPatients.DATA_PROCESSING_VERSION)));
         fields.putAll(overrides);
         // Objects and booleans go as they are; everything else as a JSON string
         return fields.entrySet().stream()

@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.jayway.jsonpath.JsonPath;
 import ec.rehabelite.AbstractIntegrationTest;
+import ec.rehabelite.TestClinicalText;
 import ec.rehabelite.TestSessions;
 import ec.rehabelite.TestTreatments;
 import ec.rehabelite.auth.Role;
@@ -75,7 +76,8 @@ class TherapySessionVersionsIntegrationTests extends AbstractIntegrationTest {
                 SELECT a.revtype, a.pain_score, a.activities_performed, a.sequence_number, a.responsible_id,
                        r.user_id, r.revision_timestamp IS NOT NULL AS timed
                 FROM therapy_sessions_aud a JOIN revinfo r ON r.rev = a.rev
-                WHERE a.id = ? ORDER BY a.rev""", sessionId))
+                WHERE a.id = ? ORDER BY a.rev""", sessionId).stream()
+                .map(row -> TestClinicalText.decryptColumns(row, "activities_performed")).toList())
                 .containsExactly(
                         Map.of("revtype", 0, "pain_score", 6, "activities_performed",
                                 "Movilización lumbar y TENS 15 minutos", "sequence_number", 1,

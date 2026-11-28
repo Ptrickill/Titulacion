@@ -33,6 +33,27 @@
     <mat-icon aria-hidden="true">timeline</mat-icon>
     Línea de tiempo
   </a>
+  <button
+    actions
+    mat-stroked-button
+    type="button"
+    class="export"
+    [matMenuTriggerFor]="exportMenu"
+    [disabled]="!record() || exporting()"
+  >
+    <mat-icon aria-hidden="true">download</mat-icon>
+    {{ exporting() ? 'Exportando…' : 'Exportar historia clínica' }}
+  </button>
+  <mat-menu #exportMenu="matMenu">
+    <button mat-menu-item type="button" (click)="exportRecord('pdf')">
+      <mat-icon aria-hidden="true">picture_as_pdf</mat-icon>
+      PDF
+    </button>
+    <button mat-menu-item type="button" (click)="exportRecord('json')">
+      <mat-icon aria-hidden="true">data_object</mat-icon>
+      JSON (portabilidad)
+    </button>
+  </mat-menu>
 </app-page-header>
 
 @if (loadError(); as error) {

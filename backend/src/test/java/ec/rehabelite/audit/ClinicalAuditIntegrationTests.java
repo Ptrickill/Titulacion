@@ -141,6 +141,23 @@ class ClinicalAuditIntegrationTests extends AbstractIntegrationTest {
         assertSingleEntry(reader, "READ", "ClinicalRecord", data.recordId());
     }
 
+    /** MEJ-06: each export of the clinical record (PDF or JSON) is audited as EXPORT of the record, nothing else. */
+    @Test
+    void exportingTheClinicalRecordIsAuditedAsExport() throws Exception {
+        ClinicalData data = createRecord();
+        User pdfReader = createUser(Role.PHYSIOTHERAPIST);
+        User jsonReader = createUser(Role.PHYSIOTHERAPIST);
+
+        perform(pdfReader, get("/api/patients/{id}/clinical-record/export.pdf", data.patientId()))
+                .andExpect(status().isOk());
+        perform(jsonReader, get("/api/patients/{id}/clinical-record/export.json", data.patientId()))
+                .andExpect(status().isOk());
+
+        assertSingleEntry(pdfReader, "EXPORT", "ClinicalRecord", data.recordId());
+        assertSingleEntry(jsonReader, "EXPORT", "ClinicalRecord", data.recordId());
+        assertThat(entriesOf(pdfReader)).hasSize(1);
+    }
+
     @Test
     void editingTheHistoryIsAuditedAsUpdate() throws Exception {
         ClinicalData data = createRecord();
@@ -642,8 +659,9 @@ class ClinicalAuditIntegrationTests extends AbstractIntegrationTest {
                  "address":{"provinceCode":"17","cantonCode":"1701","parishCode":"170112",
                             "mainStreet":"Av. 6 de Diciembre","streetNumber":"N34-12","crossStreet":"Av. Portugal",
                             "reference":"Edificio azul"},
-                 "occupation":"Contadora","educationLevel":"Superior","hasHealthInsurance":true}"""
-                .formatted(extraFields);
+                 "occupation":"Contadora","educationLevel":"Superior","hasHealthInsurance":true,
+                 "dataProcessingConsentVersion":"%s"}"""
+                .formatted(extraFields, TestPatients.DATA_PROCESSING_VERSION);
     }
 
     private static String historyBody(String habits) {

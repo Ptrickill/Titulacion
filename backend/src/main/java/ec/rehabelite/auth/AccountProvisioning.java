@@ -52,6 +52,19 @@ public interface AccountProvisioning {
      */
     void changeEmail(Long userId, String newEmail);
 
+    /**
+     * Deactivates the account, e.g. a portal account whose patient revoked the consent to process the data (MEJ-06),
+     * and audits STATUS_CHANGE User. Its tokens stop working at once. Nothing happens when it is already inactive.
+     */
+    void deactivate(Long userId);
+
+    /**
+     * Accepted erasure request (MEJ-06): deactivates the account, replaces its email with the given placeholder,
+     * drops a pending email change and every unused link, and closes its sessions. Audited as ANONYMIZATION User,
+     * without either address. Irreversible.
+     */
+    void anonymize(Long userId, String placeholderEmail);
+
     Optional<AccountSummary> summary(Long userId);
 
     /** The accounts among the ids, in one statement; none for an empty collection. */
