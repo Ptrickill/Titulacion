@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
+import { FileDownload } from '../../../core/http/file-download';
 import { ClinicalRecordView } from './clinical-record-view';
 import { fakeActiveTreatment, fakeClinicalRecord } from './clinical-record-testing';
 
@@ -52,6 +53,29 @@ describe('ClinicalRecordView', () => {
   });
 
   afterEach(() => backend.verify());
+
+  it('exports the whole clinical record to hand to the data subject (MEJ-06)', async () => {
+    await open();
+    await respond(fakeClinicalRecord(15));
+    const save = vi.spyOn(TestBed.inject(FileDownload), 'save').mockImplementation(() => undefined);
+
+    element.querySelector<HTMLButtonElement>('button.export')!.click();
+    harness.detectChanges();
+    await harness.fixture.whenStable();
+    Array.from(document.querySelectorAll<HTMLButtonElement>('.mat-mdc-menu-item'))
+      .find((item) => item.textContent?.includes('PDF'))!
+      .click();
+    await harness.fixture.whenStable();
+
+    const request = backend.expectOne('/api/patients/15/clinical-record/export.pdf');
+    expect(request.request.responseType).toBe('blob');
+    request.flush(new Blob(['%PDF'], { type: 'application/pdf' }));
+    await harness.fixture.whenStable();
+    expect(save).toHaveBeenCalledWith(
+      expect.any(Blob),
+      expect.stringMatching(/^historia-clinica-15-\d{4}-\d{2}-\d{2}\.pdf$/),
+    );
+  });
 
   it('shows the patient, the diagnosis, the pain assessment and the plan with its responsible', async () => {
     await open();

@@ -23,6 +23,7 @@ import ec.rehabelite.clinicalrecords.domain.TreatmentData;
 import ec.rehabelite.clinicalrecords.domain.TreatmentRepository;
 import ec.rehabelite.clinicalrecords.domain.TreatmentStatus;
 import ec.rehabelite.patients.PatientCard;
+import ec.rehabelite.patients.PatientConsents;
 import ec.rehabelite.patients.PatientDirectory;
 import ec.rehabelite.shared.domain.BusinessRuleException;
 import ec.rehabelite.shared.domain.ConflictException;
@@ -53,8 +54,11 @@ class ClinicalRecordServiceTests {
     private final CurrentUserProvider currentUserProvider = mock(CurrentUserProvider.class);
     private final AuditLogService auditLogService = mock(AuditLogService.class);
 
-    private final ClinicalRecordService service = new ClinicalRecordService(recordRepository, treatmentRepository, diagnosisRepository,
-            patientDirectory, currentUserProvider, auditLogService, Clock.fixed(NOW, ZoneOffset.UTC));
+    private final PatientConsents patientConsents = mock(PatientConsents.class);
+
+    private final ClinicalRecordService service = new ClinicalRecordService(recordRepository, treatmentRepository,
+            diagnosisRepository, patientDirectory, patientConsents, currentUserProvider, auditLogService,
+            Clock.fixed(NOW, ZoneOffset.UTC));
 
     private final AtomicLong ids = new AtomicLong(100);
 

@@ -4,6 +4,7 @@ import ec.rehabelite.audit.AuditAction;
 import ec.rehabelite.audit.AuditLogService;
 import ec.rehabelite.auth.CurrentUser;
 import ec.rehabelite.auth.CurrentUserProvider;
+import ec.rehabelite.auth.PortalAccessPolicy;
 import ec.rehabelite.auth.Role;
 import ec.rehabelite.auth.domain.User;
 import ec.rehabelite.auth.domain.UserRepository;
@@ -44,6 +45,7 @@ public class UserManagementService {
     private final AccountLinkSender linkSender;
     private final CurrentUserProvider currentUserProvider;
     private final AuditLogService auditLogService;
+    private final PortalAccessPolicy portalAccessPolicy;
     private final Clock clock;
 
     /**
@@ -99,6 +101,12 @@ public class UserManagementService {
         }
         if (!active && user.getRole() == Role.OPERATIONS_DIRECTOR) {
             checkAnotherActiveDirectorRemains(user);
+        }
+        if (active && user.getRole() == Role.PATIENT) {
+            // MEJ-06: a portal account comes back only with a valid consent and a patient not blocked
+            portalAccessPolicy.portalAccessDenial(user.getId()).ifPresent(reason -> {
+                throw new BusinessRuleException(reason);
+            });
         }
 
         if (active) {

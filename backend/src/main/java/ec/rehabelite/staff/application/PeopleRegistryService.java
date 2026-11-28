@@ -59,7 +59,8 @@ public class PeopleRegistryService {
 
     /** A row of the registry; {@code account} is null for a patient without a portal account. */
     public record PersonEntry(PersonType type, Long id, String nationalId, String firstName, String lastName,
-            Role role, String email, String phone, boolean needsCompletion, AccountSummary account) {
+            Role role, String email, String phone, boolean needsCompletion, AccountSummary account,
+            boolean blocked) {
     }
 
     public record PeoplePage(List<PersonEntry> content, long total) {
@@ -116,12 +117,12 @@ public class PeopleRegistryService {
             AccountSummary account = accountsById.get(record.getUserId());
             content.add(new PersonEntry(PersonType.STAFF, record.getId(), record.getNationalId(),
                     record.getFirstName(), record.getLastName(), account == null ? null : account.role(),
-                    record.getEmail(), record.getPhone(), record.needsCompletion(), account));
+                    record.getEmail(), record.getPhone(), record.needsCompletion(), account, false));
         });
         patientSlice.content().forEach(patient -> content.add(new PersonEntry(PersonType.PATIENT, patient.id(),
                 patient.nationalId(), patient.firstName(), patient.lastName(), Role.PATIENT, patient.email(),
                 patient.phone(), patient.needsCompletion(),
-                patient.portalUserId() == null ? null : accountsById.get(patient.portalUserId()))));
+                patient.portalUserId() == null ? null : accountsById.get(patient.portalUserId()), patient.blocked())));
         return new PeoplePage(content, staffTotal + patientSlice.total());
     }
 

@@ -34,6 +34,7 @@ public class PortalAccountService {
     private final PatientRepository patientRepository;
     private final AccountProvisioning accounts;
     private final AuditLogService auditLogService;
+    private final ConsentService consentService;
 
     /**
      * Creates the PATIENT account with the patient's email and names, links it to the patient and emails the
@@ -42,6 +43,8 @@ public class PortalAccountService {
      * @throws ResourceNotFoundException if the patient does not exist
      * @throws ConflictException if the patient already has an account, or another account uses the patient's email
      *         (as its email or as a pending new email)
+     * @throws ec.rehabelite.shared.domain.BusinessRuleException if the patient has no valid DATA_PROCESSING consent
+     *         or is blocked (MEJ-06)
      * @throws ec.rehabelite.shared.domain.ExternalServiceException if the email cannot be sent; nothing is created
      */
     @Transactional
@@ -51,6 +54,9 @@ public class PortalAccountService {
         if (patient.getPortalUserId() != null) {
             throw new ConflictException(Patient.ALREADY_LINKED, Map.of(EXISTING_USER_ID, patient.getPortalUserId()));
         }
+        // MEJ-06: the portal needs a valid DATA_PROCESSING consent; EMAIL_COMMUNICATIONS is not needed (the
+        // activation link is an account email)
+        consentService.checkCareAllowed(patient);
         if (!accounts.accountsUsingEmail(patient.getEmail()).isEmpty()) {
             throw new ConflictException(EMAIL_IN_USE, Map.of(PatientIdentityRules.FIELD, "email"));
         }

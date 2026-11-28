@@ -33,6 +33,12 @@ export const NAV_ITEMS: Record<Role, readonly NavItem[]> = {
     { label: 'Gestión de Personal', icon: 'badge', route: '/director/staff' },
     // MEJ-04: weekly schedules board and reassignment of treatments by availability
     { label: 'Horarios y asignaciones', icon: 'event_available', route: '/director/schedules' },
+    // MEJ-06: erasure requests of the data subjects (LOPDP)
+    {
+      label: 'Eliminación de datos',
+      icon: 'person_remove',
+      route: '/director/data-requests',
+    },
     { label: 'Auditoría', icon: 'policy', route: '/director/audit' },
   ],
   PATIENT: [{ label: 'Mi Tratamiento', icon: 'home', route: '/patient', exact: true }],

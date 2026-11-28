@@ -42,7 +42,7 @@ public final class TestSessions {
 
     /**
      * Inserts a session with SQL, without audit entries nor versions, for tests that only read sessions; {@code time}
-     * is {@code HH:mm}. Returns its id.
+     * is {@code HH:mm}. The clinical text is inserted encrypted (MEJ-06). Returns its id.
      */
     public static Long insert(JdbcTemplate jdbc, Long treatmentId, Long responsibleId, int sequenceNumber,
             LocalDate date, String time, int painScore, String status) {
@@ -57,10 +57,10 @@ public final class TestSessions {
                 INSERT INTO therapy_sessions (treatment_id, responsible_id, sequence_number, session_date, session_time,
                                               session_type, activities_performed, clinical_observations,
                                               patient_instructions, pain_score, progress_status, status)
-                VALUES (?, ?, ?, ?, ?, 'Fisioterapia lumbar mecánica', 'Movilización lumbar',
-                        'Observación clínica interna', ?, ?, 'IMPROVING', ?)
+                VALUES (?, ?, ?, ?, ?, 'Fisioterapia lumbar mecánica', ?, ?, ?, ?, 'IMPROVING', ?)
                 RETURNING id""", Long.class, treatmentId, responsibleId, sequenceNumber, date, LocalTime.parse(time),
-                patientInstructions, painScore, status);
+                TestClinicalText.encrypt("Movilización lumbar"), TestClinicalText.encrypt("Observación clínica interna"),
+                TestClinicalText.encrypt(patientInstructions), painScore, status);
     }
 
 }

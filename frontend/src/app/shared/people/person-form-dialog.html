@@ -393,7 +393,65 @@
               <dd>{{ data.religion }}</dd>
             </dl>
           </section>
-        } @else if (!editing) {
+        }
+        @if (asksForConsents()) {
+          @let texts = consentTexts();
+          <section
+            class="summary consents"
+            aria-labelledby="summary-consents"
+            [formGroup]="consents"
+          >
+            <header>
+              <h3 id="summary-consents">Consentimientos</h3>
+            </header>
+            @if (texts === undefined) {
+              <p class="consent-note">Cargando los textos de los consentimientos…</p>
+            } @else if (!texts.dataProcessing) {
+              <p class="consent-error" role="alert">
+                No se pudo cargar el texto del consentimiento. Cierre el formulario e intente
+                nuevamente.
+              </p>
+            } @else {
+              <p class="consent-note">
+                Lea al paciente el texto vigente y registre solo lo que firmó en papel.
+              </p>
+              <mat-accordion class="consent-texts">
+                <mat-expansion-panel>
+                  <mat-expansion-panel-header>
+                    <mat-panel-title>{{ texts.dataProcessing.title }}</mat-panel-title>
+                  </mat-expansion-panel-header>
+                  <app-legal-text-view [text]="texts.dataProcessing" />
+                </mat-expansion-panel>
+                @if (texts.emailCommunications; as emailText) {
+                  <mat-expansion-panel>
+                    <mat-expansion-panel-header>
+                      <mat-panel-title>{{ emailText.title }}</mat-panel-title>
+                    </mat-expansion-panel-header>
+                    <app-legal-text-view [text]="emailText" />
+                  </mat-expansion-panel>
+                }
+              </mat-accordion>
+              <mat-checkbox formControlName="dataProcessing" class="consent-check">
+                El paciente firmó el consentimiento para el tratamiento de sus datos personales y de
+                salud (obligatorio, versión {{ texts.dataProcessing.version }}).
+              </mat-checkbox>
+              @if (
+                consents.controls.dataProcessing.touched && consents.controls.dataProcessing.invalid
+              ) {
+                <p class="consent-error" role="alert">
+                  Sin este consentimiento no se puede registrar al paciente.
+                </p>
+              }
+              @if (texts.emailCommunications; as emailText) {
+                <mat-checkbox formControlName="emailCommunications" class="consent-check">
+                  El paciente acepta comunicaciones por correo (opcional, versión
+                  {{ emailText.version }}). Los correos de su cuenta del portal se envían igual.
+                </mat-checkbox>
+              }
+            }
+          </section>
+        }
+        @if (isStaff() && !editing) {
           <div class="account-note" role="note">
             <mat-icon aria-hidden="true">forward_to_inbox</mat-icon>
             <span>

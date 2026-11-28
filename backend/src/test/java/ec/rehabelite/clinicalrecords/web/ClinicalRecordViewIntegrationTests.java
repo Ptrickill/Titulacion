@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import ec.rehabelite.AbstractIntegrationTest;
+import ec.rehabelite.TestClinicalText;
 import ec.rehabelite.TestPatients;
 import ec.rehabelite.auth.Role;
 import ec.rehabelite.auth.application.JwtTokenService;
@@ -192,10 +193,11 @@ class ClinicalRecordViewIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.familyHistory").value("Padre hipertenso"))
                 .andExpect(jsonPath("$.updatedAt").isNotEmpty());
 
-        Map<String, Object> row = jdbc.queryForMap("""
+        Map<String, Object> row = TestClinicalText.decryptColumns(jdbc.queryForMap("""
                 SELECT habits, physical_activity, current_medication, personal_history, created_by, updated_by,
                        updated_at
-                FROM clinical_records WHERE id = ?""", recordId);
+                FROM clinical_records WHERE id = ?""", recordId), "habits", "physical_activity",
+                "current_medication", "personal_history");
         assertThat(row)
                 .containsEntry("habits", "Fuma 2 cigarrillos al día")
                 .containsEntry("physical_activity", "Natación")
@@ -204,8 +206,9 @@ class ClinicalRecordViewIntegrationTests extends AbstractIntegrationTest {
                 .containsEntry("created_by", physio.getId())
                 .containsEntry("updated_by", editor.getId());
         assertThat(((Timestamp) row.get("updated_at")).toInstant()).isAfterOrEqualTo(before.minusSeconds(1));
-        assertThat(jdbc.queryForMap("SELECT status, updated_at, chief_complaint FROM treatments WHERE id = ?",
-                firstTreatmentId))
+        assertThat(TestClinicalText.decryptColumns(jdbc.queryForMap(
+                "SELECT status, updated_at, chief_complaint FROM treatments WHERE id = ?", firstTreatmentId),
+                "chief_complaint"))
                 .containsEntry("status", "ACTIVE")
                 .containsEntry("updated_at", null)
                 .containsEntry("chief_complaint", "Dolor lumbar al levantar peso");
@@ -244,7 +247,8 @@ class ClinicalRecordViewIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.detail").value("El paciente no existe."));
 
-        assertThat(jdbc.queryForObject("SELECT habits FROM clinical_records WHERE id = ?", String.class, recordId))
+        assertThat(TestClinicalText.decrypt(
+                jdbc.queryForObject("SELECT habits FROM clinical_records WHERE id = ?", String.class, recordId)))
                 .isEqualTo("No fuma; café diario");
         assertThat(audit("UPDATE")).isEmpty();
     }
@@ -268,7 +272,8 @@ class ClinicalRecordViewIntegrationTests extends AbstractIntegrationTest {
 
         assertThat(audit("READ")).isEmpty();
         assertThat(audit("UPDATE")).isEmpty();
-        assertThat(jdbc.queryForObject("SELECT habits FROM clinical_records WHERE id = ?", String.class, recordId))
+        assertThat(TestClinicalText.decrypt(
+                jdbc.queryForObject("SELECT habits FROM clinical_records WHERE id = ?", String.class, recordId)))
                 .isEqualTo("No fuma; café diario");
     }
 

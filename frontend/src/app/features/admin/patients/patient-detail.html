@@ -29,22 +29,68 @@
       [subtitle]="'Historia clínica N.º ' + patient.medicalRecordNumber"
       backLink="/admin/patients"
     >
-      <button mat-flat-button actions type="button" (click)="edit(patient)">
-        <mat-icon aria-hidden="true">edit</mat-icon>
-        Editar datos
-      </button>
+      <div actions class="header-actions">
+        <button
+          mat-stroked-button
+          type="button"
+          [matMenuTriggerFor]="exportMenu"
+          [disabled]="exporting()"
+          aria-label="Exportar datos del paciente"
+        >
+          <mat-icon aria-hidden="true">download</mat-icon>
+          {{ exporting() ? 'Exportando…' : 'Exportar datos' }}
+        </button>
+        <mat-menu #exportMenu="matMenu">
+          <button mat-menu-item type="button" (click)="exportData(patient, 'pdf')">
+            <mat-icon aria-hidden="true">picture_as_pdf</mat-icon>
+            PDF
+          </button>
+          <button mat-menu-item type="button" (click)="exportData(patient, 'json')">
+            <mat-icon aria-hidden="true">data_object</mat-icon>
+            JSON (portabilidad)
+          </button>
+        </mat-menu>
+        @if (!patient.blocked) {
+          <button mat-flat-button type="button" (click)="edit(patient)">
+            <mat-icon aria-hidden="true">edit</mat-icon>
+            Editar datos
+          </button>
+        }
+      </div>
     </app-page-header>
 
-    <app-person-account-card
-      type="PATIENT"
-      [account]="patient.portalAccount"
-      [email]="patient.email"
-      [busy]="accountBusy()"
-      (create)="createPortalAccount(patient)"
-      [lastLoginAt]="patient.portalAccount?.lastLoginAt ?? null"
-      (resend)="resend(patient)"
-      (toggleStatus)="toggleStatus(patient)"
-    />
+    @if (patient.blocked) {
+      <div class="banner danger" role="status">
+        <mat-icon aria-hidden="true">lock</mat-icon>
+        <span>
+          Datos bloqueados por una solicitud de eliminación aceptada el
+          {{ patient.blockedAt | date: 'dd/MM/yyyy' }}: nadie los edita y sus datos de contacto se
+          borraron. La historia clínica se conserva.
+        </span>
+      </div>
+    } @else if (patient.consentPending) {
+      <div class="banner warning" role="status">
+        <mat-icon aria-hidden="true">assignment_late</mat-icon>
+        <span>
+          Consentimiento pendiente: registre la firma del consentimiento para el tratamiento de
+          datos antes de crear su acceso al portal o de que reciba atenciones nuevas.
+        </span>
+      </div>
+    }
+
+    <!-- MEJ-06: a blocked patient gets no portal access; its account, if any, was anonymized -->
+    @if (!patient.blocked) {
+      <app-person-account-card
+        type="PATIENT"
+        [account]="patient.portalAccount"
+        [email]="patient.email ?? ''"
+        [busy]="accountBusy()"
+        (create)="createPortalAccount(patient)"
+        [lastLoginAt]="patient.portalAccount?.lastLoginAt ?? null"
+        (resend)="resend(patient)"
+        (toggleStatus)="toggleStatus(patient)"
+      />
+    }
 
     <section class="record" aria-label="Datos del paciente">
       <app-form-section [step]="1" title="Datos de admisión">
@@ -96,16 +142,24 @@
         </div>
         <div class="item">
           <span class="label">Teléfono</span>
-          <span class="value">{{ patient.phone }}</span>
+          @if (patient.phone) {
+            <span class="value">{{ patient.phone }}</span>
+          } @else {
+            <span class="value empty">Sin teléfono</span>
+          }
         </div>
         <div class="item">
           <span class="label">Correo electrónico</span>
-          <span class="value">{{ patient.email }}</span>
+          @if (patient.email) {
+            <span class="value">{{ patient.email }}</span>
+          } @else {
+            <span class="value empty">Sin correo</span>
+          }
         </div>
         <div class="item">
           <span class="label">Dirección</span>
-          <span class="value">{{ patient.address.formatted }}</span>
-          @if (!patient.address.complete) {
+          <span class="value">{{ patient.address.formatted || 'Sin dirección' }}</span>
+          @if (!patient.address.complete && !patient.blocked) {
             <span class="incomplete">Dirección incompleta: complétela con "Editar datos".</span>
           }
         </div>
@@ -137,6 +191,20 @@
             <span class="value empty">No especificada</span>
           }
         </div>
+      </app-form-section>
+
+      <app-form-section [step]="3" title="Consentimientos">
+        <app-patient-consents-panel
+          class="full"
+          [patientId]="patient.id"
+          [patientName]="patient.firstName + ' ' + patient.lastName"
+          [blocked]="patient.blocked"
+          (changed)="refresh(patient)"
+        />
+      </app-form-section>
+
+      <app-form-section [step]="4" title="Solicitudes del titular">
+        <app-data-requests-panel class="full" [patientId]="patient.id" />
       </app-form-section>
     </section>
   }

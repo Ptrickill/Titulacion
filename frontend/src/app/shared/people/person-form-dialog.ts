@@ -12,6 +12,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import {
   MAT_DIALOG_DATA,
   MatDialog,
@@ -29,6 +30,8 @@ import { STEPPER_GLOBAL_OPTIONS } from '@angular/cdk/stepper';
 import { RouterLink } from '@angular/router';
 import { catchError, map, Observable, of, startWith, switchMap, timer } from 'rxjs';
 import { problemDetailMessage } from '../../core/http/problem-detail';
+import { CONSENT_TEXT_KEYS, LegalApi, LegalText } from '../legal/legal-api';
+import { LegalTextView } from '../legal/legal-text-view';
 import { AddressFields, addressValueOf, createAddressForm } from '../forms/address-fields';
 import { DateField } from '../forms/date-field';
 import { formatIsoDate } from '../forms/ec-date-adapter';
@@ -110,6 +113,12 @@ interface ExistingRecord {
 
 type StepKey = 'kind' | 'identification' | 'personal' | 'admission' | 'review';
 
+/** MEJ-06: the consent texts in force; null when one could not be loaded. */
+interface ConsentTexts {
+  dataProcessing: LegalText | null;
+  emailCommunications: LegalText | null;
+}
+
 /**
  * "Registrar paciente" of the reception and "Registrar personal" of the operations director (HU-05, MEJ-03, MEJ-02,
  * MEJ-05): a linear stepper, never clinical data.
@@ -144,6 +153,8 @@ type StepKey = 'kind' | 'identification' | 'personal' | 'admission' | 'review';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    MatCheckboxModule,
+    LegalTextView,
     AddressFields,
     DateField,
     PhoneField,
@@ -252,6 +263,29 @@ export class PersonFormDialog {
     personal: this.personal,
     admission: this.admission,
   });
+
+  /**
+   * MEJ-06: the consents the patient signed at the reception, only when registering a patient. Processing the data is
+   * required (registering already processes it); the email communications are optional.
+   */
+  protected readonly consents = this.fb.group({
+    dataProcessing: [false, Validators.requiredTrue],
+    emailCommunications: [false],
+  });
+  /** The consent texts in force, shown in the review step (null until they load, or after an error). */
+  protected readonly consentTexts = toSignal<ConsentTexts | undefined, undefined>(
+    inject(LegalApi)
+      .consentTexts()
+      .pipe(
+        map((texts): ConsentTexts => ({
+          dataProcessing: texts.find((t) => t.key === CONSENT_TEXT_KEYS.DATA_PROCESSING) ?? null,
+          emailCommunications:
+            texts.find((t) => t.key === CONSENT_TEXT_KEYS.EMAIL_COMMUNICATIONS) ?? null,
+        })),
+        catchError(() => of<ConsentTexts>({ dataProcessing: null, emailCommunications: null })),
+      ),
+    { initialValue: undefined },
+  );
 
   protected readonly submitting = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
@@ -372,7 +406,7 @@ export class PersonFormDialog {
         birthDate: person.birthDate ?? '',
         sex: person.sex,
         phone: person.phone ?? '',
-        email: person.email,
+        email: person.email ?? '',
       });
     }
     if (this.patient) {
@@ -459,6 +493,18 @@ export class PersonFormDialog {
       this.goTo(firstInvalid);
       return;
     }
+    if (this.asksForConsents()) {
+      if (!this.consentTexts()?.dataProcessing) {
+        this.errorMessage.set(
+          'No se pudo cargar el texto del consentimiento. Cierre el formulario e intente nuevamente.',
+        );
+        return;
+      }
+      if (this.consents.invalid) {
+        this.consents.markAllAsTouched();
+        return;
+      }
+    }
     this.submitting.set(true);
     this.errorMessage.set(null);
 
@@ -497,7 +543,29 @@ export class PersonFormDialog {
       : this.patientApi.register({
           nationalId: this.identification.getRawValue().nationalId.trim(),
           ...data,
+          ...this.consentVersions(),
         });
+  }
+
+  /** MEJ-06: only the registration of a patient records its consents. */
+  protected asksForConsents(): boolean {
+    return !this.editing && !this.isStaff();
+  }
+
+  /** The versions of the texts the patient signed, as the API expects them. */
+  private consentVersions(): {
+    dataProcessingConsentVersion: string;
+    emailCommunicationsConsentVersion: string | null;
+  } {
+    const texts = this.consentTexts();
+    const { emailCommunications } = this.consents.getRawValue();
+    return {
+      dataProcessingConsentVersion: texts?.dataProcessing?.version ?? '',
+      emailCommunicationsConsentVersion:
+        emailCommunications && texts?.emailCommunications
+          ? texts.emailCommunications.version
+          : null,
+    };
   }
 
   private saveStaff(): Observable<Staff> {

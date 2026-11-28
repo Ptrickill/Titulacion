@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import ec.rehabelite.AbstractIntegrationTest;
+import ec.rehabelite.TestClinicalText;
 import ec.rehabelite.TestPatients;
 import ec.rehabelite.auth.Role;
 import ec.rehabelite.auth.application.JwtTokenService;
@@ -185,10 +186,12 @@ class TreatmentIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.statusChanges[1].changedByName").value("Lcdo. Mateo Ríos"))
                 .andExpect(jsonPath("$.statusChanges[2].newStatus").value("ABANDONED"));
 
-        List<String> rows = jdbc.queryForList("""
-                SELECT previous_status || '>' || new_status || '|' || reason || '|' || user_id
+        List<String> rows = jdbc.query("""
+                SELECT previous_status, new_status, reason, user_id
                 FROM treatment_status_changes WHERE treatment_id = ? ORDER BY id""",
-                String.class, treatmentId);
+                (row, number) -> row.getString("previous_status") + ">" + row.getString("new_status") + "|"
+                        + TestClinicalText.decrypt(row.getString("reason")) + "|" + row.getLong("user_id"),
+                treatmentId);
         assertThat(rows).containsExactly(
                 "ACTIVE>ABANDONED|No asiste desde hace un mes|" + physio.getId(),
                 "ABANDONED>ACTIVE|Retoma la terapia|" + other.getId(),

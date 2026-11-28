@@ -203,8 +203,9 @@ class PersonIdentityUniquenessIntegrationTests extends AbstractIntegrationTest {
                  "birthDate":"1968-04-12","sex":"FEMALE","phone":"0990000101","email":"%s",
                  "address":{"provinceCode":"17","cantonCode":"1701","parishCode":"170156","mainStreet":"Av. Ilaló",
                             "crossStreet":"Río Pita","reference":"Frente al parque"},
-                 "occupation":"Contadora","educationLevel":"Superior","hasHealthInsurance":true}"""
-                .formatted(identification, email);
+                 "occupation":"Contadora","educationLevel":"Superior","hasHealthInsurance":true,
+                 "dataProcessingConsentVersion":"%s"}"""
+                .formatted(identification, email, TestPatients.DATA_PROCESSING_VERSION);
     }
 
     private static String uniqueEmail(String prefix) {

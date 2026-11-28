@@ -6,7 +6,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 /**
  * Synthetic treatments for integration tests that are not about clinical records (e.g. therapy sessions): a new
  * patient with a clinical record and one treatment, inserted with SQL, without audit entries, versions nor
- * responsible assignments. The pieces are also available one by one, for a patient with several treatments.
+ * responsible assignments. The clinical text is inserted encrypted (MEJ-06). The pieces are also available one by one, for a patient with several treatments.
  */
 public final class TestTreatments {
 
@@ -29,8 +29,9 @@ public final class TestTreatments {
         return jdbc.queryForObject("""
                 INSERT INTO clinical_records (patient_id, habits, physical_activity, allergies, current_medication,
                                               personal_history, surgical_history, family_history)
-                VALUES (?, 'No fuma', 'Camina', 'Ninguna', 'Ninguna', 'Ninguno', 'Ninguno', 'Ninguno')
-                RETURNING id""", Long.class, patientId);
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                RETURNING id""", Long.class, patientId, enc("No fuma"), enc("Camina"), enc("Ninguna"), enc("Ninguna"),
+                enc("Ninguno"), enc("Ninguno"), enc("Ninguno"));
     }
 
     /** A treatment (diagnosis M54.5) of an existing clinical record; returns its id. */
@@ -41,9 +42,14 @@ public final class TestTreatments {
                                         referring_physician, complementary_tests, severity, pain_type, pain_location,
                                         initial_pain_score, pain_frequency, session_frequency, goal, planned_sessions,
                                         status, start_date)
-                VALUES (?, 'M54.5', 'Dolor lumbar', 'Tres semanas', 'Dr. Andrade', 'Radiografía', 'MODERATE',
-                        'Punzante', 'Lumbar', ?, 'Intermitente', '3 por semana', 'Reducir el dolor', ?, ?, ?)
-                RETURNING id""", Long.class, recordId, initialPainScore, plannedSessions, status, startDate);
+                VALUES (?, 'M54.5', ?, ?, 'Dr. Andrade', ?, 'MODERATE', 'Punzante', 'Lumbar', ?, 'Intermitente',
+                        '3 por semana', ?, ?, ?, ?)
+                RETURNING id""", Long.class, recordId, enc("Dolor lumbar"), enc("Tres semanas"), enc("Radiografía"),
+                initialPainScore, enc("Reducir el dolor"), plannedSessions, status, startDate);
+    }
+
+    private static String enc(String text) {
+        return TestClinicalText.encrypt(text);
     }
 
     /** Makes the physiotherapist the current responsible of a treatment that has none. */

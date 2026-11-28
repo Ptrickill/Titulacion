@@ -7,8 +7,9 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth-service';
+import { IDLE_LOGOUT_REASON } from '../../../core/auth/idle-session';
 import { ROLE_HOME } from '../../../core/auth/role';
 
 /** Same wording as the backend: never reveals whether the email, the password or the lock failed. */
@@ -43,6 +44,10 @@ export class Login implements OnInit {
   protected readonly submitting = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly hidePassword = signal(true);
+  /** MEJ-06: the session was closed after a while without activity. */
+  protected readonly idleLogout = signal(
+    inject(ActivatedRoute).snapshot.queryParamMap.get('reason') === IDLE_LOGOUT_REASON,
+  );
 
   ngOnInit(): void {
     if (this.auth.hasValidSession()) {
@@ -57,6 +62,7 @@ export class Login implements OnInit {
     }
     this.submitting.set(true);
     this.errorMessage.set(null);
+    this.idleLogout.set(false);
 
     const { email, password, remember } = this.form.getRawValue();
     this.auth.login({ email: email.trim(), password }, remember).subscribe({

@@ -20,6 +20,7 @@ import ec.rehabelite.auth.CurrentUserProvider;
 import ec.rehabelite.auth.StaffDirectory;
 import ec.rehabelite.clinicalrecords.TreatmentQueryPort;
 import ec.rehabelite.clinicalrecords.TreatmentSummary;
+import ec.rehabelite.patients.PatientConsents;
 import ec.rehabelite.sessions.application.TherapySessionService.NamedSession;
 import ec.rehabelite.sessions.application.TherapySessionService.SessionVersions;
 import ec.rehabelite.sessions.application.TherapySessionService.Timeline;
@@ -63,8 +64,11 @@ class TherapySessionServiceTests {
     private final AuditLogService auditLogService = mock(AuditLogService.class);
     private final EntityVersionHistory versionHistory = mock(EntityVersionHistory.class);
 
+    private final PatientConsents patientConsents = mock(PatientConsents.class);
+
     private final TherapySessionService service = new TherapySessionService(sessionRepository, treatmentQuery,
-            staffDirectory, currentUserProvider, auditLogService, versionHistory, Clock.fixed(NOW, ZoneOffset.UTC));
+            patientConsents, staffDirectory, currentUserProvider, auditLogService, versionHistory,
+            Clock.fixed(NOW, ZoneOffset.UTC));
 
     @BeforeEach
     void setUp() {

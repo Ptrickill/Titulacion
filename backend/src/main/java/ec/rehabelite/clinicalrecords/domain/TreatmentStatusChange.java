@@ -1,6 +1,8 @@
 package ec.rehabelite.clinicalrecords.domain;
 
+import ec.rehabelite.shared.crypto.EncryptedText;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -43,6 +45,7 @@ public class TreatmentStatusChange {
     @Column(name = "new_status", nullable = false, length = 15)
     private TreatmentStatus newStatus;
 
+    @Convert(converter = EncryptedText.class)
     @Column(nullable = false)
     private String reason;
 

@@ -1,7 +1,9 @@
 package ec.rehabelite.sessions.domain;
 
+import ec.rehabelite.shared.crypto.EncryptedText;
 import ec.rehabelite.shared.domain.BusinessRuleException;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -57,13 +59,16 @@ public class TherapySession {
     @Column(name = "session_type", nullable = false, length = 50)
     private String sessionType;
 
+    @Convert(converter = EncryptedText.class)
     @Column(name = "activities_performed", nullable = false)
     private String activitiesPerformed;
 
     /** Internal note for the physiotherapy team; never shown in the patient portal. */
+    @Convert(converter = EncryptedText.class)
     @Column(name = "clinical_observations", nullable = false)
     private String clinicalObservations;
 
+    @Convert(converter = EncryptedText.class)
     @Column(name = "patient_instructions")
     private String patientInstructions;
 

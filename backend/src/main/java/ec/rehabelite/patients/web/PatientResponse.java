@@ -21,8 +21,11 @@ record PatientResponse(
                 example = "30")
         int age,
         @Schema(description = "Sexo", example = "MALE") Sex sex,
-        @Schema(description = "Teléfono", example = "0987654321") String phone,
-        @Schema(description = "Correo electrónico", example = "juan.perez@correo.ec") String email,
+        @Schema(description = "Teléfono; null si se borró por una solicitud de eliminación", example = "0987654321")
+        String phone,
+        @Schema(description = "Correo electrónico; null si se borró por una solicitud de eliminación",
+                example = "juan.perez@correo.ec")
+        String email,
         @Schema(description = "Dirección estructurada (MEJ-03)") AddressView address,
         @Schema(description = "Ocupación", example = "Ingeniero civil") String occupation,
         @Schema(description = "Nivel de instrucción", example = "Superior") String educationLevel,
@@ -34,6 +37,14 @@ record PatientResponse(
                 example = "false") boolean needsCompletion,
         @Schema(description = "Cuenta de acceso al portal (MEJ-02); null si aún no tiene")
         PortalAccountResponse portalAccount,
+        @Schema(description = "Consentimiento pendiente (MEJ-06): sin consentimiento vigente para el tratamiento de "
+                + "sus datos; no recibe historias clínicas, tratamientos, sesiones ni acceso al portal nuevos",
+                example = "false")
+        boolean consentPending,
+        @Schema(description = "Bloqueado por una solicitud de eliminación aceptada (MEJ-06): nadie lo edita y sus "
+                + "datos de contacto se borraron", example = "false")
+        boolean blocked,
+        @Schema(description = "Fecha y hora del bloqueo; null si no está bloqueado") Instant blockedAt,
         @Schema(description = "Fecha y hora de registro") Instant createdAt,
         @Schema(description = "Fecha y hora de la última actualización; null si nunca se actualizó")
         Instant updatedAt) {

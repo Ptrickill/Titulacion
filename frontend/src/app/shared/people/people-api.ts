@@ -25,7 +25,8 @@ export interface PersonSummary {
   lastName: string;
   /** PATIENT for the patients; the account's role for the staff. */
   role: Role;
-  email: string;
+  /** Null only for a patient blocked by an accepted erasure request (MEJ-06). */
+  email: string | null;
   phone: string | null;
   accountStatus: PersonAccountStatus;
   userId: number | null;
@@ -34,6 +35,8 @@ export interface PersonSummary {
   needsCompletion: boolean;
   /** ISO-8601 instant of the last login, or null without account or if it never logged in. */
   lastLoginAt: string | null;
+  /** MEJ-06: a patient blocked by an accepted erasure request (its contact data was cleared). */
+  blocked: boolean;
 }
 
 /** A registered person that already has the national ID or the email looked up. */

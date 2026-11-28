@@ -90,6 +90,8 @@ Architecture overview (C4 Level 2, containers):
    | `MAIL_TRANSPORT` | How the account emails leave: `smtp` (default, also when empty) or `api` (Brevo's HTTP API, production; see `docs/deployment/correo.md`) |
    | `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` | SMTP server for `MAIL_TRANSPORT=smtp` (Mailpit on `localhost:1025` in development) |
    | `BREVO_API_KEY` | Brevo API key, required with `MAIL_TRANSPORT=api` |
+   | `CLINICAL_DATA_KEY` | AES-256 key of the clinical free text (32 random bytes in Base64, MEJ-06). Required: the application does not start without it, and losing it makes the clinical text unreadable, so keep a copy off the server. See `docs/deployment/cifrado.md` |
+   | `CLINICAL_DATA_PREVIOUS_KEYS` | Previous keys, comma-separated, only after a key rotation (they only decrypt) |
 
    `.env` is git-ignored and must never be committed.
 
@@ -138,6 +140,7 @@ The `dev` profile loads synthetic data so the screens can be tried without typin
 | Accounts | 1 reception (role `ADMINISTRATOR`), 1 operations director, 3 physiotherapists and 3 patient-portal accounts, all with emails ending in `@dev-seed.rehabelite.test` (`recepcion@…`, `direccion@…`, `fisio.andrade@…`, `fisio.cevallos@…`, `fisio.paredes@…`, `paciente.ortiz@…`, `paciente.quishpe@…`, `paciente.zambrano@…`) |
 | Patients | 15 fictitious patients with valid Ecuadorian national IDs; the three portal accounts are linked to three of them, and eight have a clinical record with a synthetic treatment |
 | Schedules | Weekly schedules of the three physiotherapists and different treatment loads (MEJ-04) |
+| Consents | Every patient signed the consent to process its data except one, who stays "Consentimiento pendiente"; four also accept email communications (MEJ-06). The synthetic clinical text is encrypted at startup |
 | Password | Every seed account uses `DEV_SEED_PASSWORD` from `.env`. At startup it is stored as a BCrypt hash; neither the password nor the hash is in the repository. Change it in `.env` and restart to update it |
 
 The data lives in `backend/src/main/resources/db/dev-seed/R__dev_seed.sql`, a Flyway repeatable migration that `application-dev.yml` adds to the Flyway locations. Every statement is idempotent (`ON CONFLICT DO NOTHING`), so restarting never duplicates rows. The seed already has an active operations director, so `INITIAL_DIRECTOR_EMAIL` / `INITIAL_DIRECTOR_PASSWORD` create nothing on a seeded database.
@@ -233,4 +236,6 @@ No secrets are needed: the backend tests use the synthetic values in `applicatio
 
 - [`docs/user-stories.md`](docs/user-stories.md) — user stories and acceptance criteria (Spanish)
 - [`docs/evidence/`](docs/evidence/) — sprint evidence (boards, burndown, CI runs, screenshots, minutes)
+- [`docs/compliance/lopdp.md`](docs/compliance/lopdp.md) — data protection (LOPDP) compliance matrix and the clinic's responsibilities (Spanish, MEJ-06)
+- [`docs/deployment/cifrado.md`](docs/deployment/cifrado.md) — encryption of the clinical text: the key, its rotation and its backup (Spanish, MEJ-06)
 - GitHub templates: [user story issue](.github/ISSUE_TEMPLATE/user-story.md) and [pull request](.github/pull_request_template.md)

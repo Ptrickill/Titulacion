@@ -60,12 +60,26 @@ record RegisterPatientRequest(
         @Size(max = 50) String ethnicSelfIdentification,
 
         @Schema(description = "Religión (opcional)", example = "Católica")
-        @Size(max = 50) String religion) {
+        @Size(max = 50) String religion,
+
+        @Schema(description = "Versión vigente del texto del consentimiento para el tratamiento de datos personales y "
+                + "de salud que firmó el paciente (MEJ-06, obligatorio: GET /api/legal/consents)",
+                example = "0.1-borrador")
+        @NotBlank(message = "Registre el consentimiento firmado del paciente para el tratamiento de sus datos "
+                + "personales y de salud.")
+        @Size(max = 30) String dataProcessingConsentVersion,
+
+        @Schema(description = "Versión vigente del texto del consentimiento para comunicaciones por correo, si el "
+                + "paciente lo firmó; null si no (MEJ-06, opcional)", example = "0.1-borrador")
+        @Size(max = 30) String emailCommunicationsConsentVersion) {
 
     RegisterPatientCommand toCommand() {
+        String emailVersion = emailCommunicationsConsentVersion == null || emailCommunicationsConsentVersion.isBlank()
+                ? null
+                : emailCommunicationsConsentVersion;
         return new RegisterPatientCommand(nationalId, admissionDate, new PersonalData(firstName, lastName,
                 birthDate, sex, phone, email, address.toAddress(), occupation, educationLevel, hasHealthInsurance,
-                ethnicSelfIdentification, religion));
+                ethnicSelfIdentification, religion), dataProcessingConsentVersion, emailVersion);
     }
 
     /** Never print personal data, e.g. in logs or debugger views. */

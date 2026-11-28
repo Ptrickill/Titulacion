@@ -11,6 +11,7 @@ import ec.rehabelite.clinicalrecords.domain.Icd10DiagnosisRepository;
 import ec.rehabelite.clinicalrecords.domain.Treatment;
 import ec.rehabelite.clinicalrecords.domain.TreatmentData;
 import ec.rehabelite.clinicalrecords.domain.TreatmentRepository;
+import ec.rehabelite.patients.PatientConsents;
 import ec.rehabelite.patients.PatientDirectory;
 import ec.rehabelite.shared.domain.BusinessRuleException;
 import ec.rehabelite.shared.domain.ClinicCalendar;
@@ -52,6 +53,7 @@ public class ClinicalRecordService {
     private final TreatmentRepository treatmentRepository;
     private final Icd10DiagnosisRepository diagnosisRepository;
     private final PatientDirectory patientDirectory;
+    private final PatientConsents patientConsents;
     private final CurrentUserProvider currentUserProvider;
     private final AuditLogService auditLogService;
     private final Clock clock;
@@ -61,7 +63,8 @@ public class ClinicalRecordService {
      *
      * @throws ResourceNotFoundException if the patient does not exist
      * @throws ConflictException if the patient already has a clinical record (its id in existingClinicalRecordId)
-     * @throws BusinessRuleException if the diagnosis is not in the catalog or a value is out of range
+     * @throws BusinessRuleException if the diagnosis is not in the catalog or a value is out of range, or the patient
+     *         has no valid DATA_PROCESSING consent or is blocked (MEJ-06)
      */
     @Transactional
     public ClinicalRecord create(Long patientId, ClinicalHistoryData history, String diagnosisCode,
@@ -72,6 +75,8 @@ public class ClinicalRecordService {
         clinicalRecordRepository.findByPatientId(patientId).ifPresent(existing -> {
             throw new ConflictException(CLINICAL_RECORD_EXISTS, Map.of(EXISTING_CLINICAL_RECORD_ID, existing.getId()));
         });
+        // MEJ-06: a valid consent to process the data, and a patient not blocked by an erasure request
+        patientConsents.checkCareAllowed(patientId);
         Icd10Diagnosis diagnosis = diagnosis(diagnosisCode);
         Long physiotherapistId = currentPhysiotherapistId();
         Instant now = clock.instant();
@@ -93,12 +98,13 @@ public class ClinicalRecordService {
      *
      * @throws ResourceNotFoundException if the clinical record does not exist
      * @throws BusinessRuleException if a treatment is still active, the diagnosis is not in the catalog or a value
-     *         is out of range
+     *         is out of range, or the patient has no valid DATA_PROCESSING consent or is blocked (MEJ-06)
      */
     @Transactional
     public Treatment openTreatment(Long clinicalRecordId, String diagnosisCode, TreatmentData treatment) {
         ClinicalRecord record = clinicalRecordRepository.findById(clinicalRecordId)
                 .orElseThrow(() -> new ResourceNotFoundException(CLINICAL_RECORD_NOT_FOUND));
+        patientConsents.checkCareAllowed(record.getPatientId());
         Icd10Diagnosis diagnosis = diagnosis(diagnosisCode);
         Long physiotherapistId = currentPhysiotherapistId();
 

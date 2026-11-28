@@ -30,3 +30,7 @@ app:
   frontend-url: http://localhost:4200
   mail:
     from: no-reply@rehabelite.test
+  # MEJ-06: test-only AES-256 key of the clinical text (never used outside the tests)
+  clinical-data:
+    key: AMRp+cyxpXVxQnCIXks0M2MdvAYMHYNvP5Rl4YUbhYM=
+    previous-keys: ""

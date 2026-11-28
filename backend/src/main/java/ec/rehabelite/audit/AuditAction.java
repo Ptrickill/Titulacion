@@ -28,5 +28,10 @@ public enum AuditAction {
      */
     EMAIL_CHANGE,
     /** MEJ-02: the owner confirmed the new email through the emailed link. */
-    EMAIL_CONFIRMATION
+    EMAIL_CONFIRMATION,
+    /**
+     * MEJ-06: an accepted erasure request cleared the contact data of a patient (Patient) or of its portal account
+     * (User). Added by V10.
+     */
+    ANONYMIZATION
 }

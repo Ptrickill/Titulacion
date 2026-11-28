@@ -1,11 +1,13 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { AuthService } from '../../core/auth/auth-service';
 import { logInForTest } from '../../core/auth/auth-testing';
 import { Role } from '../../core/auth/role';
 import { AppShell } from './app-shell';
+import { IdleSession } from '../../core/auth/idle-session';
 
 describe('AppShell', () => {
   let fixture: ComponentFixture<AppShell>;
@@ -70,6 +72,7 @@ describe('AppShell', () => {
       'Reportes Consolidados',
       'Gestión de Personal',
       'Horarios y asignaciones',
+      'Eliminación de datos',
       'Auditoría',
     ]);
     fixture.destroy();
@@ -87,6 +90,33 @@ describe('AppShell', () => {
     expect(element.querySelector('.date time')?.textContent).toMatch(
       /^[a-záéíóúñ]+, \d{1,2} de [a-záéíóúñ]+ de \d{4}$/,
     );
+  });
+
+  it('warns before closing an idle session and keeps it with "Seguir conectado" (MEJ-06)', async () => {
+    const warning = signal(false);
+    const idle = {
+      warning,
+      secondsLeft: signal(95),
+      start: vi.fn(),
+      end: vi.fn(),
+      stayConnected: vi.fn(),
+    };
+    TestBed.overrideProvider(IdleSession, { useValue: idle });
+    await renderAs('PHYSIOTHERAPIST');
+    expect(idle.start).toHaveBeenCalled();
+
+    warning.set(true);
+    await fixture.whenStable();
+    const dialog = document.querySelector('app-idle-warning-dialog')!;
+    expect(dialog.textContent).toContain('Su sesión está por cerrarse');
+    expect(dialog.textContent).toContain('1:35');
+
+    Array.from(dialog.querySelectorAll('button'))
+      .find((button) => button.textContent?.includes('Seguir conectado'))!
+      .click();
+    // afterClosed emits once the closing animation ends
+    await vi.waitFor(() => expect(idle.stayConnected).toHaveBeenCalled());
+    expect(TestBed.inject(AuthService).isAuthenticated()).toBe(true);
   });
 
   it('logs out and returns to /login', async () => {

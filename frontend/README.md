@@ -7,11 +7,13 @@ Angular 22 + Angular Material single-page app. The user interface is in Spanish;
 ```powershell
 npm install          # first time only
 npm start            # dev server on http://localhost:4200, proxies /api to http://localhost:8080
-npx ng build         # production build into dist/rehab-elite
+npx ng build         # production build into dist/rehab-elite (index.prod.html, with the Content-Security-Policy)
 npx ng test --watch=false   # unit tests (Vitest)
 ```
 
 Requires Node.js `^22.22.3` (Angular CLI 22).
+
+The production build uses `src/index.prod.html`, which carries the Content-Security-Policy in a `<meta>` tag (MEJ-06); the development server uses `src/index.html` without it. A session closes after 15 minutes without activity, with a warning 2 minutes before (the login response brings both values).
 
 ## Structure
 

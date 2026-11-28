@@ -1,6 +1,7 @@
 package ec.rehabelite.patients.web;
 
 import ec.rehabelite.catalogs.AddressFormatter;
+import ec.rehabelite.patients.application.ConsentService;
 import ec.rehabelite.patients.application.PatientManagementService;
 import ec.rehabelite.patients.application.PatientRegistrationService;
 import ec.rehabelite.patients.application.PortalAccountService;
@@ -43,6 +44,7 @@ class PatientController {
     private final PatientRegistrationService registrationService;
     private final PatientManagementService managementService;
     private final PortalAccountService portalAccountService;
+    private final ConsentService consentService;
     private final PatientWebMapper mapper;
     private final AddressFormatter addressFormatter;
     private final Clock clock;
@@ -156,7 +158,8 @@ class PatientController {
 
     private PatientResponse toResponse(Patient patient) {
         return mapper.toResponse(patient, ClinicCalendar.today(clock), addressFormatter,
-                portalAccountService.accountOf(patient).orElse(null));
+                portalAccountService.accountOf(patient).orElse(null),
+                consentService.isDataProcessingPending(patient.getId()));
     }
 
 }

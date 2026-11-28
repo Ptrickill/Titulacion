@@ -56,6 +56,13 @@
         Recordarme en este dispositivo
       </mat-checkbox>
 
+      @if (idleLogout()) {
+        <div class="info" role="status">
+          <mat-icon aria-hidden="true">schedule</mat-icon>
+          <span>Su sesión se cerró por inactividad. Ingrese de nuevo.</span>
+        </div>
+      }
+
       @if (errorMessage(); as message) {
         <div class="error" role="alert">
           <mat-icon aria-hidden="true">error</mat-icon>
@@ -72,6 +79,9 @@
       </button>
     </form>
 
-    <p class="footer">Rehab Elite · Conexión segura</p>
+    <p class="footer">
+      Rehab Elite · Conexión segura ·
+      <a class="auth-link privacy" routerLink="/privacy-notice">Aviso de privacidad</a>
+    </p>
   </section>
 </main>

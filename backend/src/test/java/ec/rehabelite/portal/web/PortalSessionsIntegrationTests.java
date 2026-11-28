@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.jayway.jsonpath.JsonPath;
 import ec.rehabelite.AbstractIntegrationTest;
+import ec.rehabelite.TestClinicalText;
 import ec.rehabelite.TestPatients;
 import ec.rehabelite.TestSessions;
 import ec.rehabelite.TestTreatments;
@@ -157,8 +158,10 @@ class PortalSessionsIntegrationTests extends AbstractIntegrationTest {
     void theSessionsInTheDatabaseDoHaveTheFieldsThePortalLeavesOut() {
         // Guards the test above: the data it reads really has observations and a progress status
         assertThat(jdbc.queryForList("""
-                SELECT DISTINCT clinical_observations, progress_status FROM therapy_sessions
-                WHERE treatment_id = ?""", activeTreatment))
+                SELECT clinical_observations, progress_status FROM therapy_sessions
+                WHERE treatment_id = ?""", activeTreatment).stream()
+                .map(row -> TestClinicalText.decryptColumns(row, "clinical_observations"))
+                .distinct())
                 .singleElement()
                 .satisfies(row -> assertThat(row)
                         .containsEntry("clinical_observations", "Observación clínica interna")

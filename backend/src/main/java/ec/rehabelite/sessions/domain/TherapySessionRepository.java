@@ -90,6 +90,13 @@ public interface TherapySessionRepository extends JpaRepository<TherapySession, 
             LIMIT 1""")
     Optional<TherapySession> findLatestWithPatientInstructions(Long treatmentId);
 
+    /**
+     * Every session of the treatments in chronological order (date, time and sequence number), in one statement
+     * (MEJ-06: the export of the clinical record).
+     */
+    List<TherapySession> findByTreatmentIdInOrderBySessionDateAscSessionTimeAscSequenceNumberAsc(
+            Collection<Long> treatmentIds);
+
     /** Locks the session row until the transaction ends, so two corrections never overwrite each other. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT s FROM TherapySession s WHERE s.id = :id")

@@ -115,3 +115,15 @@ app:
   clinic:
     opening-time: "07:00"
     closing-time: "20:00"
+  # MEJ-06: AES-256-GCM key of the clinical text (32 random bytes in Base64). Without it the application does not
+  # start. CLINICAL_DATA_PREVIOUS_KEYS (comma-separated) only decrypts after a rotation. See docs/deployment/cifrado.md
+  clinical-data:
+    key: ${CLINICAL_DATA_KEY:}
+    previous-keys: ${CLINICAL_DATA_PREVIOUS_KEYS:}
+  # MEJ-06: the frontend closes a session after this time without activity, warning before
+  session:
+    idle-timeout: 15m
+    idle-warning: 2m
+  # MEJ-06: days to answer a request of the data subject (to be confirmed by the clinic, docs/compliance/lopdp.md)
+  compliance:
+    request-response-days: 15

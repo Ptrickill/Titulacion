@@ -11,6 +11,7 @@ import ec.rehabelite.audit.AuditAction;
 import ec.rehabelite.audit.AuditLogService;
 import ec.rehabelite.auth.CurrentUser;
 import ec.rehabelite.auth.CurrentUserProvider;
+import ec.rehabelite.auth.PortalAccessPolicy;
 import ec.rehabelite.auth.Role;
 import ec.rehabelite.auth.domain.User;
 import ec.rehabelite.auth.domain.UserRepository;
@@ -37,8 +38,9 @@ class UserManagementServiceTests {
     private final CurrentUserProvider currentUserProvider = mock(CurrentUserProvider.class);
     private final AuditLogService auditLogService = mock(AuditLogService.class);
 
+    private final PortalAccessPolicy portalAccessPolicy = mock(PortalAccessPolicy.class);
     private final UserManagementService service = new UserManagementService(userRepository, linkSender,
-            currentUserProvider, auditLogService, Clock.fixed(NOW, ZoneOffset.UTC));
+            currentUserProvider, auditLogService, portalAccessPolicy, Clock.fixed(NOW, ZoneOffset.UTC));
 
     /** The operations director acts by default (MEJ-05: staff accounts); the tests of patients act as the reception. */
     @BeforeEach

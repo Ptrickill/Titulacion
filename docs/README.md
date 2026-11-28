@@ -12,6 +12,8 @@ Index of the project documentation. Diagram labels and prototype screens are in 
 | [`screenshots/`](screenshots/) | Screenshots of the implemented frontend, one folder per task, to compare with the prototype (e.g. [`tec-05-ui-foundation/`](screenshots/tec-05-ui-foundation/)) |
 | [`evidence/`](evidence/) | Sprint evidence (boards, burndown, pull requests, CI runs, tests, screens, minutes), one folder per sprint |
 | [`user-stories.md`](user-stories.md) | User stories with acceptance criteria (Given / When / Then) |
+| [`compliance/lopdp.md`](compliance/lopdp.md) | LOPDP compliance matrix: each principle, the measure of the system and its evidence, and the clinic's responsibilities (MEJ-06) |
+| [`deployment/`](deployment/) | Deployment notes: database ([`base-de-datos.md`](deployment/base-de-datos.md)), email ([`correo.md`](deployment/correo.md)) and encryption of the clinical text ([`cifrado.md`](deployment/cifrado.md), MEJ-06) |
 
 ## Figures
 

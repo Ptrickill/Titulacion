@@ -61,10 +61,12 @@ public class Patient {
     @Column(nullable = false, length = 10)
     private Sex sex;
 
-    @Column(nullable = false, length = 20)
+    /** Null only after an accepted erasure request (MEJ-06). */
+    @Column(length = 20)
     private String phone;
 
-    @Column(nullable = false, length = 254)
+    /** Null only after an accepted erasure request (MEJ-06). */
+    @Column(length = 254)
     private String email;
 
     /** Structured address (MEJ-03); only the reference for a patient registered before it. */
@@ -104,6 +106,16 @@ public class Patient {
 
     @Column(name = "updated_at")
     private Instant updatedAt;
+
+    /**
+     * When an accepted erasure request blocked the patient (MEJ-06): nobody edits it nor gives it new care or portal
+     * access, and its contact data was cleared. The clinical record is kept. Null while not blocked.
+     */
+    @Column(name = "blocked_at")
+    private Instant blockedAt;
+
+    @Column(name = "blocked_by")
+    private Long blockedBy;
 
     /**
      * New patient. The medical record number is the national ID, assigned here and never by the client.
@@ -180,6 +192,25 @@ public class Patient {
     /** Completed years on the given date. */
     public int ageOn(LocalDate date) {
         return Period.between(birthDate, date).getYears();
+    }
+
+    public boolean isBlocked() {
+        return blockedAt != null;
+    }
+
+    /**
+     * Accepted erasure request (MEJ-06): blocks the patient and clears its email, phone and address. Names, national
+     * ID, medical record number, birth date, sex and admission date stay: they identify the clinical record the law
+     * requires to keep. Irreversible.
+     */
+    public void blockAndClearContactData(Long blockedBy, Instant now) {
+        email = null;
+        phone = null;
+        address = null;
+        this.blockedBy = blockedBy;
+        this.blockedAt = now;
+        this.updatedBy = blockedBy;
+        this.updatedAt = now;
     }
 
     /** Links the patient portal account; a patient has at most one. */

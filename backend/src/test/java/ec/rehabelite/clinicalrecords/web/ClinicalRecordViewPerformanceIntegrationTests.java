@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import ec.rehabelite.AbstractIntegrationTest;
+import ec.rehabelite.TestClinicalText;
 import ec.rehabelite.TestPatients;
 import ec.rehabelite.auth.Role;
 import ec.rehabelite.auth.application.JwtTokenService;
@@ -128,17 +129,22 @@ class ClinicalRecordViewPerformanceIntegrationTests extends AbstractIntegrationT
         Long recordId = jdbc.queryForObject("""
                 INSERT INTO clinical_records (patient_id, habits, physical_activity, allergies, current_medication,
                                               personal_history, surgical_history, family_history, created_by)
-                VALUES (?, 'No fuma', 'Camina', 'Ninguna', 'Ninguna', 'Ninguno', 'Ninguno', 'Ninguno', ?)
-                RETURNING id""", Long.class, patientId, firstPhysioId);
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                RETURNING id""", Long.class, patientId, TestClinicalText.encrypt("No fuma"),
+                TestClinicalText.encrypt("Camina"), TestClinicalText.encrypt("Ninguna"),
+                TestClinicalText.encrypt("Ninguna"), TestClinicalText.encrypt("Ninguno"),
+                TestClinicalText.encrypt("Ninguno"), TestClinicalText.encrypt("Ninguno"), firstPhysioId);
         jdbc.update("""
                 INSERT INTO treatments (clinical_record_id, diagnosis_code, chief_complaint, current_illness,
                                         referring_physician, complementary_tests, severity, pain_type, pain_location,
                                         initial_pain_score, pain_frequency, session_frequency, goal, planned_sessions,
                                         status, start_date, created_by)
-                SELECT ?, 'M54.5', 'Dolor lumbar', 'Tres semanas', 'Dr. Andrade', 'Radiografía', 'MODERATE',
-                       'Punzante', 'Lumbar', 6, 'Intermitente', '3 por semana', 'Reducir el dolor', 10,
-                       CASE WHEN n = ? THEN 'ACTIVE' ELSE 'COMPLETED' END, DATE '2024-01-01' + n * 60, ?
-                FROM generate_series(1, ?) AS n""", recordId, treatments, firstPhysioId, treatments);
+                SELECT ?, 'M54.5', ?, ?, 'Dr. Andrade', ?, 'MODERATE', 'Punzante', 'Lumbar', 6, 'Intermitente',
+                       '3 por semana', ?, 10, CASE WHEN n = ? THEN 'ACTIVE' ELSE 'COMPLETED' END,
+                       DATE '2024-01-01' + n * 60, ?
+                FROM generate_series(1, ?) AS n""", recordId, TestClinicalText.encrypt("Dolor lumbar"),
+                TestClinicalText.encrypt("Tres semanas"), TestClinicalText.encrypt("Radiografía"),
+                TestClinicalText.encrypt("Reducir el dolor"), treatments, firstPhysioId, treatments);
         jdbc.update("""
                 INSERT INTO responsible_assignments (treatment_id, physiotherapist_id, valid_from, valid_to)
                 SELECT t.id, ?, now() - interval '30 days',

@@ -4,11 +4,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ec.rehabelite.audit.AuditAction;
+import ec.rehabelite.shared.crypto.ClinicalTextEncryptor;
+import ec.rehabelite.shared.crypto.EncryptClinicalTextMigration;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationInfo;
+import org.flywaydb.core.api.configuration.FluentConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -21,11 +26,22 @@ class FlywayMigrationTests extends AbstractIntegrationTest {
 
     private final Flyway flyway;
     private final JdbcTemplate jdbc;
+    private final EncryptClinicalTextMigration encryptClinicalText;
+    private final ClinicalTextEncryptor encryptor;
 
     @Autowired
-    FlywayMigrationTests(Flyway flyway, JdbcTemplate jdbc) {
+    FlywayMigrationTests(Flyway flyway, JdbcTemplate jdbc, EncryptClinicalTextMigration encryptClinicalText,
+            ClinicalTextEncryptor encryptor) {
         this.flyway = flyway;
         this.jdbc = jdbc;
+        this.encryptClinicalText = encryptClinicalText;
+        this.encryptor = encryptor;
+    }
+
+    /** Flyway on another database with the SQL migrations and V11, the Java one (MEJ-06), as the application has. */
+    private FluentConfiguration configure(DataSource dataSource) {
+        return Flyway.configure().dataSource(dataSource).locations("classpath:db/migration")
+                .javaMigrations(encryptClinicalText);
     }
 
     @Test
@@ -35,9 +51,9 @@ class FlywayMigrationTests extends AbstractIntegrationTest {
     }
 
     @Test
-    void appliesV1ToV9() {
+    void appliesV1ToV11() {
         assertThat(Arrays.stream(flyway.info().applied()).map(MigrationInfo::getVersion).map(Object::toString))
-                .containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9");
+                .containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11");
         assertThat(flyway.info().applied()).allMatch(migration -> migration.getState().isApplied());
         assertThat(flyway.info().pending()).isEmpty();
     }
@@ -96,13 +112,13 @@ class FlywayMigrationTests extends AbstractIntegrationTest {
             DriverManagerDataSource dataSource = new DriverManagerDataSource(url, POSTGRES.getUsername(),
                     POSTGRES.getPassword());
             JdbcTemplate other = new JdbcTemplate(dataSource);
-            Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").target("4").load().migrate();
+            configure(dataSource).target("4").load().migrate();
             other.update("""
                     INSERT INTO users (email, password_hash, full_name, role, created_at)
                     VALUES ('existente@rehabelite.test', '$2a$10$hash', 'Cuenta Existente', 'PHYSIOTHERAPIST',
                             '2026-09-01T10:00:00Z')""");
 
-            Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").load().migrate();
+            configure(dataSource).load().migrate();
 
             Map<String, Object> account = other.queryForMap("""
                     SELECT password_hash, email_verified_at = created_at AS verified_since_creation, session_version
@@ -130,7 +146,7 @@ class FlywayMigrationTests extends AbstractIntegrationTest {
             DriverManagerDataSource dataSource = new DriverManagerDataSource(url, POSTGRES.getUsername(),
                     POSTGRES.getPassword());
             JdbcTemplate other = new JdbcTemplate(dataSource);
-            Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").target("5").load().migrate();
+            configure(dataSource).target("5").load().migrate();
             String insert = """
                     INSERT INTO patients (national_id, medical_record_number, first_name, last_name, birth_date, sex,
                                           phone, email, address, occupation, education_level, health_insurance)
@@ -141,7 +157,7 @@ class FlywayMigrationTests extends AbstractIntegrationTest {
             other.update(insert, "0912345675", "0912345675", "Mz 3 V 12, Guayaquil", "  ninguno ");
             other.update(insert, "1802345671", "1802345671", "Av. Cevallos, Ambato", "Seguro privado");
 
-            Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").load().migrate();
+            configure(dataSource).load().migrate();
 
             assertThat(other.queryForList("""
                     SELECT national_id || ':' || has_health_insurance || ':' || address_reference || ':'
@@ -194,7 +210,7 @@ class FlywayMigrationTests extends AbstractIntegrationTest {
             DriverManagerDataSource dataSource = new DriverManagerDataSource(url, POSTGRES.getUsername(),
                     POSTGRES.getPassword());
             JdbcTemplate other = new JdbcTemplate(dataSource);
-            Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").target("6").load().migrate();
+            configure(dataSource).target("6").load().migrate();
             String account = """
                     INSERT INTO users (email, password_hash, full_name, role, email_verified_at)
                     VALUES (?, '$2a$10$hash', ?, ?, now()) RETURNING id""";
@@ -214,7 +230,7 @@ class FlywayMigrationTests extends AbstractIntegrationTest {
                             '0990000101', 'rosa@rehabelite.test', 'Contadora', 'Superior', true, ?)""",
                     patientAccount);
 
-            Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").load().migrate();
+            configure(dataSource).load().migrate();
 
             assertThat(other.queryForList("""
                     SELECT u.email || '|' || s.first_name || '|' || s.last_name || '|' || s.email || '|' || u.full_name
@@ -293,7 +309,7 @@ class FlywayMigrationTests extends AbstractIntegrationTest {
             DriverManagerDataSource dataSource = new DriverManagerDataSource(url, POSTGRES.getUsername(),
                     POSTGRES.getPassword());
             JdbcTemplate other = new JdbcTemplate(dataSource);
-            Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").target("7").load().migrate();
+            configure(dataSource).target("7").load().migrate();
             Long userId = other.queryForObject("""
                     INSERT INTO users (email, password_hash, full_name, role, email_verified_at)
                     VALUES ('fisio@rehabelite.test', '$2a$10$hash', 'Lucía Mora', 'PHYSIOTHERAPIST', now())
@@ -302,7 +318,7 @@ class FlywayMigrationTests extends AbstractIntegrationTest {
                     INSERT INTO staff_records (user_id, first_name, last_name, email)
                     VALUES (?, 'Lucía', 'Mora', 'fisio@rehabelite.test') RETURNING id""", Long.class, userId);
 
-            Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").load().migrate();
+            configure(dataSource).load().migrate();
 
             assertThat(other.queryForObject("SELECT first_name || ' ' || last_name FROM staff_records WHERE id = ?",
                     String.class, staffId)).isEqualTo("Lucía Mora");
@@ -334,14 +350,14 @@ class FlywayMigrationTests extends AbstractIntegrationTest {
             DriverManagerDataSource dataSource = new DriverManagerDataSource(url, POSTGRES.getUsername(),
                     POSTGRES.getPassword());
             JdbcTemplate other = new JdbcTemplate(dataSource);
-            Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").target("8").load().migrate();
+            configure(dataSource).target("8").load().migrate();
             String account = """
                     INSERT INTO users (email, password_hash, full_name, role, email_verified_at)
                     VALUES (?, '$2a$10$hash', 'Cuenta', ?, now()) RETURNING id""";
             Long admin = other.queryForObject(account, Long.class, "recepcion@rehabelite.test", "ADMINISTRATOR");
             Long physio = other.queryForObject(account, Long.class, "fisio@rehabelite.test", "PHYSIOTHERAPIST");
 
-            Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").load().migrate();
+            configure(dataSource).load().migrate();
 
             assertThat(other.queryForList("SELECT role || ':' || active FROM users ORDER BY id", String.class))
                     .containsExactly("ADMINISTRATOR:true", "PHYSIOTHERAPIST:true");
@@ -370,6 +386,137 @@ class FlywayMigrationTests extends AbstractIntegrationTest {
         } finally {
             jdbc.execute("DROP DATABASE IF EXISTS " + database + " WITH (FORCE)");
         }
+    }
+
+    /**
+     * MEJ-06: V10 and V11 on a database at V9 with plain clinical text in every encrypted table, the Envers ones and
+     * ai_summaries included. V11 encrypts every value (they decrypt to the original), running the encryption again
+     * changes nothing, and V10 leaves the existing patients without consents ("Consentimiento pendiente").
+     */
+    @Test
+    void v11EncryptsTheExistingClinicalTextOfADatabaseAtV9() throws Exception {
+        String database = "mej06_" + UUID.randomUUID().toString().replace("-", "");
+        jdbc.execute("CREATE DATABASE " + database);
+        try {
+            String url = POSTGRES.getJdbcUrl().replaceFirst("/[^/?]+(\\?|$)", "/" + database + "$1");
+            DriverManagerDataSource dataSource = new DriverManagerDataSource(url, POSTGRES.getUsername(),
+                    POSTGRES.getPassword());
+            JdbcTemplate other = new JdbcTemplate(dataSource);
+            configure(dataSource).target("9").load().migrate();
+            Long physio = other.queryForObject("""
+                    INSERT INTO users (email, password_hash, full_name, role, email_verified_at)
+                    VALUES ('fisio@rehabelite.test', '$2a$10$hash', 'Fisio', 'PHYSIOTHERAPIST', now())
+                    RETURNING id""", Long.class);
+            Long patient = other.queryForObject("""
+                    INSERT INTO patients (national_id, medical_record_number, first_name, last_name, birth_date, sex,
+                                          phone, email, occupation, education_level, has_health_insurance,
+                                          address_reference)
+                    VALUES ('1710034065', '1710034065', 'Rosa', 'Ortiz', DATE '1968-04-12', 'FEMALE', '0990000101',
+                            'rosa@rehabelite.test', 'Contadora', 'Superior', true, 'Texto anterior')
+                    RETURNING id""", Long.class);
+            Long record = other.queryForObject("""
+                    INSERT INTO clinical_records (patient_id, habits, physical_activity, allergies, current_medication,
+                                                  personal_history, surgical_history, family_history)
+                    VALUES (?, 'No fuma', 'Camina', 'Penicilina', 'Ninguna', 'Hipertensión', 'Ninguno', 'Ninguno')
+                    RETURNING id""", Long.class, patient);
+            Long treatment = other.queryForObject("""
+                    INSERT INTO treatments (clinical_record_id, diagnosis_code, chief_complaint, current_illness,
+                                            referring_physician, complementary_tests, severity, pain_type,
+                                            pain_location, initial_pain_score, pain_frequency, session_frequency,
+                                            goal, planned_sessions)
+                    VALUES (?, 'M54.5', 'Dolor lumbar', 'Tres semanas', 'Dr. Andrade', 'Radiografía', 'MODERATE',
+                            'Punzante', 'Lumbar', 6, 'Intermitente', '3 por semana', 'Reducir el dolor', 10)
+                    RETURNING id""", Long.class, record);
+            Long rev = other.queryForObject("INSERT INTO revinfo (revision_timestamp) VALUES (now()) RETURNING rev",
+                    Long.class);
+            other.update("""
+                    INSERT INTO treatments_aud (id, rev, revtype, chief_complaint, current_illness, complementary_tests,
+                                                goal)
+                    VALUES (?, ?, 0, 'Dolor lumbar', 'Tres semanas', 'Radiografía', 'Reducir el dolor')""",
+                    treatment, rev);
+            other.update("""
+                    INSERT INTO treatment_status_changes (treatment_id, user_id, previous_status, new_status, reason)
+                    VALUES (?, ?, 'ACTIVE', 'ABANDONED', 'No asiste')""", treatment, physio);
+            Long session = other.queryForObject("""
+                    INSERT INTO therapy_sessions (treatment_id, responsible_id, sequence_number, session_date,
+                                                  session_time, session_type, activities_performed,
+                                                  clinical_observations, patient_instructions, pain_score,
+                                                  progress_status, status)
+                    VALUES (?, ?, 1, DATE '2026-10-01', TIME '09:00', 'Fisioterapia', 'TENS', 'Buena tolerancia',
+                            NULL, 5, 'IMPROVING', 'COMPLETED')
+                    RETURNING id""", Long.class, treatment, physio);
+            other.update("""
+                    INSERT INTO therapy_sessions_aud (id, rev, revtype, activities_performed, clinical_observations,
+                                                      patient_instructions)
+                    VALUES (?, ?, 0, 'TENS', 'Buena tolerancia', 'Calor local')""", session, rev);
+            other.update("""
+                    INSERT INTO ai_summaries (treatment_id, generated_by_id, generated_content)
+                    VALUES (?, ?, 'Resumen generado')""", treatment, physio);
+
+            configure(dataSource).load().migrate();
+
+            Map<String, String> expected = new LinkedHashMap<>();
+            expected.put("SELECT allergies FROM clinical_records", "Penicilina");
+            expected.put("SELECT chief_complaint FROM treatments", "Dolor lumbar");
+            expected.put("SELECT goal FROM treatments_aud", "Reducir el dolor");
+            expected.put("SELECT reason FROM treatment_status_changes", "No asiste");
+            expected.put("SELECT clinical_observations FROM therapy_sessions", "Buena tolerancia");
+            expected.put("SELECT patient_instructions FROM therapy_sessions_aud", "Calor local");
+            expected.put("SELECT generated_content FROM ai_summaries", "Resumen generado");
+            for (Map.Entry<String, String> entry : expected.entrySet()) {
+                String stored = other.queryForObject(entry.getKey(), String.class);
+                assertThat(stored).as(entry.getKey()).startsWith("enc:v1:");
+                assertThat(TestClinicalText.decrypt(stored)).as(entry.getKey()).isEqualTo(entry.getValue());
+            }
+            assertThat(other.queryForObject("SELECT patient_instructions FROM therapy_sessions", String.class))
+                    .isNull();
+            assertThat(other.queryForObject("SELECT final_content FROM ai_summaries", String.class)).isNull();
+            assertThat(other.queryForObject("""
+                    SELECT count(*) FROM clinical_records
+                    WHERE habits LIKE 'enc:v1:%' AND physical_activity LIKE 'enc:v1:%'
+                      AND family_history LIKE 'enc:v1:%'""", Integer.class)).isEqualTo(1);
+
+            String before = other.queryForObject("SELECT habits FROM clinical_records", String.class);
+            try (var connection = dataSource.getConnection()) {
+                assertThat(encryptor.encryptPlainText(connection)).isZero();
+            }
+            assertThat(other.queryForObject("SELECT habits FROM clinical_records", String.class)).isEqualTo(before);
+
+            // V10: the existing patient has no consent yet, its email may become null, and the new tables exist
+            assertThat(other.queryForObject("SELECT count(*) FROM patient_consents", Integer.class)).isZero();
+            assertThat(other.queryForObject("SELECT count(*) FROM data_subject_requests", Integer.class)).isZero();
+            other.update("UPDATE patients SET email = NULL, phone = NULL, blocked_at = now() WHERE id = ?", patient);
+            assertThatThrownBy(() -> other.update("""
+                    INSERT INTO patient_consents (patient_id, consent_type, text_version, channel)
+                    VALUES (?, 'DATA_PROCESSING', '1', 'ERASURE')""", patient))
+                    .rootCause().hasMessageContaining("ck_patient_consents_channel");
+        } finally {
+            jdbc.execute("DROP DATABASE IF EXISTS " + database + " WITH (FORCE)");
+        }
+    }
+
+    /** MEJ-06: one open consent per patient and type; a closed request has its response and its closing date. */
+    @Test
+    void v10KeepsOneOpenConsentPerTypeAndClosesRequestsWithAResponse() {
+        Long patient = TestPatients.insertWithoutConsent(jdbc, "Paciente", "De Restricciones");
+        String consent = """
+                INSERT INTO patient_consents (patient_id, consent_type, text_version, channel)
+                VALUES (?, 'EMAIL_COMMUNICATIONS', '1', 'PORTAL')""";
+        jdbc.update(consent, patient);
+        assertThatThrownBy(() -> jdbc.update(consent, patient))
+                .rootCause().hasMessageContaining("uq_patient_consents_current");
+        jdbc.update("UPDATE patient_consents SET revoked_at = now(), revocation_channel = 'PORTAL' "
+                + "WHERE patient_id = ?", patient);
+        jdbc.update(consent, patient);
+
+        assertThatThrownBy(() -> jdbc.update("""
+                INSERT INTO data_subject_requests (patient_id, request_type, received_on, status)
+                VALUES (?, 'ACCESS', CURRENT_DATE, 'RESOLVED')""", patient))
+                .rootCause().hasMessageContaining("ck_data_subject_requests_closing");
+        assertThatThrownBy(() -> jdbc.update("""
+                INSERT INTO data_subject_requests (patient_id, request_type, received_on)
+                VALUES (?, 'DELETE', CURRENT_DATE)""", patient))
+                .rootCause().hasMessageContaining("ck_data_subject_requests_type");
     }
 
     private Long insertAccount(String role) {

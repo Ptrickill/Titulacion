@@ -16,7 +16,8 @@ record PersonResponse(
         @Schema(description = "Apellidos", example = "Mora Paz") String lastName,
         @Schema(description = "Rol: PATIENT para los pacientes, el de la cuenta para el personal",
                 example = "PHYSIOTHERAPIST") Role role,
-        @Schema(description = "Correo electrónico", example = "lucia.mora@correo.ec") String email,
+        @Schema(description = "Correo electrónico; null si se borró por una solicitud de eliminación",
+                example = "lucia.mora@correo.ec") String email,
         @Schema(description = "Teléfono; null si falta", example = "0987654321") String phone,
         @Schema(description = "Estado de la cuenta: NONE (sin cuenta), PENDING_ACTIVATION, ACTIVE o INACTIVE",
                 example = "ACTIVE") String accountStatus,
@@ -25,7 +26,9 @@ record PersonResponse(
         boolean emailChangePending,
         @Schema(description = "Datos por completar", example = "false") boolean needsCompletion,
         @Schema(description = "Último inicio de sesión (UTC); null sin cuenta o si nunca ingresó")
-        Instant lastLoginAt) {
+        Instant lastLoginAt,
+        @Schema(description = "Paciente bloqueado por una solicitud de eliminación aceptada (MEJ-06)", example = "false")
+        boolean blocked) {
 
     static PersonResponse of(PersonEntry entry) {
         return new PersonResponse(entry.type(), entry.id(), entry.nationalId(), entry.firstName(), entry.lastName(),
@@ -33,7 +36,7 @@ record PersonResponse(
                 entry.account() == null ? "NONE" : entry.account().status().name(),
                 entry.account() == null ? null : entry.account().userId(),
                 entry.account() != null && entry.account().emailChangePending(), entry.needsCompletion(),
-                entry.account() == null ? null : entry.account().lastLoginAt());
+                entry.account() == null ? null : entry.account().lastLoginAt(), entry.blocked());
     }
 
     /** Never print personal data, e.g. in logs or debugger views. */

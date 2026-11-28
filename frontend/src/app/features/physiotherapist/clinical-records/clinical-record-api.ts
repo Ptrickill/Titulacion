@@ -159,6 +159,16 @@ export const EXISTING_CLINICAL_RECORD_ID = 'existingClinicalRecordId';
 export class ClinicalRecordApi {
   private readonly http = inject(HttpClient);
 
+  /**
+   * MEJ-06: the whole clinical record as a file (PDF or JSON) to hand to the data subject; the API audits it as
+   * EXPORT and sends it with no-store.
+   */
+  exportRecord(patientId: number, format: 'pdf' | 'json'): Observable<Blob> {
+    return this.http.get(`/api/patients/${patientId}/clinical-record/export.${format}`, {
+      responseType: 'blob',
+    });
+  }
+
   searchDiagnoses(query: string): Observable<Icd10Diagnosis[]> {
     return this.http.get<Icd10Diagnosis[]>('/api/icd10-diagnoses', {
       params: new HttpParams().set('q', query),

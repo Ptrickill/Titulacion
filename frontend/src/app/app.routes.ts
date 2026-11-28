@@ -40,6 +40,13 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/auth/confirm-email/confirm-email-page').then((m) => m.ConfirmEmailPage),
   },
+  // MEJ-06: the privacy notice in force, public (linked from the login page and the portal)
+  {
+    path: 'privacy-notice',
+    title: 'Aviso de privacidad | Rehab Elite',
+    loadComponent: () =>
+      import('./features/legal/privacy-notice-page').then((m) => m.PrivacyNoticePage),
+  },
   {
     path: 'olvide-contrasena',
     title: 'Recuperar contraseña | Rehab Elite',

@@ -8,6 +8,7 @@ import ec.rehabelite.auth.CurrentUserProvider;
 import ec.rehabelite.auth.StaffDirectory;
 import ec.rehabelite.clinicalrecords.TreatmentQueryPort;
 import ec.rehabelite.clinicalrecords.TreatmentSummary;
+import ec.rehabelite.patients.PatientConsents;
 import ec.rehabelite.sessions.domain.PainPoint;
 import ec.rehabelite.sessions.domain.SessionStatus;
 import ec.rehabelite.sessions.domain.TherapySession;
@@ -58,6 +59,7 @@ public class TherapySessionService {
 
     private final TherapySessionRepository sessionRepository;
     private final TreatmentQueryPort treatmentQuery;
+    private final PatientConsents patientConsents;
     private final StaffDirectory staffDirectory;
     private final CurrentUserProvider currentUserProvider;
     private final AuditLogService auditLogService;
@@ -108,8 +110,8 @@ public class TherapySessionService {
      * next sequence number (highest + 1) is never taken twice. The responsible is always the authenticated user.
      *
      * @throws ResourceNotFoundException if the treatment does not exist
-     * @throws BusinessRuleException if the treatment is not active, the date is before its start or the pain score
-     *         is outside 0–10
+     * @throws BusinessRuleException if the treatment is not active, the date is before its start, the pain score is
+     *         outside 0–10, or the patient has no valid DATA_PROCESSING consent or is blocked (MEJ-06)
      */
     @Transactional
     public NamedSession register(Long treatmentId, TherapySessionData data) {
@@ -118,6 +120,8 @@ public class TherapySessionService {
         if (!treatment.active()) {
             throw new BusinessRuleException(TREATMENT_NOT_ACTIVE);
         }
+        // MEJ-06: a valid consent to process the data, and a patient not blocked by an erasure request
+        patientConsents.checkCareAllowed(treatment.patientId());
         requireNotBeforeStart(treatment, data);
         Long userId = currentUserId();
         int sequenceNumber = sessionRepository.maxSequenceNumber(treatmentId) + 1;

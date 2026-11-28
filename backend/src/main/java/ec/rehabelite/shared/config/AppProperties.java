@@ -10,6 +10,8 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import java.time.Duration;
 import java.time.LocalTime;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
@@ -31,7 +33,10 @@ public record AppProperties(
         @NotBlank String frontendUrl,
         @Valid @NotNull Mail mail,
         @Valid @DefaultValue Tokens tokens,
-        @Valid @DefaultValue Clinic clinic) {
+        @Valid @DefaultValue Clinic clinic,
+        @Valid @NotNull ClinicalData clinicalData,
+        @Valid @DefaultValue Session session,
+        @Valid @DefaultValue Compliance compliance) {
 
     /**
      * Base URL of the Angular application (APP_FRONTEND_URL), without the trailing slash: the emailed links
@@ -147,6 +152,76 @@ public record AppProperties(
                             && openingTime.isBefore(closingTime));
         }
 
+    }
+
+    /**
+     * Key of the clinical text encryption (MEJ-06): CLINICAL_DATA_KEY, 32 random bytes in Base64 (AES-256), and the
+     * optional CLINICAL_DATA_PREVIOUS_KEYS, the keys used before a rotation, separated by commas, only to read what they
+     * encrypted. The application does not start without a valid key. See docs/deployment/cifrado.md.
+     */
+    public record ClinicalData(
+            @NotBlank(message = "CLINICAL_DATA_KEY is required: 32 random bytes in Base64") String key,
+            String previousKeys) {
+
+        public static final int KEY_BYTES = 32;
+
+        @AssertTrue(message = "CLINICAL_DATA_KEY must be 32 bytes (AES-256) encoded in Base64")
+        public boolean isKeyValid() {
+            return key == null || key.isBlank() || isValidKey(key);
+        }
+
+        @AssertTrue(message = "Each key of CLINICAL_DATA_PREVIOUS_KEYS must be 32 bytes (AES-256) encoded in Base64")
+        public boolean isPreviousKeysValid() {
+            return previousKeyList().stream().allMatch(ClinicalData::isValidKey);
+        }
+
+        /** The previous keys, without blanks; none when the variable is empty. */
+        public List<String> previousKeyList() {
+            if (previousKeys == null || previousKeys.isBlank()) {
+                return List.of();
+            }
+            return Arrays.stream(previousKeys.split(",")).map(String::strip).filter(k -> !k.isEmpty())
+                    .toList();
+        }
+
+        public static boolean isValidKey(String key) {
+            try {
+                return Base64.getDecoder().decode(key.strip()).length == KEY_BYTES;
+            } catch (IllegalArgumentException e) {
+                return false;
+            }
+        }
+
+        /** Never print a key, e.g. in logs or debugger views. */
+        @Override
+        public String toString() {
+            return "ClinicalData[key=" + (key == null || key.isBlank() ? "<blank>" : "<set>") + ", previousKeys="
+                    + previousKeyList().size() + "]";
+        }
+
+    }
+
+    /**
+     * Session security (MEJ-06): the frontend closes a session after {@code idleTimeout} without activity, warning
+     * {@code idleWarning} before. The hard limit is still the expiration of the JWT.
+     */
+    public record Session(
+            @DefaultValue("15m") @NotNull Duration idleTimeout,
+            @DefaultValue("2m") @NotNull Duration idleWarning) {
+
+        @AssertTrue(message = "app.session.idle-warning must be shorter than app.session.idle-timeout")
+        public boolean isWarningBeforeTimeout() {
+            return idleTimeout == null || idleWarning == null
+                    || (idleWarning.isPositive() && idleWarning.compareTo(idleTimeout) < 0);
+        }
+
+    }
+
+    /**
+     * Data protection (MEJ-06): days to answer a request of the data subject, shown as its due date. The legal term
+     * is to be confirmed by the clinic (docs/compliance/lopdp.md).
+     */
+    public record Compliance(@DefaultValue("15") @Positive int requestResponseDays) {
     }
 
     /** Synthetic development data (dev profile only, otherwise null): password of the seed accounts. */

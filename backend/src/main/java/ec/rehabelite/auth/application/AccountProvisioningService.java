@@ -122,6 +122,31 @@ class AccountProvisioningService implements AccountProvisioning {
     }
 
     @Override
+    public void deactivate(Long userId) {
+        User user = find(userId);
+        if (!user.isActive()) {
+            return;
+        }
+        Long changedBy = currentUserProvider.currentUserId().orElse(null);
+        user.deactivate(changedBy, clock.instant());
+        auditLogService.record(AuditAction.STATUS_CHANGE, AUDITED_ENTITY, user.getId());
+        log.info("Account deactivated by its person's module userId={} changedBy={}", user.getId(), changedBy);
+    }
+
+    @Override
+    public void anonymize(Long userId, String placeholderEmail) {
+        User user = find(userId);
+        Long changedBy = currentUserProvider.currentUserId().orElse(null);
+        Instant now = clock.instant();
+        user.anonymize(placeholderEmail, changedBy, now);
+        for (AccountTokenPurpose purpose : AccountTokenPurpose.values()) {
+            tokenService.revoke(user.getId(), purpose, now);
+        }
+        auditLogService.record(AuditAction.ANONYMIZATION, AUDITED_ENTITY, user.getId());
+        log.info("Account anonymized userId={} changedBy={}", user.getId(), changedBy);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public Optional<AccountSummary> summary(Long userId) {
         return userId == null ? Optional.empty() : userRepository.findById(userId).map(User::summary);

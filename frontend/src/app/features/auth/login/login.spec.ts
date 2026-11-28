@@ -68,6 +68,11 @@ describe('Login', () => {
     expect(link?.getAttribute('href')).toBe('/olvide-contrasena');
   });
 
+  it('links to the privacy notice and shows no idle notice by default (MEJ-06)', () => {
+    expect(element.querySelector('a.privacy')?.getAttribute('href')).toBe('/privacy-notice');
+    expect(element.querySelector('.info')).toBeNull();
+  });
+
   it('does not call the backend when the form is invalid', async () => {
     await submit();
 

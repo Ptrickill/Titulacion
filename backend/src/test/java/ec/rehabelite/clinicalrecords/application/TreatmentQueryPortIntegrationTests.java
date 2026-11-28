@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ec.rehabelite.AbstractIntegrationTest;
+import ec.rehabelite.TestClinicalText;
 import ec.rehabelite.TestPatients;
 import ec.rehabelite.TestTreatments;
 import ec.rehabelite.clinicalrecords.PatientTreatment;
@@ -269,8 +270,8 @@ class TreatmentQueryPortIntegrationTests extends AbstractIntegrationTest {
         jdbc.update("""
                 INSERT INTO treatment_status_changes (treatment_id, user_id, previous_status, new_status, reason,
                                                       changed_at)
-                VALUES (?, ?, 'ACTIVE', ?, 'Cierre de prueba', ?)""", treatmentId, userId, newStatus,
-                Timestamp.from(Instant.parse(instant)));
+                VALUES (?, ?, 'ACTIVE', ?, ?, ?)""", treatmentId, userId, newStatus,
+                TestClinicalText.encrypt("Cierre de prueba"), Timestamp.from(Instant.parse(instant)));
     }
 
     /** A treatment of a new patient that started the given days ago, with the physiotherapist as responsible. */

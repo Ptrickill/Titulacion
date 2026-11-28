@@ -1,8 +1,10 @@
 package ec.rehabelite.clinicalrecords.domain;
 
+import ec.rehabelite.shared.crypto.EncryptedText;
 import ec.rehabelite.shared.domain.BusinessRuleException;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -37,24 +39,31 @@ public class ClinicalRecord {
     @Column(name = "patient_id", nullable = false)
     private Long patientId;
 
+    @Convert(converter = EncryptedText.class)
     @Column(nullable = false)
     private String habits;
 
+    @Convert(converter = EncryptedText.class)
     @Column(name = "physical_activity", nullable = false)
     private String physicalActivity;
 
+    @Convert(converter = EncryptedText.class)
     @Column(nullable = false)
     private String allergies;
 
+    @Convert(converter = EncryptedText.class)
     @Column(name = "current_medication", nullable = false)
     private String currentMedication;
 
+    @Convert(converter = EncryptedText.class)
     @Column(name = "personal_history", nullable = false)
     private String personalHistory;
 
+    @Convert(converter = EncryptedText.class)
     @Column(name = "surgical_history", nullable = false)
     private String surgicalHistory;
 
+    @Convert(converter = EncryptedText.class)
     @Column(name = "family_history", nullable = false)
     private String familyHistory;
 

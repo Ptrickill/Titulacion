@@ -81,7 +81,7 @@ export class PeopleTable {
 
   /** Resends the activation link of a pending account, or the confirmation of a new email. */
   protected resend(person: PersonSummary): void {
-    this.runAccountAction(person, (account) => this.accounts.resendOf(account, person.email));
+    this.runAccountAction(person, (account) => this.accounts.resendOf(account, person.email ?? ''));
   }
 
   /** Activates or deactivates the account, after a confirmation. */
@@ -99,7 +99,11 @@ export class PeopleTable {
   }
 
   /** The email split before the at sign, so a long one wraps there and not letter by letter. */
-  protected emailParts(email: string): [string, string] {
+  /** The email split at the "@" so it can break there; a cleared email (MEJ-06) shows as a dash. */
+  protected emailParts(email: string | null): [string, string] {
+    if (email === null) {
+      return ['—', ''];
+    }
     const at = email.indexOf('@');
     return at > 0 ? [email.slice(0, at), email.slice(at)] : [email, ''];
   }

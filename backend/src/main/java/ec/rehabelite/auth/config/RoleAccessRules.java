@@ -44,11 +44,18 @@ final class RoleAccessRules {
             new Rule("/api/staff/**", Role.OPERATIONS_DIRECTOR),
             // Schedules board, availability and reassignment of treatments (MEJ-04): no clinical data
             new Rule("/api/operations/**", Role.OPERATIONS_DIRECTOR),
+            // Erasure requests (MEJ-06): only the operations director accepts them
+            new Rule("/api/data-requests/**", Role.OPERATIONS_DIRECTOR),
             // Portal account of a patient, created from its record (MEJ-02).
             // More specific than /api/patients/**, so it must stay before it (first match wins)
             new Rule("/api/patients/*/portal-account", Role.ADMINISTRATOR),
-            // A patient's clinical record is clinical data (HU-07): physiotherapists only, before /api/patients/**
-            new Rule("/api/patients/*/clinical-record", Role.PHYSIOTHERAPIST),
+            // Consents, requests of the data subject and the export of the personal data (MEJ-06): the reception
+            new Rule("/api/patients/*/consents/**", Role.ADMINISTRATOR),
+            new Rule("/api/patients/*/data-requests/**", Role.ADMINISTRATOR),
+            new Rule("/api/patients/*/data-export.*", Role.ADMINISTRATOR),
+            // A patient's clinical record is clinical data (HU-07): physiotherapists only, also its export (MEJ-06);
+            // before /api/patients/**
+            new Rule("/api/patients/*/clinical-record/**", Role.PHYSIOTHERAPIST),
             // Only the administrator registers (HU-05) and updates (HU-06) patients; also before /api/patients/**
             new Rule(HttpMethod.POST, "/api/patients", Role.ADMINISTRATOR),
             new Rule(HttpMethod.PUT, "/api/patients/**", Role.ADMINISTRATOR),
@@ -66,7 +73,7 @@ final class RoleAccessRules {
             new Rule("/api/reports/**", Role.OPERATIONS_DIRECTOR),
             // Audit log queries: metadata only (HU-18); the reception sees only the patients' entries (MEJ-05)
             new Rule("/api/audit-logs/**", Role.OPERATIONS_DIRECTOR, Role.ADMINISTRATOR),
-            // Read-only patient portal
+            // Patient portal: read-only, except the patient's own consents (MEJ-06)
             new Rule("/api/portal/**", Role.PATIENT));
 
     private RoleAccessRules() {

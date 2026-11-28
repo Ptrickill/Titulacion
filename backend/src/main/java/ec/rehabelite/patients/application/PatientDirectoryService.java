@@ -104,8 +104,8 @@ class PatientDirectoryService implements PatientDirectory {
 
     private static PatientRegistryEntry toRegistryEntry(Patient patient) {
         return new PatientRegistryEntry(patient.getId(), patient.getNationalId(), patient.getFirstName(),
-                patient.getLastName(), patient.getEmail(), patient.getPhone(), patient.needsCompletion(),
-                patient.getPortalUserId());
+                patient.getLastName(), patient.getEmail(), patient.getPhone(),
+                !patient.isBlocked() && patient.needsCompletion(), patient.getPortalUserId(), patient.isBlocked());
     }
 
     private PatientProfile toProfile(Patient patient) {

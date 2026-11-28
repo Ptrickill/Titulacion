@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import ec.rehabelite.AbstractIntegrationTest;
+import ec.rehabelite.TestClinicalText;
 import ec.rehabelite.TestPatients;
 import ec.rehabelite.TestTreatments;
 import ec.rehabelite.auth.Role;
@@ -238,10 +239,11 @@ class PortalPerformanceIntegrationTests extends AbstractIntegrationTest {
                                               session_type, activities_performed, clinical_observations,
                                               patient_instructions, pain_score, progress_status, status)
                 SELECT t.id, ?, n, t.start_date + n, TIME '09:30', 'Fisioterapia lumbar mecánica',
-                       'Movilización lumbar', 'Buena tolerancia', 'Calor local 15 minutos', 10 - n % 11, 'IMPROVING',
-                       CASE WHEN n % 10 = 0 THEN 'RESCHEDULED' ELSE 'COMPLETED' END
+                       ?, ?, ?, 10 - n % 11, 'IMPROVING', CASE WHEN n % 10 = 0 THEN 'RESCHEDULED' ELSE 'COMPLETED' END
                 FROM treatments t, generate_series(1, ?) AS n
-                WHERE t.id = ?""", physiotherapistId, sessions, treatmentId);
+                WHERE t.id = ?""", physiotherapistId, TestClinicalText.encrypt("Movilización lumbar"),
+                TestClinicalText.encrypt("Buena tolerancia"), TestClinicalText.encrypt("Calor local 15 minutos"),
+                sessions, treatmentId);
     }
 
     /** READ entries of the patient with five treatments. */

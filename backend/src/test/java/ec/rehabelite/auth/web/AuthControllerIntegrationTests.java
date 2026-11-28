@@ -61,6 +61,9 @@ class AuthControllerIntegrationTests extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tokenType").value("Bearer"))
                 .andExpect(jsonPath("$.expiresAt").isNotEmpty())
+                // MEJ-06: the frontend closes the session after 15 minutes without activity, warning 2 minutes before
+                .andExpect(jsonPath("$.idleTimeoutSeconds").value(900))
+                .andExpect(jsonPath("$.idleWarningSeconds").value(120))
                 .andExpect(jsonPath("$.user.id").value(user.getId()))
                 .andExpect(jsonPath("$.user.email").value(user.getEmail()))
                 .andExpect(jsonPath("$.user.fullName").value("Paula Cevallos"))
